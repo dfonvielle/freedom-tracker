@@ -21,7 +21,7 @@
   'use strict';
 
   // >>> THE ONE LINE YOU EDIT ON EVERY UPGRADE <<<
-  var CURRENT_LOADER = 'loader.v4.js';
+  var CURRENT_LOADER = 'loader.v5.js';
 
   var BASE = 'https://dfonvielle.github.io/freedom-tracker/';
 
