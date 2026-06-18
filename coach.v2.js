@@ -42,8 +42,8 @@
     var COPY = {
       LOADING: 'Opening your coach\u2026',
       HEADER: '{NAME}Freedom Coach',
-      SUBLINE: 'Day {DAY} of your sprint',
-      INTRO: 'Everything I say here comes from your tracker. Tell me where you are at, or tap below and I will point you to your next move.',
+      SUBLINE: 'Day {DAY}',
+      INTRO: 'Everything I say here is based on what you\u2019ve shared in your tracker. Tell me where you are at, or tap below and I will point you to your next move.',
       RECOMMEND_BTN: 'Recommend my next move',
       RECOMMEND_THINKING: 'Reading your tracker\u2026',
       CHAT_PLACEHOLDER: 'Type a message to your coach\u2026',
@@ -65,7 +65,7 @@
       ERROR_GENERIC: 'Something hiccuped on my end. Try that again in a moment.',
       NO_PROJECT_TITLE: 'Activate your tracker first',
       NO_PROJECT_TEXT: 'Open your Freedom Tracker once to activate it on this account, then come back here and I will be ready.',
-      READONLY_NOTE: 'Your editing window has closed, so I can still talk things through but I cannot write to your tracker.',
+      READONLY_NOTE: 'Your editing window has closed. I can still talk things through, but I cannot write to your tracker.',
       // --- Phase 5: guided emotion-first flow ---
       MORE_HELP_BTN: 'More help options',
       MORE_HELP_CLOSE: 'Close',
@@ -92,6 +92,7 @@
       writable: true,
       ub: '',
       activeProjectId: null,
+      projects: [],
       messages: [],          // {role:'coach'|'student', text}
       busy: false,
       booted: false,
@@ -178,6 +179,7 @@
           persistToken(data);
           if (!data.activeProjectId) { return renderNoProject(); }
           state.firstName = data.firstName || '';
+          state.projects = data.projects || [];
           state.activeProjectId = data.activeProjectId;
           state.currentDay = data.currentDay || 0;
           state.maxDay = data.maxDay || 7;
@@ -249,6 +251,50 @@
     }
 
     // ============================================================
+    // Project picker (multi-project switch, mirrors the tracker loader)
+    // Numbered Project 1..N by age (oldest = 1), listed newest-first,
+    // defaulting to the active project. Hidden when there is only one.
+    // ============================================================
+    function coachProjectPickerHtml() {
+      var projects = state.projects || [];
+      if (projects.length <= 1) { return ''; }
+      var byOldest = projects.slice().sort(function (a, b) {
+        var ad = String(a.day0Date || ''), bd = String(b.day0Date || '');
+        if (ad !== bd) { return ad < bd ? -1 : 1; }
+        return (b.currentDay || 0) - (a.currentDay || 0);
+      });
+      var ordinalById = {};
+      for (var oi = 0; oi < byOldest.length; oi++) {
+        ordinalById[byOldest[oi].projectId] = oi + 1;
+      }
+      var byNewest = projects.slice().sort(function (a, b) {
+        var a2 = String(a.day0Date || ''), b2 = String(b.day0Date || '');
+        if (a2 !== b2) { return a2 < b2 ? 1 : -1; }
+        return (a.currentDay || 0) - (b.currentDay || 0);
+      });
+      var html = '<select id="fc-project" class="fc-project">';
+      for (var i = 0; i < byNewest.length; i++) {
+        var p = byNewest[i];
+        html += '<option value="' + esc(p.projectId) + '"' +
+          (String(p.projectId) === String(state.activeProjectId) ? ' selected' : '') + '>' +
+          'Project ' + ordinalById[p.projectId] + ' (Day ' + p.currentDay + ')</option>';
+      }
+      return html + '</select>';
+    }
+
+    function onProjectChange(newId) {
+      if (!newId || String(newId) === String(state.activeProjectId)) { return; }
+      state.activeProjectId = newId;
+      state.messages = [];
+      state.helpOpen = false;
+      state.helpMenu = null;     // help menu is localized per project, so refetch
+      state.helpFeeling = null;
+      state.busy = false;
+      rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
+      loadState();
+    }
+
+    // ============================================================
     // Render: the coach
     // ============================================================
     function renderCoach() {
@@ -261,6 +307,7 @@
               '<h3>' + name + 'Freedom Coach</h3>' +
               '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) + '</p>' +
             '</div>' +
+            coachProjectPickerHtml() +
           '</div>' +
           '<div class="fc-intro">' + esc(COPY.INTRO) + '</div>' +
           (state.writable ? '' : '<div class="fc-note fc-readonly">' + esc(COPY.READONLY_NOTE) + '</div>') +
@@ -283,6 +330,8 @@
       document.getElementById('fc-recommend').addEventListener('click', onRecommend);
       document.getElementById('fc-morehelp').addEventListener('click', onMoreHelp);
       document.getElementById('fc-send').addEventListener('click', onSend);
+      var fcProj = document.getElementById('fc-project');
+      if (fcProj) { fcProj.addEventListener('change', function () { onProjectChange(this.value); }); }
       var input = document.getElementById('fc-input');
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
@@ -778,6 +827,7 @@
         '#freedom-coach .fc-sub{font-size:13.5px;color:#5b6b7a;margin:0;}' +
         '#freedom-coach .fc-center{text-align:center;color:#5b6b7a;font-size:14.5px;padding:8px 0;}' +
         '#freedom-coach .fc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:14px;}' +
+        '#freedom-coach .fc-project{border:1px solid #c4cfd9;border-radius:8px;padding:9px 10px;font-size:15px;font-family:inherit;color:inherit;background:#fff;max-width:200px;}' +
         '#freedom-coach .fc-intro{background:#eef6f3;border:1px solid #bcd9cf;border-radius:8px;padding:11px 13px;font-size:14.5px;margin-bottom:14px;}' +
         '#freedom-coach .fc-note{border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:14px;}' +
         '#freedom-coach .fc-readonly{background:#eef3f6;border:1px solid #c4cfd9;color:#5b6b7a;}' +

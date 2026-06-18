@@ -50,9 +50,9 @@
    */
   var COPY = {
     LOADING: 'Loading your Freedom Tracker\u2026',
-    HEADER_TODAY: 'Today is Day {DAY} of your sprint.',
-    WIZ1_TITLE: 'Welcome{NAME}! Let\u2019s set up your sprint.',
-    WIZ1_LABEL: 'For this one-week sprint, I want to make it easier and more enjoyable to be free from the following Unwanted Behavior (UB):',
+    HEADER_TODAY: 'Today is Day {DAY}.',
+    WIZ1_TITLE: 'Welcome{NAME}! Let\u2019s set up your project.',
+    WIZ1_LABEL: 'I want to make it easier and more enjoyable to be free from the following Unwanted Behavior (UB):',
     WIZ1_PLACEHOLDER: 'Your behavior \u2014 or just write "my UB" to keep it private',
     WIZ1_BUTTON: 'Continue \u2192',
     WIZ1_ERROR: 'Name the behavior \u2014 "my UB" is fine if you\u2019d rather keep it private.',
@@ -66,7 +66,7 @@
     WIZ3_PLACEHOLDER: 'e.g. 7am, while my coffee brews',
     WIZ3_BUTTON: 'Continue \u2192',
     WIZ3_ERROR: 'Pick a real time and place \u2014 e.g. "7am, while my coffee brews".',
-    WIZ4_BUTTON: 'Start My Sprint \u2192',
+    WIZ4_BUTTON: 'Let\u2019s Get Started \u2192',
     GOAL_TITLE: 'Your Goal & Plan',
     GOAL_LABEL: 'I want to make it easier and more enjoyable to be free from:',
     GOAL_JS_LABEL: 'Every morning, I\u2019ll do 30 seconds\u20132 minutes of rewiring (the Happiness & Success Jumpstart) at this moment:',
@@ -134,7 +134,7 @@
     COPY_BUTTON: 'Copy prompt',
     COPIED: 'Copied \u2713',
     COPY_FALLBACK: 'Press and hold the text above to copy it.',
-    DAILY_GUIDE_TITLE: 'Daily Rewiring Routine for Days 2-7',
+    DAILY_GUIDE_TITLE: 'Daily Rewiring Routine',
     DAILY_GUIDE_LEAD: 'Each day do:',
     DAILY_GUIDE_BULLETS: [
       'Happiness & Success Jumpstart',
@@ -678,6 +678,7 @@
         .then(function (data) {
           if (!data.ok) return setMsg('ft-wiz-msg', data.error, false);
           state.setup.stage = 4;
+          state.tab = 'day';
           state.currentDay = data.currentDay;
           state.viewingDay = data.currentDay;
           state.dayData = data.day;
@@ -764,12 +765,27 @@
     html += '<div><h3>' + (name ? esc(name) + '\u2019s ' : '') + 'Freedom Tracker</h3>';
     html += '<p class="ft-sub">' + esc(state.currentDay <= 7 ? COPY.HEADER_TODAY.replace('{DAY}', state.currentDay) : ('Today is Day ' + state.currentDay + '.')) + '</p></div>';
     if (state.projects.length > 1) {
+      // Number projects by age (oldest = Project 1), list newest-first.
+      var byOldest = state.projects.slice().sort(function (a, b) {
+        var ad = String(a.day0Date || ''), bd = String(b.day0Date || '');
+        if (ad !== bd) return ad < bd ? -1 : 1;
+        return (b.currentDay || 0) - (a.currentDay || 0);
+      });
+      var ordinalById = {};
+      for (var oi = 0; oi < byOldest.length; oi++) {
+        ordinalById[byOldest[oi].projectId] = oi + 1;
+      }
+      var byNewest = state.projects.slice().sort(function (a, b) {
+        var a2 = String(a.day0Date || ''), b2 = String(b.day0Date || '');
+        if (a2 !== b2) return a2 < b2 ? 1 : -1;
+        return (a.currentDay || 0) - (b.currentDay || 0);
+      });
       html += '<select id="ft-project">';
-      for (var i = 0; i < state.projects.length; i++) {
-        var p = state.projects[i];
+      for (var i = 0; i < byNewest.length; i++) {
+        var p = byNewest[i];
         html += '<option value="' + esc(p.projectId) + '"' +
           (p.projectId === state.activeProjectId ? ' selected' : '') + '>' +
-          esc(p.name) + ' (Day ' + p.currentDay + ')</option>';
+          'Project ' + ordinalById[p.projectId] + ' (Day ' + p.currentDay + ')</option>';
       }
       html += '</select>';
     }
@@ -803,6 +819,20 @@
   // ============================================================
   function renderNavigator() {
     state.viewingWeek = weekOfDay_(state.viewingDay == null ? state.currentDay : state.viewingDay);
+
+    // Onboarding gate: a brand-new student (still on Day 0, Day 0 not yet
+    // completed) sees ONLY the Day 0 card — no chips, no tabs. The full
+    // navigator unlocks the moment Day 0 is complete (see wireDaySave).
+    var day0Done = state.completion && state.completion[0];
+    if (state.currentDay <= 0 && !day0Done) {
+      state.tab = 'day';
+      state.viewingDay = 0;
+      renderShell('', null);
+      state.dayData = (state._dayCache && state._dayCache[0]) || null;
+      loadDayInto(0, {});
+      return;
+    }
+
     renderShell('', chipsHtml());
     wireChips();
     if (state.tab === 'goalplan') { setBody(goalPlanEditHtml()); wireGoalPlanSave(); }
@@ -1427,6 +1457,9 @@
           if (dd.day === 0) {
             var b = document.getElementById('ft-save');
             if (b) b.textContent = COPY.DAY0.BUTTON_DONE;
+            if (state.view === 'full' && state.completion && state.completion[0]) {
+              return route();   // Day 0 just completed: unlock the full navigator
+            }
           }
           if (state.view === 'full') refreshChips();
         })
