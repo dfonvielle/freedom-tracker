@@ -534,7 +534,7 @@
     if (state.view === 'day1guidance') return renderDay1Guide();
     if (state.view === 'days2to7full') return renderDays2to7FullView();
     if (state.view === 'dailyguidance') return renderDailyGuideView();
-    if (state.view === 'days2to7checkin') return renderFixedDayView(clampDay2to7_());
+    if (state.view === 'days2to7checkin') return renderDailyCheckinView();
     if (state.view === 'progress') return renderProgressView();
     if (state.view === 'evaluate') return renderEvaluateView();
     if (state.view === 'reflections') return renderReflectionsView();
@@ -948,6 +948,20 @@
     state.dayData = (state._dayCache && state._dayCache[day]) || null;
     loadDayInto(day, {});
   }
+  // Daily check-in: always lands on the actual current day (not clamped to 2-7).
+  // Day 0 and Day 1 render as daily check-in cards here (variant 'daily');
+  // everywhere else they keep their special cards. The daily variant for the low
+  // days bypasses the shared day cache so it never collides with the special-card
+  // version of the same day number.
+  function renderDailyCheckinView() {
+    var day = state.currentDay;
+    if (day < 0) day = 0;
+    if (day > state.maxTrackedDay) day = state.maxTrackedDay;
+    renderShell('', null);
+    state.viewingDay = day;
+    state.dayData = (day <= 1) ? null : ((state._dayCache && state._dayCache[day]) || null);
+    loadDayInto(day, { variant: 'daily' });
+  }
   function renderTodayView() {
     state.viewingDay = (state.viewingDay == null) ? state.currentDay : state.viewingDay;
     renderShell(dailyGuideHtml(), null);
@@ -1285,14 +1299,19 @@
   // ============================================================
   function loadDayInto(day, opts) {
     opts = opts || {};
-    var cached = state._dayCache && state._dayCache[day];
+    var variant = opts.variant || null;
+    // The daily-check-in variant for Day 0/1 produces a DIFFERENT card than the
+    // special get-ready / Power Hour version of the same day, so it must not read
+    // or write the shared day cache (which is keyed by day number only).
+    var bypassCache = (variant === 'daily' && day <= 1);
+    var cached = (!bypassCache && state._dayCache) ? state._dayCache[day] : null;
     if (cached) {
       state.dayData = cached;
       renderDayCard(cached, opts);
-      callGateway({ action: 'getDay', projectId: state.activeProjectId, day: day })
+      callGateway(getDayPayload_(day, variant))
         .then(function (data) {
           if (!data.ok) return;
-          cacheDay(data.day);
+          if (!bypassCache) cacheDay(data.day);
           if (state.viewingDay === day && safeToRerender() &&
               JSON.stringify(data.day) !== JSON.stringify(cached)) {
             state.dayData = data.day;
@@ -1302,14 +1321,19 @@
       return;
     }
     setBodyTarget(opts.holder, '<div class="ft-center ft-sub">Loading Day ' + day + '\u2026</div>');
-    callGateway({ action: 'getDay', projectId: state.activeProjectId, day: day })
+    callGateway(getDayPayload_(day, variant))
       .then(function (data) {
         if (!data.ok) return setBodyTarget(opts.holder, badMsg(data.error));
         state.dayData = data.day;
-        cacheDay(data.day);
+        if (!bypassCache) cacheDay(data.day);
         renderDayCard(data.day, opts);
       })
       .catch(function (err) { setBodyTarget(opts.holder, badMsg(String(err))); });
+  }
+  function getDayPayload_(day, variant) {
+    var payload = { action: 'getDay', projectId: state.activeProjectId, day: day };
+    if (variant) payload.variant = variant;
+    return payload;
   }
   function firstIncompletePastDay() {
     if (!state.completion) return null;
@@ -1357,7 +1381,7 @@
     if (!ro) wireDaySave(dd, opts);
   }
   function renderDayCard(dd, opts) {
-    if (dd.day === 0) return renderDay0Card(dd, opts);
+    if (dd.day === 0 && !dd.gridDay) return renderDay0Card(dd, opts);
     var ro = !canEdit_();
     var html = '<h4>' + esc(dd.title) + '</h4>';
     if (ro) html += readOnlyBannerHtml();
@@ -1372,15 +1396,15 @@
     }
     if (dd.day < state.currentDay) html += '<div class="ft-note">' + esc(COPY.PAST_DAY_NOTE) + '</div>';
     else if (dd.day > state.currentDay) html += '<div class="ft-note">' + esc(COPY.FUTURE_DAY_NOTE) + '</div>';
-    if (dd.day >= 1 && state.setup.ub) {
+    if ((dd.day >= 1 || dd.gridDay) && state.setup.ub) {
       html += '<div class="ft-grounding">' + esc(COPY.GROUNDING) + '<strong>' + esc(state.setup.ub) + '</strong></div>' +
         '<div class="ft-divider"></div>';
     }
-    if (dd.day === 1) html += '<div class="ft-step-h">' + esc(COPY.D1_TOOLS_HEADER) + '</div>';
+    if (dd.day === 1 && !dd.gridDay) html += '<div class="ft-step-h">' + esc(COPY.D1_TOOLS_HEADER) + '</div>';
     for (var i = 0; i < dd.fields.length; i++) {
       var f = dd.fields[i];
-      if (dd.day >= 2 && f.key === 'jumpstart') html += '<h4 class="ft-center-h ft-group-h">' + esc(COPY.SECTION_KEY_EFFORTS) + '</h4>';
-      if (dd.day >= 2 && f.key === 'wins') html += '<h4 class="ft-center-h ft-group-h">' + esc(COPY.SECTION_REFLECTION) + '</h4>';
+      if ((dd.day >= 2 || dd.gridDay) && f.key === 'jumpstart') html += '<h4 class="ft-center-h ft-group-h">' + esc(COPY.SECTION_KEY_EFFORTS) + '</h4>';
+      if ((dd.day >= 2 || dd.gridDay) && f.key === 'wins') html += '<h4 class="ft-center-h ft-group-h">' + esc(COPY.SECTION_REFLECTION) + '</h4>';
       if (f.missing) {
         html += '<div class="ft-field ft-sub">\u26a0 "' + esc(f.label) + '" isn\u2019t wired up yet (named range missing).</div>';
         continue;
@@ -1443,7 +1467,9 @@
       }
       setMsg('ft-save-msg', COPY.SAVED, true);   // optimistic
       state.dirty = false;
-      callGateway({ action: 'save', projectId: state.activeProjectId, day: dd.day, fields: fields, dayScores: dayScores })
+      var savePayload = { action: 'save', projectId: state.activeProjectId, day: dd.day, fields: fields, dayScores: dayScores };
+      if (opts.variant) savePayload.variant = opts.variant;
+      callGateway(savePayload)
         .then(function (data) {
           if (!data.ok) {
             if (data.windowClosed) { state.writable = false; writeStateCache(); renderDayCard(dd, opts); return; }
