@@ -203,6 +203,7 @@
     writable: true,           // active project still in its editing window?
     setup: { stage: 0, ub: '', jumpstart: '' },
     scoreQuestions: null,
+    prompts: null,
     completion: null,
     viewingDay: null, viewingWeek: null, dayData: null, scores: null,
     reflections: null,
@@ -288,6 +289,7 @@
           currentDay: state.currentDay, maxDay: state.maxDay, maxTrackedDay: state.maxTrackedDay,
           writable: state.writable,
           setup: state.setup, scoreQuestions: state.scoreQuestions,
+          prompts: state.prompts,
           completion: state.completion,
           firstName: (state.identity && state.identity.firstName) || '',
           days: state._dayCache || {}
@@ -305,6 +307,7 @@
     state.writable = (snap.writable === false) ? false : true;
     state.setup = snap.setup || state.setup;
     state.scoreQuestions = snap.scoreQuestions || null;
+    state.prompts = snap.prompts || null;
     state.completion = snap.completion || null;
     state._dayCache = snap.days || {};
     if (state.viewingDay == null) state.viewingDay = state.currentDay;
@@ -494,6 +497,7 @@
         state.writable = (data.writable === false) ? false : true;
         state.setup = data.setup || { stage: 0, ub: '', jumpstart: '' };
         state.scoreQuestions = data.scoreQuestions || null;
+        state.prompts = data.prompts || state.prompts || null;
         state.completion = data.completion || state.completion;
         if (data.day) { cacheDay(data.day); if (!background || !state.dayData) state.dayData = data.day; }
         if (state.viewingDay == null) state.viewingDay = state.currentDay;
@@ -1001,7 +1005,7 @@
       '<p class="ft-body-text">' + esc(COPY.D1G_INTRO) + '</p>' +
       toolsHtml +
       '<p class="ft-body-text">' + COPY.D1G_WITHDRAWAL + '</p>' +
-      promptBoxHtml(COPY.D1G_PROMPT_LABEL, COPY.D1G_PROMPT, COPY.PROMPT_TIP) +
+      promptBoxHtml(COPY.D1G_PROMPT_LABEL, (state.prompts && state.prompts.day1) || COPY.D1G_PROMPT, COPY.PROMPT_TIP) +
       '<p class="ft-body-text">' + esc(COPY.D1G_AFTER) + '</p>';
   }
   function renderDay1Guide() {
@@ -1015,7 +1019,7 @@
     return '<h4 class="ft-center-h">' + esc(COPY.DAILY_GUIDE_TITLE) + '</h4>' +
       '<p class="ft-body-text">' + esc(COPY.DAILY_GUIDE_LEAD) + '</p>' +
       bullets +
-      promptBoxHtml(COPY.DAILY_PROMPT_LABEL, COPY.DAILY_PROMPT, COPY.DAILY_PROMPT_TIP);
+      promptBoxHtml(COPY.DAILY_PROMPT_LABEL, (state.prompts && state.prompts.daily) || COPY.DAILY_PROMPT, COPY.DAILY_PROMPT_TIP);
   }
   function renderDailyGuideView() {
     renderShell(dailyGuideInnerHtml(), null);
