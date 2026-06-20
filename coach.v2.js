@@ -43,6 +43,9 @@
       LOADING: 'Opening your coach\u2026',
       HEADER: '{NAME}Freedom Coach',
       SUBLINE: 'Day {DAY}',
+      REFRESH_BTN: '\u21bb Refresh',
+      REFRESH_DOING: 'Refreshing\u2026',
+      REFRESH_DONE: 'Updated \u2713',
       INTRO: 'Everything I say is based on what\u2019s in your tracker and what you tell me. Tell me more about your situation, or tap below and I will point you to your next move.',
       RECOMMEND_BTN: 'Recommend my next move',
       RECOMMEND_THINKING: 'Reading your tracker\u2026',
@@ -100,7 +103,10 @@
       // guided flow
       helpOpen: false,
       helpMenu: null,        // {ub, canLog, feelings:[...]}
-      helpFeeling: null      // current feeling object when in the form
+      helpFeeling: null,     // current feeling object when in the form
+      // soft refresh
+      _refreshing: false,
+      _refreshFlash: false
     };
 
     var rootEl = null;
@@ -295,6 +301,39 @@
     }
 
     // ============================================================
+    // SOFT REFRESH — re-pull the coach fresh and clear the local mess.
+    // Re-reads state from the Gateway, clears the current conversation
+    // and the guided-help panel, and re-localizes the help menu. Keeps
+    // the activation token and the active project. Also drops the
+    // TRACKER's cached state snapshot, so hitting refresh on either
+    // surface freshens both. (The token-dropping nuclear reset stays on
+    // the tracker's AG_FT_RESET, for support only.)
+    // ============================================================
+    function coachSoftRefresh() {
+      if (state._refreshing) { return; }
+      state._refreshing = true;
+
+      var btn = document.getElementById('fc-refresh');
+      if (btn) { btn.textContent = COPY.REFRESH_DOING; btn.disabled = true; }
+
+      // Clear the local conversation + guided-help state.
+      state.messages = [];
+      state.helpOpen = false;
+      state.helpMenu = null;
+      state.helpFeeling = null;
+      state.busy = false;
+
+      // Also clear the tracker loader's persisted snapshot (shared device),
+      // so the Freedom Tracker re-pulls fresh next time it loads.
+      try { localStorage.removeItem('ag_ft_cache_v6'); } catch (e) {}
+
+      // Confirm on the next header render, then re-pull.
+      state._refreshFlash = true;
+      state._refreshing = false;
+      loadState();
+    }
+
+    // ============================================================
     // Render: the coach
     // ============================================================
     function renderCoach() {
@@ -305,7 +344,10 @@
           '<div class="fc-head">' +
             '<div>' +
               '<h3>' + name + 'Freedom Coach</h3>' +
-              '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) + '</p>' +
+              '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) +
+                ' <span class="fc-sep">·</span> ' +
+                '<button class="fc-refreshlink" id="fc-refresh">' +
+                esc(state._refreshFlash ? COPY.REFRESH_DONE : COPY.REFRESH_BTN) + '</button></p>' +
             '</div>' +
             coachProjectPickerHtml() +
           '</div>' +
@@ -332,6 +374,15 @@
       document.getElementById('fc-send').addEventListener('click', onSend);
       var fcProj = document.getElementById('fc-project');
       if (fcProj) { fcProj.addEventListener('change', function () { onProjectChange(this.value); }); }
+      var fcRefresh = document.getElementById('fc-refresh');
+      if (fcRefresh) { fcRefresh.addEventListener('click', coachSoftRefresh); }
+      if (state._refreshFlash) {
+        state._refreshFlash = false;
+        setTimeout(function () {
+          var c = document.getElementById('fc-refresh');
+          if (c) { c.textContent = COPY.REFRESH_BTN; c.disabled = false; }
+        }, 2000);
+      }
       var input = document.getElementById('fc-input');
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
@@ -834,6 +885,10 @@
         // buttons
         '#freedom-coach button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-weight:700;}' +
         '#freedom-coach button:disabled{opacity:.55;cursor:default;}' +
+        '#freedom-coach .fc-refreshlink{background:none;border:none;color:#5b6b7a;font-size:13px;font-weight:700;cursor:pointer;padding:0;margin:0;min-height:0;border-radius:0;}' +
+        '#freedom-coach .fc-refreshlink:hover{color:#1f6f5c;}' +
+        '#freedom-coach .fc-refreshlink:disabled{opacity:.6;cursor:default;}' +
+        '#freedom-coach .fc-sep{color:#c4cfd9;}' +
         '#freedom-coach .fc-recbtn{width:100%;background:#1f6f5c;color:#fff;padding:13px 18px;font-size:16px;min-height:46px;margin-bottom:8px;}' +
         '#freedom-coach .fc-recbtn:active{opacity:.85;}' +
         // more-help button (secondary)

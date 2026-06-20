@@ -50,7 +50,10 @@
    */
   var COPY = {
     LOADING: 'Loading your Freedom Tracker\u2026',
-    HEADER_TODAY: 'Today is Day {DAY}.',
+    HEADER_TODAY: 'Day {DAY}',
+    REFRESH_BTN: '↻ Refresh',
+    REFRESH_DOING: 'Refreshing…',
+    REFRESH_DONE: 'Updated ✓',
     WIZ1_TITLE: 'Welcome{NAME}! Let\u2019s set up your project.',
     WIZ1_LABEL: 'I want to make it easier and more enjoyable to be free from the following Unwanted Behavior (UB):',
     WIZ1_PLACEHOLDER: 'Your behavior \u2014 or just write "my UB" to keep it private',
@@ -209,7 +212,9 @@
     reflections: null,
     tab: 'day',
     dirty: false,             // student has unsaved edits; block re-renders
-    _recoverTried: false      // guards against recover<->state loops
+    _recoverTried: false,     // guards against recover<->state loops
+    _refreshing: false,       // soft-refresh in flight
+    _refreshFlash: false      // next header render confirms with "Updated"
   };
   var rootEl = null;
 
@@ -519,6 +524,39 @@
   }
 
   // ============================================================
+  // SOFT REFRESH — student-facing "re-pull fresh data" control.
+  // Clears ONLY the cached state snapshot + in-memory day cache, then
+  // re-pulls from the Gateway. Deliberately KEEPS the activation token
+  // and the active project, so the student stays signed in and on the
+  // same project, just with fresh data. (The nuclear reset that also
+  // drops the token stays behind AG_FT_RESET / ?ag_reset, for support.)
+  // ============================================================
+  function softRefresh() {
+    if (state._refreshing) return;
+    state._refreshing = true;
+
+    var btn = document.getElementById('ft-refresh');
+    if (btn) { btn.textContent = COPY.REFRESH_DOING; btn.disabled = true; }
+
+    // Drop the snapshot + per-day cache so nothing stale can be reused.
+    // Scores/reflections are re-fetched by their views, so null them too.
+    state._dayCache = {};
+    state.dayData = null;
+    state.scores = null;
+    state.reflections = null;
+    clearStateCache();
+
+    // Tell the next header render to confirm with "Updated".
+    state._refreshFlash = true;
+    state._refreshing = false;
+
+    // Foreground reload: re-pulls state and re-routes the current view,
+    // which (because the caches are gone) re-fetches the day/scores/
+    // reflections fresh. The student stays on their current tab and day.
+    loadState(false);
+  }
+
+  // ============================================================
   // Read-only helper (project past its editing window)
   // ============================================================
   function canEdit_() { return state.writable !== false; }
@@ -767,7 +805,11 @@
     var html = '<div class="ft-card">';
     html += '<div class="ft-head">';
     html += '<div><h3>' + (name ? esc(name) + '\u2019s ' : '') + 'Freedom Tracker</h3>';
-    html += '<p class="ft-sub">' + esc(state.currentDay <= 7 ? COPY.HEADER_TODAY.replace('{DAY}', state.currentDay) : ('Today is Day ' + state.currentDay + '.')) + '</p></div>';
+    var dayText = esc(COPY.HEADER_TODAY.replace('{DAY}', state.currentDay));
+    var refreshLabel = state._refreshFlash ? COPY.REFRESH_DONE : COPY.REFRESH_BTN;
+    html += '<p class="ft-sub">' + dayText +
+      ' <span class="ft-sep">·</span> ' +
+      '<button class="ft-refreshlink" id="ft-refresh">' + esc(refreshLabel) + '</button></p></div>';
     if (state.projects.length > 1) {
       // Number projects by age (oldest = Project 1), list newest-first.
       var byOldest = state.projects.slice().sort(function (a, b) {
@@ -810,6 +852,19 @@
         rootEl.innerHTML = '<div class="ft-card ft-center">' + COPY.LOADING + '</div>';
         loadState(false);
       });
+    }
+    var refreshBtn = document.getElementById('ft-refresh');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', softRefresh);
+    }
+    if (state._refreshFlash) {
+      // We just rendered the "Updated" confirmation. Consume the flag and
+      // revert the control back to its idle label after a beat.
+      state._refreshFlash = false;
+      setTimeout(function () {
+        var c = document.getElementById('ft-refresh');
+        if (c) { c.textContent = COPY.REFRESH_BTN; c.disabled = false; }
+      }, 2000);
     }
   }
 
@@ -1642,6 +1697,10 @@
       '#freedom-tracker button:active{opacity:.85;}' +
       '#freedom-tracker button:disabled{opacity:.5;cursor:default;}' +
       '#freedom-tracker .ft-linkbtn{background:none;border:none;color:#1f6f5c;text-decoration:underline;font-size:14px;font-weight:700;cursor:pointer;width:auto;padding:0;margin:0;display:inline;min-height:0;}' +
+      '#freedom-tracker .ft-refreshlink{background:none;border:none;color:#5b6b7a;font-size:13px;font-weight:700;cursor:pointer;width:auto;padding:0;margin:0;display:inline;min-height:0;border-radius:0;}' +
+      '#freedom-tracker .ft-refreshlink:hover{color:#1f6f5c;}' +
+      '#freedom-tracker .ft-refreshlink:disabled{opacity:.6;cursor:default;}' +
+      '#freedom-tracker .ft-sep{color:#c4cfd9;}' +
       '#freedom-tracker .ft-copybtn{margin-top:8px;}' +
       '#freedom-tracker .ft-msg{font-size:14px;margin-top:8px;min-height:18px;text-align:left;}' +
       '#freedom-tracker .ft-good{color:#1f6f5c;}' +
