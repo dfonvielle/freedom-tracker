@@ -43,7 +43,7 @@
       LOADING: 'Opening your coach\u2026',
       HEADER: '{NAME}Freedom Coach',
       SUBLINE: 'Day {DAY}',
-      INTRO: 'Everything I say here is based on what you\u2019ve shared in your tracker. Tell me where you are at, or tap below and I will point you to your next move.',
+      INTRO: 'Everything I say is based on what\u2019s in your tracker and what you tell me. Tell me more about your situation, or tap below and I will point you to your next move.',
       RECOMMEND_BTN: 'Recommend my next move',
       RECOMMEND_THINKING: 'Reading your tracker\u2026',
       CHAT_PLACEHOLDER: 'Type a message to your coach\u2026',
