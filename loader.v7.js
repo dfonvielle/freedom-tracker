@@ -299,6 +299,7 @@
           writable: state.writable,
           setup: state.setup, scoreQuestions: state.scoreQuestions,
           prompts: state.prompts,
+          uiCopy: state.uiCopy || null,
           completion: state.completion,
           firstName: (state.identity && state.identity.firstName) || '',
           days: state._dayCache || {}
@@ -318,6 +319,7 @@
     state.scoreQuestions = snap.scoreQuestions || null;
     state.prompts = snap.prompts || null;
     state.completion = snap.completion || null;
+    if (snap.uiCopy) { state.uiCopy = snap.uiCopy; applyUiCopy(snap.uiCopy); }
     state._dayCache = snap.days || {};
     if (state.viewingDay == null) state.viewingDay = state.currentDay;
     state.dayData = state._dayCache[state.currentDay] || null;
@@ -472,6 +474,38 @@
   // ============================================================
   // Gateway client
   // ============================================================
+  // ============================================================
+  // LIVE COPY OVERRIDES — merge sheet-driven copy over the baked COPY.
+  // The Gateway's "UI Copy" tab ships its loader slice in state.uiCopy.loader.
+  // BAKED_COPY is the pristine default captured once; COPY is recomputed from
+  // it on every apply, so removing a sheet row reverts cleanly to the default.
+  // An empty/missing override always falls back to the baked string, so a bad
+  // or empty cell can never blank the UI.
+  // ============================================================
+  var BAKED_COPY = null;
+  function deepMergeCopy(base, over) {
+    if (over == null || typeof over !== 'object') return base;
+    var out = {}, k;
+    for (k in base) { if (base.hasOwnProperty(k)) out[k] = base[k]; }
+    for (k in over) {
+      if (!over.hasOwnProperty(k)) continue;
+      var ov = over[k];
+      if (ov == null || ov === '') continue;
+      var bv = base ? base[k] : undefined;
+      var bvIsArr = Object.prototype.toString.call(bv) === '[object Array]';
+      var ovIsObj = ov && typeof ov === 'object' && Object.prototype.toString.call(ov) !== '[object Array]';
+      var bvIsObj = bv && typeof bv === 'object' && !bvIsArr;
+      if (bvIsArr && typeof ov === 'string') { out[k] = ov.split('\n'); }
+      else if (bvIsObj && ovIsObj) { out[k] = deepMergeCopy(bv, ov); }
+      else { out[k] = ov; }
+    }
+    return out;
+  }
+  function applyUiCopy(uiCopy) {
+    if (!BAKED_COPY) BAKED_COPY = COPY;   // capture pristine on first apply
+    COPY = deepMergeCopy(BAKED_COPY, uiCopy && uiCopy.loader);
+  }
+
   function callGateway(payload) {
     payload.appKey = CONFIG.APP_KEY;
     payload.accountId = (state.identity && state.identity.accountId) || '';
@@ -496,6 +530,7 @@
           return attemptRecover(COPY.STALE_TOKEN);
         }
         state._recoverTried = false;
+        if (data.uiCopy) { state.uiCopy = data.uiCopy; applyUiCopy(data.uiCopy); }
         persistTokenFromResponse(data);            // inline token persistence
         var before = JSON.stringify([state.setup, state.completion, state.currentDay, state.dayData, state.writable]);
         state.projects = data.projects || [];

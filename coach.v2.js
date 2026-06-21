@@ -157,6 +157,7 @@
       if (state.token) {
         var snap = coachReadTrackerCache_();
         if (snap && snap.activeProjectId) {
+          if (snap.uiCopy) { state.uiCopy = snap.uiCopy; applyUiCopy(snap.uiCopy); }
           state.firstName = snap.firstName || '';
           state.projects = snap.projects || [];
           state.activeProjectId = snap.activeProjectId;
@@ -222,6 +223,7 @@
           }
           persistToken(data);
           if (!data.activeProjectId) { return renderNoProject(); }
+          if (data.uiCopy) { state.uiCopy = data.uiCopy; applyUiCopy(data.uiCopy); }
           state.firstName = data.firstName || '';
           state.projects = data.projects || [];
           state.activeProjectId = data.activeProjectId;
@@ -278,6 +280,39 @@
     function asJson(r) {
       if (!r.ok) { throw new Error('HTTP ' + r.status); }
       return r.json();
+    }
+
+    // ============================================================
+    // LIVE COPY OVERRIDES — merge sheet-driven copy over the baked COPY.
+    // The Gateway's "UI Copy" tab ships its coach slice in state.uiCopy.coach
+    // (and the loader caches the same payload, so the fast-paint path can apply
+    // it before the first render). BAKED_COPY is the pristine default captured
+    // once; COPY is recomputed from it on every apply, so removing a sheet row
+    // reverts cleanly. An empty/missing override always falls back to the baked
+    // string, so a bad or empty cell can never blank the UI.
+    // ============================================================
+    var BAKED_COPY = null;
+    function deepMergeCopy(base, over) {
+      if (over == null || typeof over !== 'object') { return base; }
+      var out = {}, k;
+      for (k in base) { if (base.hasOwnProperty(k)) { out[k] = base[k]; } }
+      for (k in over) {
+        if (!over.hasOwnProperty(k)) { continue; }
+        var ov = over[k];
+        if (ov == null || ov === '') { continue; }
+        var bv = base ? base[k] : undefined;
+        var bvIsArr = Object.prototype.toString.call(bv) === '[object Array]';
+        var ovIsObj = ov && typeof ov === 'object' && Object.prototype.toString.call(ov) !== '[object Array]';
+        var bvIsObj = bv && typeof bv === 'object' && !bvIsArr;
+        if (bvIsArr && typeof ov === 'string') { out[k] = ov.split('\n'); }
+        else if (bvIsObj && ovIsObj) { out[k] = deepMergeCopy(bv, ov); }
+        else { out[k] = ov; }
+      }
+      return out;
+    }
+    function applyUiCopy(uiCopy) {
+      if (!BAKED_COPY) { BAKED_COPY = COPY; }   // capture pristine on first apply
+      COPY = deepMergeCopy(BAKED_COPY, uiCopy && uiCopy.coach);
     }
 
     // ============================================================
