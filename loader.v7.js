@@ -80,11 +80,13 @@
     GOAL_JS_PREFIX: 'Every morning, I\u2019ll do 30 seconds\u20132 minutes of rewiring (the Happiness & Success Jumpstart) at this moment: ',
     PLAN_TITLE: 'How This Works',
     PLAN_PARAS: [
-      'There is no quit date in this sprint. You can keep doing your behavior while you rewire your brain.',
-      'Day 1 takes about an hour. Days 2 through 7 take just 7 to 22 minutes each.',
-      '<strong>The goal is simple:</strong> prove to yourself that you are powerful and capable, and that you can rewire your brain for freedom from an unwanted behavior.',
+      'There is no quit date. You can keep doing your behavior while you rewire your brain.',
+      'Instead of quit dates, you do Freedom Experiments from Day 2 onwards. (A Freedom Experiment can be as simple as delaying your behavior for 2 seconds to see how it goes.)',
+      'Day 1 takes about an hour. All days from Day 2 onwards take just 7 to 22 minutes each.',
+      '<strong>The goal is simple for the first 7 days (the Freedom Proof Sprint):</strong> prove to yourself that you are powerful and capable, and that you can rewire your brain for freedom from an unwanted behavior.',
       'We only care whether you are <strong>more free</strong> from your behavior after 7 days (proof of capabilities), not completely free.',
-      'Progress is measured by Freedom Scores recorded during your daily check-ins.',
+      'Progress is measured by Freedom Scores recorded during your Daily Check-Ins.',
+      'The richer your Daily Check-Ins, the more your AI Coach can help you.',
       '<em>You\u2019re guided through all of this step by step.</em>'
     ],
     DAY0: {
@@ -141,7 +143,7 @@
     DAILY_GUIDE_LEAD: 'Each day do:',
     DAILY_GUIDE_BULLETS: [
       'Happiness & Success Jumpstart',
-      '5\u201320 minutes with the Rapid Behavioral Freedom tool (can do more if you want)',
+      '5\u201320 minutes with the Rapid Behavioral Freedom tool and/or Fear & Anxiety Tool (can do more if you want)',
       'Freedom Experiments where you skip or delay doing your UB and see how it goes (even a 2-second delay counts)',
       'Daily Check-In'
     ],
@@ -149,6 +151,8 @@
     DAILY_PROMPT: 'I want to be more free from the following behavior: {UB}. I want to make it easier and more enjoyable to not do it. Here\u2019s my current situation and more about what I\u2019m dealing with right now:',
     DAILY_PROMPT_TIP: 'Paste it in, then talk out whatever\u2019s going on \u2014 brain dumps work great.',
     GROUNDING: 'Here\u2019s what I did today to make it easier and more enjoyable to be free from: ',
+    DAY0_UNLOCK_NOTE: 'Complete Day 0 below to unlock the rest of your Freedom Tracker.',
+    COACH_INFO_NOTE: 'Your AI Coach helps you based on the information below.',
     D1_TOOLS_HEADER: 'These are the tools I used today for the Freedom Power Hour:',
     SECTION_KEY_EFFORTS: 'Key Efforts',
     SECTION_REFLECTION: 'Reflection',
@@ -182,9 +186,9 @@
     // Phase 6: Reflections + ongoing progress movement
     REFLECTIONS_TAB: 'Reflections',
     REFLECTIONS_TITLE: 'Your Reflections',
-    REFLECTIONS_SUB: 'Everything you\u2019ve logged, newest first. Keeping your recent days current is what gives your coach the best picture.',
+    REFLECTIONS_SUB: 'Everything you\u2019ve logged, newest first. Keep your recent days current to give your AI Coach the best picture. (Your AI Coach does NOT consider your \u201cNotes\u201d field. That is just for you.)',
     REFLECTIONS_EMPTY: 'Nothing logged yet. As you fill in your daily Wins, Experiments, and Opportunities, they\u2019ll gather here.',
-    REFLECTIONS_COACH_BAND: 'Your coach is looking at these recent days',
+    REFLECTIONS_COACH_BAND: 'YOUR AI COACH LOOKS AT THESE RECENT DAYS',
     REFLECTIONS_OLDER: 'Earlier days',
     REFLECT_WINS: 'Wins',
     REFLECT_EXP: 'Experiments',
@@ -1416,6 +1420,9 @@
     if (dd.day < state.currentDay) html += '<div class="ft-note">' + esc(COPY.PAST_DAY_NOTE) + '</div>';
     else if (dd.day > state.currentDay) html += '<div class="ft-note">' + esc(COPY.FUTURE_DAY_NOTE) + '</div>';
     var ub = state.setup.ub || 'your unwanted behavior';
+    if ((state.currentDay <= 0) && !(state.completion && state.completion[0])) {
+      html += '<div class="ft-note ft-unlocknote">' + esc(COPY.DAY0_UNLOCK_NOTE) + '</div>';
+    }
     html += '<div class="ft-goal">' + esc(COPY.GOAL_PREFIX) + '<strong>' + esc(ub) + '</strong></div>';
     html += '<p class="ft-body-text">' + esc(COPY.DAY0.INTRO2) + '</p>';
     for (var s = 0; s < COPY.DAY0.SECTIONS.length; s++) {
@@ -1456,8 +1463,11 @@
     if (dd.day < state.currentDay) html += '<div class="ft-note">' + esc(COPY.PAST_DAY_NOTE) + '</div>';
     else if (dd.day > state.currentDay) html += '<div class="ft-note">' + esc(COPY.FUTURE_DAY_NOTE) + '</div>';
     if ((dd.day >= 1 || dd.gridDay) && state.setup.ub) {
-      html += '<div class="ft-grounding">' + esc(COPY.GROUNDING) + '<strong>' + esc(state.setup.ub) + '</strong></div>' +
-        '<div class="ft-divider"></div>';
+      html += '<div class="ft-grounding">' + esc(COPY.GROUNDING) + '<strong>' + esc(state.setup.ub) + '</strong></div>';
+      if (dd.day >= 2 || dd.gridDay) {
+        html += '<p class="ft-sub ft-coach-note">' + esc(COPY.COACH_INFO_NOTE) + '</p>';
+      }
+      html += '<div class="ft-divider"></div>';
     }
     if (dd.day === 1 && !dd.gridDay) html += '<div class="ft-step-h">' + esc(COPY.D1_TOOLS_HEADER) + '</div>';
     for (var i = 0; i < dd.fields.length; i++) {
@@ -1708,6 +1718,8 @@
       '#freedom-tracker .ft-note{background:#fdf6e3;border:1px solid #ead9a6;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:14px;text-align:left;}' +
       '#freedom-tracker .ft-readonly{background:#eef3f6;border-color:#c4cfd9;color:#5b6b7a;}' +
       '#freedom-tracker .ft-grounding{background:#eef6f3;border:1px solid #bcd9cf;border-radius:8px;padding:10px 12px;font-size:15px;margin-bottom:14px;text-align:left;}' +
+      '#freedom-tracker .ft-coach-note{margin:-6px 0 14px 0;font-style:italic;color:#5b6b7a;}' +
+      '#freedom-tracker .ft-unlocknote{background:#eaf3fb;border-color:#b9d6ee;color:#1a4971;}' +
       '#freedom-tracker .ft-center{text-align:center;color:#5b6b7a;font-size:14.5px;padding:8px 0;}' +
       '#freedom-tracker .ft-scores-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:7px;align-items:center;margin-bottom:7px;}' +
       '#freedom-tracker .ft-scores-head{font-size:13px;font-weight:700;color:#5b6b7a;}' +

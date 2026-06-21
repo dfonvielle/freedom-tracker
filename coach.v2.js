@@ -41,7 +41,7 @@
      * ============================================================ */
     var COPY = {
       LOADING: 'Opening your coach\u2026',
-      HEADER: '{NAME}Freedom Coach',
+      HEADER: '{NAME}Freedom AI Coach',
       SUBLINE: 'Day {DAY}',
       REFRESH_BTN: '\u21bb Refresh',
       REFRESH_DOING: 'Refreshing\u2026',
@@ -59,6 +59,8 @@
       REVIEW_TITLE: 'Suggested tracker update',
       REVIEW_CURRENT: 'Now',
       REVIEW_AFTER: 'After this update',
+      REVIEW_KEEP: 'Your entry (we keep this)',
+      REVIEW_ADD: 'We’ll add',
       REVIEW_EMPTY: '(empty)',
       APPLY_BTN: 'Update my tracker',
       APPLY_SAVING: 'Updating\u2026',
@@ -76,7 +78,7 @@
       HELP_TITLE: 'What would you like to change to make this easier?',
       HELP_SUB: 'Pick the feeling you most want to be free from right now.',
       HELP_BACK: '\u2190 Back',
-      FEELING_TEXT_PLACEHOLDER: 'A word or two is plenty\u2026',
+      FEELING_TEXT_PLACEHOLDER: 'Whatever comes to mind\u2026',
       FEELING_THOUGHTS_LABEL: 'Any of these sound like you? Pick a few (optional).',
       FEELING_PICK_HINT: 'Pick 3\u20135 that feel most alive.',
       FEELING_BUILD_BTN: 'Build my prompt',
@@ -147,8 +149,30 @@
       state.token = readLS(LS.token);
       rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
 
+      // FAST PAINT: the tracker and the coach share a device and a token, so
+      // when the tracker has cached a state snapshot we render the coach shell
+      // instantly from it, then refresh in the background via loadState(). The
+      // coaching itself (recommend / chat / help) is always computed live when
+      // the student taps, so nothing here is ever served stale.
+      if (state.token) {
+        var snap = coachReadTrackerCache_();
+        if (snap && snap.activeProjectId) {
+          state.firstName = snap.firstName || '';
+          state.projects = snap.projects || [];
+          state.activeProjectId = snap.activeProjectId;
+          state.currentDay = snap.currentDay || 0;
+          state.maxDay = snap.maxDay || 7;
+          state.writable = (snap.writable === false) ? false : true;
+          state.ub = (snap.setup && snap.setup.ub) || '';
+          renderCoach();
+        }
+      }
+
       getIdentity().then(function (identity) {
         state.identity = identity;
+        if (state.identity && !state.identity.firstName && state.firstName) {
+          state.identity.firstName = state.firstName;
+        }
         if (!state.token) { return attemptRecover(); }
         return loadState();
       });
@@ -174,6 +198,20 @@
       }
     }
 
+    // Read the TRACKER loader's cached state snapshot (same device, same token).
+    // Used ONLY to paint the coach shell instantly on boot; never for the live
+    // coaching calls. Returns the inner snapshot object, or null.
+    function coachReadTrackerCache_() {
+      try {
+        var raw = localStorage.getItem('ag_ft_cache_v6');
+        if (!raw) { return null; }
+        var parsed = JSON.parse(raw);
+        if (!parsed || parsed.token !== state.token) { return null; }
+        if ((Date.now() - parsed.at) / 3600000 > 48) { return null; }
+        return parsed.snapshot || null;
+      } catch (e) { return null; }
+    }
+
     // Bootstrap from the existing 'state' action (no new endpoint needed).
     function loadState() {
       return callGateway({ action: 'state', projectId: state.activeProjectId })
@@ -194,7 +232,8 @@
           if (state.identity && !state.identity.firstName && state.firstName) {
             state.identity.firstName = state.firstName;
           }
-          renderCoach();
+          var hasConvo = !!(state.messages && state.messages.length);
+          if (!state.booted || (!hasConvo && !state.busy)) { renderCoach(); }
         })
         .catch(function () { renderNoProject(); });
     }
@@ -343,7 +382,7 @@
         '<div class="fc-card">' +
           '<div class="fc-head">' +
             '<div>' +
-              '<h3>' + name + 'Freedom Coach</h3>' +
+              '<h3>' + name + 'Freedom AI Coach</h3>' +
               '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) +
                 ' <span class="fc-sep">·</span> ' +
                 '<button class="fc-refreshlink" id="fc-refresh">' +
@@ -789,11 +828,14 @@
         flabel.textContent = u.label + ' \u00b7 Day ' + u.day;
         item.appendChild(flabel);
 
-        if (u.current) {
-          item.appendChild(reviewBlock(COPY.REVIEW_CURRENT, u.current, 'now'));
+        var mode = (String(u.mode || 'append') === 'replace') ? 'replace' : 'append';
+        if (mode === 'replace') {
+          if (u.current) { item.appendChild(reviewBlock(COPY.REVIEW_CURRENT, u.current, 'now')); }
           item.appendChild(reviewBlock(COPY.REVIEW_AFTER, u.finalText, 'after'));
         } else {
-          item.appendChild(reviewBlock(COPY.REVIEW_AFTER, u.finalText, 'after'));
+          if (u.current) { item.appendChild(reviewBlock(COPY.REVIEW_KEEP, u.current, 'now')); }
+          var added = (u.addedText != null && String(u.addedText) !== '') ? u.addedText : u.finalText;
+          item.appendChild(reviewBlock(COPY.REVIEW_ADD, added, 'after'));
         }
         card.appendChild(item);
       }
