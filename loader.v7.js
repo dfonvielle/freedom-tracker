@@ -491,6 +491,8 @@
       if (!over.hasOwnProperty(k)) continue;
       var ov = over[k];
       if (ov == null || ov === '') continue;
+      // [hide] blanks a line out (a blank cell falls back to the default).
+      if (typeof ov === 'string' && ov.trim().toLowerCase() === '[hide]') { out[k] = ''; continue; }
       var bv = base ? base[k] : undefined;
       var bvIsArr = Object.prototype.toString.call(bv) === '[object Array]';
       var ovIsObj = ov && typeof ov === 'object' && Object.prototype.toString.call(ov) !== '[object Array]';

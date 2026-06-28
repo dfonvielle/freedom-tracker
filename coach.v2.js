@@ -75,8 +75,14 @@
       MORE_HELP_BTN: 'More help options',
       MORE_HELP_CLOSE: 'Close',
       HELP_LOADING: 'One moment\u2026',
-      HELP_TITLE: 'What would you like to change to make this easier?',
+      // Persistent target box, shown above the question and kept through the
+      // whole flow. {UB} is the student's behavior.
+      HELP_GOAL: 'I want to make it easier and more enjoyable to be free from {UB}.',
+      HELP_TITLE: 'What emotion would you like to change to make this easier?',
       HELP_SUB: 'Pick the feeling you most want to be free from right now.',
+      // The building-sentence header shown once a feeling is picked. {PHRASE} is
+      // the feeling, lowercased (or a per-feeling override from the sheet).
+      HELP_STOP: 'To make this easier, I want to stop feeling {PHRASE}.',
       HELP_BACK: '\u2190 Back',
       FEELING_TEXT_PLACEHOLDER: 'Whatever comes to mind\u2026',
       FEELING_THOUGHTS_LABEL: 'Any of these sound like you? Pick a few (optional).',
@@ -84,6 +90,11 @@
       FEELING_BUILD_BTN: 'Build my prompt',
       FEELING_BUILDING: 'Building\u2026'
     };
+
+    // The thoughts picker (the "Any of these sound like you?" checklist) is
+    // built and the gateway still ships the thoughts, but it is hidden from
+    // students for now to keep the flow simple. Flip to true to bring it back.
+    var SHOW_THOUGHTS = false;
 
     // Shared token key with the tracker loader (single activation).
     var LS = { token: 'ag_ft_token', identity: 'ag_ft_identity_v6' };
@@ -300,6 +311,9 @@
         if (!over.hasOwnProperty(k)) { continue; }
         var ov = over[k];
         if (ov == null || ov === '') { continue; }
+        // [hide] blanks a line out. A blank cell falls back to the default, so
+        // this token is the only way to make a string render nothing.
+        if (typeof ov === 'string' && ov.trim().toLowerCase() === '[hide]') { out[k] = ''; continue; }
         var bv = base ? base[k] : undefined;
         var bvIsArr = Object.prototype.toString.call(bv) === '[object Array]';
         var ovIsObj = ov && typeof ov === 'object' && Object.prototype.toString.call(ov) !== '[object Array]';
@@ -519,7 +533,9 @@
           removeBubble(pending);
           if (!data.ok) { pushCoach(data.error || COPY.ERROR_GENERIC); return; }
           if (data.distress) { pushCoach(data.message || '', { care: true }); return; }
-          pushCoach(data.message || '', { proposal: data.proposal || null });
+          // The chat can now hand back a ready prompt (when a concrete focus
+          // surfaces) alongside any tracker-log proposal. Both render in one card.
+          pushCoach(data.message || '', { prompt: data.prompt, tool: data.tool, proposal: data.proposal || null });
         })
         .catch(function () {
           removeBubble(pending);
@@ -573,6 +589,15 @@
         .catch(function () { helpMsg(COPY.ERROR_GENERIC); });
     }
 
+    // The persistent target box: what the student wants to be free from. Shown
+    // at the top of every step of the guided flow, so the goal never leaves the
+    // screen. Returns '' if HELP_GOAL was hidden via the [hide] token.
+    function helpGoalHtml() {
+      if (!COPY.HELP_GOAL) { return ''; }
+      var ub = (state.helpMenu && state.helpMenu.ub) || state.ub || 'it';
+      return '<div class="fc-help-goal">' + esc(COPY.HELP_GOAL.replace('{UB}', ub)) + '</div>';
+    }
+
     // Step A: the six feelings, grouped in their pairs.
     function renderHelpPanel() {
       var panel = document.getElementById('fc-help');
@@ -586,8 +611,9 @@
         byGroup[g].push(feelings[i]);
       }
       var html = '<div class="fc-help-card">';
-      html += '<div class="fc-help-title">' + esc(COPY.HELP_TITLE) + '</div>';
-      html += '<div class="fc-help-sub">' + esc(COPY.HELP_SUB) + '</div>';
+      html += helpGoalHtml();
+      if (COPY.HELP_TITLE) { html += '<div class="fc-help-title">' + esc(COPY.HELP_TITLE) + '</div>'; }
+      if (COPY.HELP_SUB) { html += '<div class="fc-help-sub">' + esc(COPY.HELP_SUB) + '</div>'; }
       for (var gi = 0; gi < groups.length; gi++) {
         var gl = groups[gi];
         if (gl) { html += '<div class="fc-help-group">' + esc(gl) + '</div>'; }
@@ -619,12 +645,18 @@
       var panel = document.getElementById('fc-help');
       if (!panel || !state.helpFeeling) { return; }
       var f = state.helpFeeling;
+      // The building-sentence header: keep the goal box, then state the feeling
+      // the student wants to stop, in their words. Per-feeling phrasing comes
+      // from the sheet (stopPhrase); otherwise the lowercased button label.
+      var phrase = f.stopPhrase || String(f.label || '').toLowerCase();
+      var header = COPY.HELP_STOP ? COPY.HELP_STOP.replace('{PHRASE}', phrase) : f.label;
       var html = '<div class="fc-help-card">';
       html += '<button class="fc-help-back" id="fc-help-back">' + esc(COPY.HELP_BACK) + '</button>';
-      html += '<div class="fc-help-title">' + esc(f.label) + '</div>';
+      html += helpGoalHtml();
+      html += '<div class="fc-help-title">' + esc(header) + '</div>';
       if (f.leadIn) { html += '<div class="fc-help-sub">' + esc(f.leadIn) + '</div>'; }
       html += '<textarea id="fc-feeling-text" class="fc-feeling-text" rows="2" placeholder="' + esc(COPY.FEELING_TEXT_PLACEHOLDER) + '"></textarea>';
-      if (f.thoughts && f.thoughts.length) {
+      if (SHOW_THOUGHTS && f.thoughts && f.thoughts.length) {
         html += '<div class="fc-thoughts-label">' + esc(COPY.FEELING_THOUGHTS_LABEL) + '</div>';
         html += '<div class="fc-thoughts">';
         for (var i = 0; i < f.thoughts.length; i++) {
@@ -975,6 +1007,7 @@
         '#freedom-coach .fc-help{}' +
         '#freedom-coach .fc-help-loading{color:#5b6b7a;font-size:14px;padding:8px 2px;}' +
         '#freedom-coach .fc-help-card{background:#f7faf9;border:1px solid #cfe0d9;border-radius:10px;padding:14px;margin:2px 0 10px 0;}' +
+        '#freedom-coach .fc-help-goal{background:#fff;border:1px solid #cfe0d9;border-left:3px solid #1f6f5c;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600;color:#1a2733;line-height:1.4;margin-bottom:12px;}' +
         '#freedom-coach .fc-help-title{font-size:15.5px;font-weight:800;color:#1a2733;margin-bottom:4px;}' +
         '#freedom-coach .fc-help-sub{font-size:13.5px;color:#5b6b7a;margin-bottom:12px;}' +
         '#freedom-coach .fc-help-group{font-size:12px;font-weight:700;color:#1f6f5c;text-transform:uppercase;letter-spacing:.03em;margin:12px 0 6px 0;}' +
