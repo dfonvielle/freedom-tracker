@@ -27,6 +27,20 @@
        * Ongoing PROGRESS movement: the Progress view shows all-time
          (since you started) and last-7-day score movement, from the
          Gateway's progressReview. Days-completed extends past Day 7.
+   - UNLIMITED PROJECTS + CONFIDENCE OPT-OUT (pairs with Gateway v6.4):
+       * Project dropdown shows the behavior-derived label ("label" from
+         the Gateway) and, for entitled (unlimited) students, a
+         "+ Start a new project" option that creates a project in place
+         and drops into the setup wizard. Entitlement comes ONLY from the
+         Gateway state response (canCreateProject) - never decided here.
+       * data-view="create-project": standalone card for its own lesson.
+         Entitled -> the same creation flow. Not entitled -> storefront
+         copy with optional buy/upgrade links (editable via the UI Copy
+         tab: NEWPROJ_BUY_URL / NEWPROJ_UNLIMITED_URL).
+       * Daily score cards offer "I'm 100% confident... never ask again."
+         Checking it saves conf=10, stamps the per-user flag on the
+         Gateway, and the confidence input stops rendering. Undo lives in
+         Goal & Plan ("Ask me about my confidence score again").
    ============================================================ */
 (function () {
   'use strict';
@@ -196,7 +210,23 @@
     REFLECT_NOTES: 'Notes',
     PROGRESS_MOVE_TITLE: 'Your movement',
     PROGRESS_MOVE_ALLTIME: 'Since you started',
-    PROGRESS_MOVE_LAST7: 'Over the last 7 days'
+    PROGRESS_MOVE_LAST7: 'Over the last 7 days',
+    NEWPROJ_OPTION: '+ Start a new project',
+    NEWPROJ_CONFIRM_TITLE: 'Start a new project?',
+    NEWPROJ_CONFIRM_TEXT: 'This sets up a fresh project for a new behavior, with its own tracker, baseline, and daily check-ins. Your current project keeps going exactly as it is.',
+    NEWPROJ_CONFIRM_BUTTON: 'Start my new project →',
+    NEWPROJ_CANCEL: 'Not now',
+    NEWPROJ_CREATING: 'Setting up your new project… this can take about half a minute.',
+    NEWPROJ_LOCKED_TITLE: 'Want to work on another behavior?',
+    NEWPROJ_LOCKED_TEXT: 'Creating additional projects isn’t part of your current access.',
+    NEWPROJ_BUY_LABEL: 'Get another project',
+    NEWPROJ_BUY_URL: '',         // set via the UI Copy tab when the funnel page exists
+    NEWPROJ_UNLIMITED_LABEL: 'Go unlimited',
+    NEWPROJ_UNLIMITED_URL: '',   // set via the UI Copy tab when the upgrade page exists
+    NEWPROJ_LOCKED_FALLBACK: 'Reply to any of my emails and I’ll help you get set up.',
+    CONF_OPTOUT_LABEL: 'I’m 100% confident I can rewire my brain for greater freedom — no need to ever ask me again.',
+    CONF_ASK_AGAIN: 'Ask me about my confidence score again',
+    CONF_ASK_AGAIN_DONE: 'Got it — the confidence question is back.'
   };
 
   // Cache versions kept at v6 keys (schema is compatible).
@@ -207,6 +237,8 @@
     view: 'full', fixedDay: null,
     projects: [], activeProjectId: null,
     currentDay: 0, maxDay: 7, maxTrackedDay: 7,
+    canCreateProject: false,  // unlimited entitlement, from the Gateway only
+    confidence: { optedOut: false, since: '' },   // per-user, from the Gateway
     writable: true,           // active project still in its editing window?
     setup: { stage: 0, ub: '', jumpstart: '' },
     scoreQuestions: null,
@@ -296,6 +328,8 @@
         snapshot: {
           projects: state.projects, activeProjectId: state.activeProjectId,
           currentDay: state.currentDay, maxDay: state.maxDay, maxTrackedDay: state.maxTrackedDay,
+          canCreateProject: state.canCreateProject,
+          confidence: state.confidence,
           writable: state.writable,
           setup: state.setup, scoreQuestions: state.scoreQuestions,
           prompts: state.prompts,
@@ -314,6 +348,8 @@
     state.currentDay = snap.currentDay || 0;
     state.maxDay = snap.maxDay || 7;
     state.maxTrackedDay = snap.maxTrackedDay || snap.maxDay || 7;
+    state.canCreateProject = snap.canCreateProject === true;
+    state.confidence = snap.confidence || { optedOut: false, since: '' };
     state.writable = (snap.writable === false) ? false : true;
     state.setup = snap.setup || state.setup;
     state.scoreQuestions = snap.scoreQuestions || null;
@@ -366,6 +402,8 @@
       state.view = 'dailyguidance';
     } else if (dv === 'days2to7-checkin') {
       state.view = 'days2to7checkin';
+    } else if (dv === 'create-project' || dv === 'createproject') {
+      state.view = 'createproject';
     } else if (['today', 'progress', 'goalplan', 'full', 'setup', 'evaluate', 'reflections'].indexOf(dv) >= 0) {
       state.view = (dv === 'setup') ? 'full' : dv;
     }
@@ -540,6 +578,8 @@
         state.currentDay = data.currentDay;
         state.maxDay = data.maxDay || 7;
         state.maxTrackedDay = data.maxTrackedDay || data.maxDay || 7;
+        state.canCreateProject = data.canCreateProject === true;
+        if (data.confidence) state.confidence = data.confidence;
         state.writable = (data.writable === false) ? false : true;
         state.setup = data.setup || { stage: 0, ub: '', jumpstart: '' };
         state.scoreQuestions = data.scoreQuestions || null;
@@ -610,6 +650,13 @@
   // ============================================================
   function route() {
     state.dirty = false;
+    if (state.view === 'createproject') {
+      // Entitled + mid-setup: finish the current project's setup first (this
+      // also stops a stack of half-configured projects). Everyone else gets
+      // the creation card / storefront, wizard or not.
+      if (state.canCreateProject && state.setup.stage < 4) return renderWizard();
+      return renderCreateProjectView();
+    }
     if (state.setup.stage < 4) return renderWizard();
     if (state.view === 'day') return renderFixedDayView(state.fixedDay);
     if (state.view === 'today') return renderTodayView();
@@ -810,9 +857,29 @@
       html += '<button id="ft-goal-save">' + esc(COPY.GOAL_BUTTON) + '</button>' +
               '<div class="ft-msg" id="ft-goal-msg"></div>';
     }
+    if (state.confidence && state.confidence.optedOut) {
+      // The confidence opt-out undo. User-level, so it lives here in the
+      // editing hub rather than on any one day's card.
+      html += '<p class="ft-sub"><button class="ft-linkbtn" id="ft-conf-again">' +
+              esc(COPY.CONF_ASK_AGAIN) + '</button></p>';
+    }
     return html + planHtml();
   }
   function wireGoalPlanSave() {
+    var again = document.getElementById('ft-conf-again');
+    if (again) {
+      again.addEventListener('click', function () {
+        again.disabled = true;
+        callGateway({ action: 'setConfidence', optOut: false })
+          .then(function (data) {
+            if (!data.ok) { again.disabled = false; return; }
+            state.confidence = { optedOut: false, since: '' };
+            writeStateCache();
+            again.textContent = COPY.CONF_ASK_AGAIN_DONE;
+          })
+          .catch(function () { again.disabled = false; });
+      });
+    }
     var btn = document.getElementById('ft-goal-save');
     if (!btn) return;
     btn.addEventListener('click', function () {
@@ -839,6 +906,74 @@
   }
 
   // ============================================================
+  // NEW PROJECT — creation flow (entitled) + storefront (locked).
+  // Entitlement is the Gateway's call (state.canCreateProject); the
+  // Gateway re-checks server-side, so this UI is presentation only.
+  // ============================================================
+  function renderCreateProjectView() {
+    rootEl.innerHTML = '<div class="ft-card"><div id="ft-body">' +
+      (state.canCreateProject ? createConfirmHtml() : createLockedHtml()) +
+      '</div></div>';
+    if (state.canCreateProject) wireCreateConfirm();
+  }
+  function createConfirmHtml() {
+    return '<div class="ft-newproj">' +
+      '<h4>' + esc(COPY.NEWPROJ_CONFIRM_TITLE) + '</h4>' +
+      '<p class="ft-body-text">' + esc(COPY.NEWPROJ_CONFIRM_TEXT) + '</p>' +
+      '<button id="ft-newproj-go">' + esc(COPY.NEWPROJ_CONFIRM_BUTTON) + '</button>' +
+      '<p class="ft-sub"><button class="ft-linkbtn" id="ft-newproj-cancel">' + esc(COPY.NEWPROJ_CANCEL) + '</button></p>' +
+      '<div class="ft-msg" id="ft-newproj-msg"></div></div>';
+  }
+  function createLockedHtml() {
+    var html = '<h4>' + esc(COPY.NEWPROJ_LOCKED_TITLE) + '</h4>' +
+      '<p class="ft-body-text">' + esc(COPY.NEWPROJ_LOCKED_TEXT) + '</p>';
+    var links = '';
+    if (COPY.NEWPROJ_BUY_URL) {
+      links += '<p class="ft-body-text"><a href="' + esc(COPY.NEWPROJ_BUY_URL) +
+        '" target="_blank" rel="noopener"><strong>' + esc(COPY.NEWPROJ_BUY_LABEL) + ' →</strong></a></p>';
+    }
+    if (COPY.NEWPROJ_UNLIMITED_URL) {
+      links += '<p class="ft-body-text"><a href="' + esc(COPY.NEWPROJ_UNLIMITED_URL) +
+        '" target="_blank" rel="noopener"><strong>' + esc(COPY.NEWPROJ_UNLIMITED_LABEL) + ' →</strong></a></p>';
+    }
+    return html + (links || '<p class="ft-body-text">' + esc(COPY.NEWPROJ_LOCKED_FALLBACK) + '</p>');
+  }
+  function wireCreateConfirm() {
+    var go = document.getElementById('ft-newproj-go');
+    var cancel = document.getElementById('ft-newproj-cancel');
+    if (go) {
+      go.addEventListener('click', function () {
+        go.disabled = true;
+        setMsg('ft-newproj-msg', COPY.NEWPROJ_CREATING, true);
+        callGateway({ action: 'createProject' })
+          .then(function (data) {
+            if (!data.ok) {
+              go.disabled = false;
+              return setMsg('ft-newproj-msg', data.error, false);
+            }
+            // Fresh list arrives with the new project selected. Clear every
+            // cache and reload: the new project is at setup stage 0, so the
+            // student lands straight in the wizard to name the behavior.
+            state.projects = data.projects || state.projects;
+            state.activeProjectId = data.activeProjectId || state.activeProjectId;
+            state.viewingDay = null;
+            state.viewingWeek = null;
+            state.dayData = null;
+            state._dayCache = {};
+            clearStateCache();
+            rootEl.innerHTML = '<div class="ft-card ft-center">' + COPY.LOADING + '</div>';
+            loadState(false);
+          })
+          .catch(function (err) {
+            go.disabled = false;
+            setMsg('ft-newproj-msg', String(err), false);
+          });
+      });
+    }
+    if (cancel) cancel.addEventListener('click', function () { route(); });
+  }
+
+  // ============================================================
   // Shared shell
   // ============================================================
   function renderShell(contentHtml, chipsContent) {
@@ -851,7 +986,7 @@
     html += '<p class="ft-sub">' + dayText +
       ' <span class="ft-sep">·</span> ' +
       '<button class="ft-refreshlink" id="ft-refresh">' + esc(refreshLabel) + '</button></p></div>';
-    if (state.projects.length > 1) {
+    if (state.projects.length > 1 || (state.canCreateProject && state.projects.length > 0)) {
       // Number projects by age (oldest = Project 1), list newest-first.
       var byOldest = state.projects.slice().sort(function (a, b) {
         var ad = String(a.day0Date || ''), bd = String(b.day0Date || '');
@@ -870,9 +1005,15 @@
       html += '<select id="ft-project">';
       for (var i = 0; i < byNewest.length; i++) {
         var p = byNewest[i];
+        // Behavior-derived label from the Gateway when it exists; "Project N"
+        // for pre-label projects.
+        var optLabel = p.label ? p.label : ('Project ' + ordinalById[p.projectId]);
         html += '<option value="' + esc(p.projectId) + '"' +
           (p.projectId === state.activeProjectId ? ' selected' : '') + '>' +
-          'Project ' + ordinalById[p.projectId] + ' (Day ' + p.currentDay + ')</option>';
+          esc(optLabel) + ' (Day ' + p.currentDay + ')</option>';
+      }
+      if (state.canCreateProject) {
+        html += '<option value="__new__">' + esc(COPY.NEWPROJ_OPTION) + '</option>';
       }
       html += '</select>';
     }
@@ -884,6 +1025,14 @@
     var picker = document.getElementById('ft-project');
     if (picker) {
       picker.addEventListener('change', function () {
+        if (this.value === '__new__') {
+          // Snap the select back to the live project and show the confirm
+          // card in the body - creation only happens on an explicit confirm.
+          this.value = state.activeProjectId || '';
+          setBody(createConfirmHtml());
+          wireCreateConfirm();
+          return;
+        }
         state.activeProjectId = this.value;
         state.viewingDay = null;
         state.viewingWeek = null;
@@ -1348,6 +1497,9 @@
   }
   function scoresGridHtml() {
     var ro = !canEdit_();
+    // Once confident-forever, the confidence column stays visible as history
+    // but goes read-only: the Gateway fills 10s alongside any edit anyway.
+    var confOut = state.confidence && state.confidence.optedOut;
     var html = '<div class="ft-scores-grid ft-scores-head"><div></div><div>Easy</div><div>Enjoyable</div><div>Confidence</div></div>';
     for (var i = 0; i < state.scores.length; i++) {
       var row = state.scores[i];
@@ -1355,7 +1507,8 @@
       var metrics = ['easy', 'enjoy', 'conf'];
       for (var m = 0; m < metrics.length; m++) {
         var v = row.values[metrics[m]];
-        html += '<div><input type="number" min="0" max="10" step="1" data-cp="' + esc(row.key) + '" data-metric="' + metrics[m] + '" value="' + esc(v == null ? '' : v) + '"' + (ro ? ' readonly' : '') + ' /></div>';
+        var lock = ro || (confOut && metrics[m] === 'conf' && row.key !== 'base');
+        html += '<div><input type="number" min="0" max="10" step="1" data-cp="' + esc(row.key) + '" data-metric="' + metrics[m] + '" value="' + esc(v == null ? '' : v) + '"' + (lock ? ' readonly' : '') + ' /></div>';
       }
       html += '</div>';
     }
@@ -1529,13 +1682,21 @@
       html += '</div>';
     }
     if (dd.scores) {
+      // Confidence opt-out: once the student has declared complete confidence
+      // (per-user flag from the Gateway), the confidence question stops
+      // rendering - the Gateway writes conf=10 alongside their real scores.
+      var confOut = state.confidence && state.confidence.optedOut;
       html += '<div class="ft-dayscores"><h4 class="ft-center-h ft-scores-h">' + esc(dd.scores.label) + '</h4>';
-      var mks = ['easy', 'enjoy', 'conf'];
+      var mks = confOut ? ['easy', 'enjoy'] : ['easy', 'enjoy', 'conf'];
       var qs = dd.scores.questions || state.scoreQuestions || {};
       for (var m = 0; m < mks.length; m++) {
         var v = dd.scores.values[mks[m]];
         html += '<div class="ft-field"><label class="ft-label">' + esc(qs[mks[m]] || mks[m]) + '</label>' +
           '<input type="number" min="0" max="10" step="1" data-dayscore="' + mks[m] + '" value="' + esc(v == null ? '' : v) + '"' + (ro ? ' readonly' : '') + ' /></div>';
+      }
+      if (!confOut && !ro) {
+        html += '<div class="ft-field"><label class="ft-check"><input type="checkbox" data-confforever />' +
+          ' <span>' + esc(COPY.CONF_OPTOUT_LABEL) + '</span></label></div>';
       }
       html += '</div>';
     }
@@ -1554,6 +1715,18 @@
   function wireDaySave(dd, opts) {
     var btn = document.getElementById('ft-save');
     if (!btn) return;
+    // "100% confident, never ask again": ticking it locks the confidence
+    // input at 10 so what the student sees matches what will be saved.
+    var confWrap = opts.holder ? document.getElementById(opts.holder) : document.getElementById('ft-body');
+    var confBox = confWrap ? confWrap.querySelector('[data-confforever]') : null;
+    if (confBox) {
+      confBox.addEventListener('change', function () {
+        var ci = confWrap.querySelector('[data-dayscore="conf"]');
+        if (!ci) return;
+        if (this.checked) { ci.value = 10; ci.readOnly = true; }
+        else { ci.readOnly = false; }
+      });
+    }
     btn.addEventListener('click', function () {
       if (!canEdit_()) return setMsg('ft-save-msg', COPY.READONLY_BANNER, false);
       var container = opts.holder ? document.getElementById(opts.holder) : document.getElementById('ft-body');
@@ -1571,15 +1744,24 @@
         if (!dayScores) dayScores = {};
         dayScores[scoreInputs[s].getAttribute('data-dayscore')] = Number(scoreInputs[s].value);
       }
+      var confForever = !!(confBox && confBox.checked);
+      if (confForever) {
+        if (!dayScores) dayScores = {};
+        if (dayScores.conf == null) dayScores.conf = 10;
+      }
       setMsg('ft-save-msg', COPY.SAVED, true);   // optimistic
       state.dirty = false;
       var savePayload = { action: 'save', projectId: state.activeProjectId, day: dd.day, fields: fields, dayScores: dayScores };
+      if (confForever) savePayload.confidentForever = true;
       if (opts.variant) savePayload.variant = opts.variant;
       callGateway(savePayload)
         .then(function (data) {
           if (!data.ok) {
             if (data.windowClosed) { state.writable = false; writeStateCache(); renderDayCard(dd, opts); return; }
             return setMsg('ft-save-msg', data.error, false);
+          }
+          if (confForever) {
+            state.confidence = { optedOut: true, since: new Date().toISOString() };
           }
           state.dayData = data.day;
           cacheDay(data.day);
