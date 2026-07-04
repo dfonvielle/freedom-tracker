@@ -226,7 +226,10 @@
 
     // Bootstrap from the existing 'state' action (no new endpoint needed).
     function loadState() {
-      return callGateway({ action: 'state', projectId: state.activeProjectId })
+      var payload = { action: 'state', projectId: state.activeProjectId };
+      // Coach Refresh forces the Gateway to bypass its server caches too.
+      if (state._forceFresh) { payload.fresh = true; state._forceFresh = false; }
+      return callGateway(payload)
         .then(function (data) {
           if (!data.ok) {
             if (!state._recoverTried) { return attemptRecover(); }
@@ -415,9 +418,10 @@
       // so the Freedom Tracker re-pulls fresh next time it loads.
       try { localStorage.removeItem('ag_ft_cache_v6'); } catch (e) {}
 
-      // Confirm on the next header render, then re-pull.
+      // Confirm on the next header render, then re-pull (server caches bypassed).
       state._refreshFlash = true;
       state._refreshing = false;
+      state._forceFresh = true;
       loadState();
     }
 

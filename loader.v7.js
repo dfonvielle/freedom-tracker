@@ -413,6 +413,24 @@
     state.token = readLS(LS.token);
     rootEl.addEventListener('input', function () { state.dirty = true; });
 
+    // FAST PAINT: when a token, a cached identity, AND a cached state snapshot
+    // are all on this device, paint from cache IMMEDIATELY (zero network), then
+    // verify identity + refresh state in the background. This removes the two
+    // Systeme identity fetches from the critical path of a returning student.
+    var cachedId = readIdentityCache();
+    var cachedSnap = state.token ? readStateCache() : null;
+    if (state.token && cachedId && cachedSnap) {
+      state.identity = cachedId;
+      hydrateFromCache(cachedSnap.snapshot);
+      if (cachedSnap.snapshot.firstName && !state.identity.firstName) {
+        state.identity.firstName = cachedSnap.snapshot.firstName;
+      }
+      route();                              // instant, from cache
+      verifyIdentityThenRefresh_(cachedId); // background: confirm + re-pull
+      return;
+    }
+
+    // SLOW PATH: nothing to paint from -> fetch identity first, then load.
     getIdentity().then(function (identity) {
       state.identity = identity;
       if (!state.token) {
@@ -478,6 +496,38 @@
       .catch(function () {
         return readIdentityCache() || { accountId: '', email: '', firstName: '' };
       });
+  }
+
+  // Background verify for the fast-paint path. Fetch the fresh Systeme identity;
+  // if it names a DIFFERENT student than the cached one we painted from, drop
+  // the token + caches and recover cleanly (new person on a shared device).
+  // Otherwise adopt the fresh identity and do the normal background refresh.
+  // If Systeme is unreachable, keep the cached paint and still refresh state.
+  function verifyIdentityThenRefresh_(paintedId) {
+    fetchSystemeIdentity().then(function (fresh) {
+      writeLS(LS.identity, JSON.stringify({ v: fresh, at: Date.now() }));
+      if (!identityMatches_(paintedId, fresh)) {
+        resetTokenOnly();
+        clearStateCache();
+        state.identity = fresh;
+        return attemptRecover('');
+      }
+      state.identity = fresh;
+      loadState(true);
+    }).catch(function () {
+      loadState(true);   // keep the cached identity + paint, still re-pull state
+    });
+  }
+
+  // Same student? Prefer the permanent accountId; fall back to email. When
+  // there isn't enough to compare, treat as a match (never nuke on ambiguity).
+  function identityMatches_(a, b) {
+    a = a || {}; b = b || {};
+    var aid = String(a.accountId || ''), bid = String(b.accountId || '');
+    if (aid && bid) { return aid === bid; }
+    var ae = String(a.email || '').toLowerCase(), be = String(b.email || '').toLowerCase();
+    if (ae && be) { return ae === be; }
+    return true;
   }
   function fetchSystemeIdentity() {
     return Promise.all([
@@ -558,7 +608,12 @@
     }).then(asJson);
   }
   function loadState(background) {
-    callGateway({ action: 'state', projectId: state.activeProjectId })
+    var payload = { action: 'state', projectId: state.activeProjectId };
+    // Student Refresh sets _forceFresh so the Gateway drops its short-lived
+    // registry/UI-Copy caches and re-reads the sheets for a truly fresh pull.
+    // One-shot: cleared here so only the refresh call carries it.
+    if (state._forceFresh) { payload.fresh = true; state._forceFresh = false; }
+    callGateway(payload)
       .then(function (data) {
         if (!data.ok) {
           if (background) return;                  // keep showing cache
@@ -630,6 +685,9 @@
     // Tell the next header render to confirm with "Updated".
     state._refreshFlash = true;
     state._refreshing = false;
+
+    // Force the Gateway to bypass its server-side caches for this pull too.
+    state._forceFresh = true;
 
     // Foreground reload: re-pulls state and re-routes the current view,
     // which (because the caches are gone) re-fetches the day/scores/
