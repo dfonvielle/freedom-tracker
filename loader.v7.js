@@ -217,6 +217,7 @@
     NEWPROJ_CONFIRM_BUTTON: 'Start my new project →',
     NEWPROJ_CANCEL: 'Not now',
     NEWPROJ_CREATING: 'Setting up your new project… this can take about half a minute.',
+    NEWPROJ_TIME_NOTE: 'Heads up: creating a new project takes about 30–45 seconds, because it builds you a brand-new Freedom Tracker behind the scenes. Only tap below if you really want to start a new project right now.',
     NEWPROJ_LOCKED_TITLE: 'Want to work on another behavior?',
     NEWPROJ_LOCKED_TEXT: 'Creating additional projects isn’t part of your current access.',
     NEWPROJ_BUY_LABEL: 'Get another project',
@@ -970,16 +971,25 @@
   // ============================================================
   function renderCreateProjectView() {
     rootEl.innerHTML = '<div class="ft-card"><div id="ft-body">' +
-      (state.canCreateProject ? createConfirmHtml() : createLockedHtml()) +
+      (state.canCreateProject ? createConfirmHtml(false) : createLockedHtml()) +
       '</div></div>';
     if (state.canCreateProject) wireCreateConfirm();
   }
-  function createConfirmHtml() {
+  function createConfirmHtml(showCancel) {
+    var timeNote = COPY.NEWPROJ_TIME_NOTE
+      ? '<div class="ft-note">' + esc(COPY.NEWPROJ_TIME_NOTE) + '</div>' : '';
+    // The "Not now" link only makes sense when there is somewhere to go back TO,
+    // i.e. the dropdown-initiated create screen (returns to the live project).
+    // The standalone create-project lesson has no prior view, so the caller
+    // passes false and we omit what would otherwise be a dead link.
+    var cancel = (showCancel === false) ? '' :
+      '<p class="ft-sub"><button class="ft-linkbtn" id="ft-newproj-cancel">' + esc(COPY.NEWPROJ_CANCEL) + '</button></p>';
     return '<div class="ft-newproj">' +
       '<h4>' + esc(COPY.NEWPROJ_CONFIRM_TITLE) + '</h4>' +
       '<p class="ft-body-text">' + esc(COPY.NEWPROJ_CONFIRM_TEXT) + '</p>' +
+      timeNote +
       '<button id="ft-newproj-go">' + esc(COPY.NEWPROJ_CONFIRM_BUTTON) + '</button>' +
-      '<p class="ft-sub"><button class="ft-linkbtn" id="ft-newproj-cancel">' + esc(COPY.NEWPROJ_CANCEL) + '</button></p>' +
+      cancel +
       '<div class="ft-msg" id="ft-newproj-msg"></div></div>';
   }
   function createLockedHtml() {
@@ -1012,6 +1022,7 @@
             // Fresh list arrives with the new project selected. Clear every
             // cache and reload: the new project is at setup stage 0, so the
             // student lands straight in the wizard to name the behavior.
+            state._creatingSelected = false;   // we are now ON the new project
             state.projects = data.projects || state.projects;
             state.activeProjectId = data.activeProjectId || state.activeProjectId;
             state.viewingDay = null;
@@ -1028,7 +1039,20 @@
           });
       });
     }
-    if (cancel) cancel.addEventListener('click', function () { route(); });
+    if (cancel) cancel.addEventListener('click', function () {
+      state._creatingSelected = false;   // leaving create mode, back to the live project
+      route();
+    });
+  }
+
+  // Enter create mode from the project dropdown: the clean create screen — the
+  // account header + dropdown reflecting "+ Start a new project", NO project
+  // detail/chips below it, just the create card. A "Not now" returns to the
+  // project you were on. Creation still happens only on an explicit confirm.
+  function enterCreateMode() {
+    state._creatingSelected = true;
+    renderShell(createConfirmHtml(true), null);
+    wireCreateConfirm();
   }
 
   // ============================================================
@@ -1067,11 +1091,12 @@
         // for pre-label projects.
         var optLabel = p.label ? p.label : ('Project ' + ordinalById[p.projectId]);
         html += '<option value="' + esc(p.projectId) + '"' +
-          (p.projectId === state.activeProjectId ? ' selected' : '') + '>' +
+          (p.projectId === state.activeProjectId && !state._creatingSelected ? ' selected' : '') + '>' +
           esc(optLabel) + ' (Day ' + p.currentDay + ')</option>';
       }
       if (state.canCreateProject) {
-        html += '<option value="__new__">' + esc(COPY.NEWPROJ_OPTION) + '</option>';
+        html += '<option value="__new__"' + (state._creatingSelected ? ' selected' : '') + '>' +
+          esc(COPY.NEWPROJ_OPTION) + '</option>';
       }
       html += '</select>';
     }
@@ -1084,13 +1109,13 @@
     if (picker) {
       picker.addEventListener('change', function () {
         if (this.value === '__new__') {
-          // Snap the select back to the live project and show the confirm
-          // card in the body - creation only happens on an explicit confirm.
-          this.value = state.activeProjectId || '';
-          setBody(createConfirmHtml());
-          wireCreateConfirm();
+          // Clean create screen: the dropdown reflects the "+ Start a new
+          // project" selection, no project detail/chips below it, just the
+          // create card. Creation only happens on an explicit confirm.
+          enterCreateMode();
           return;
         }
+        state._creatingSelected = false;
         state.activeProjectId = this.value;
         state.viewingDay = null;
         state.viewingWeek = null;
