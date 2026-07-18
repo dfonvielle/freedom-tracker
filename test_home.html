@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>freedom-home — mock harness</title>
+<style>
+  body { font: 14px/1.5 -apple-system, sans-serif; margin: 0; background: #eef1f5; }
+  .bar { background: #1d2733; color: #fff; padding: 10px 14px; display: flex; gap: 8px;
+         flex-wrap: wrap; align-items: center; }
+  .bar a, .bar button { background: #334152; color: #fff; border: none; border-radius: 7px;
+         padding: 6px 11px; font: inherit; text-decoration: none; cursor: pointer; }
+  .bar a.on { background: #2f6df6; }
+  .bar .lbl { opacity: .7; margin-right: 2px; }
+  .stage { max-width: 780px; margin: 18px auto; padding: 0 12px; }
+  #mock-log { background: #101418; color: #9fe0a8; font: 12px/1.5 ui-monospace, monospace;
+         border-radius: 10px; padding: 12px; max-height: 220px; overflow: auto;
+         white-space: pre-wrap; margin: 18px 0; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="lbl">Scenario:</span>
+  <a href="?s=wizard">wizard</a>
+  <a href="?s=day1_fresh">day1 fresh</a>
+  <a href="?s=day1_scores">day1 scores</a>
+  <a href="?s=day5">day5 daily</a>
+  <a href="?s=day9">day9 progress</a>
+  <button id="sim-rbf">Simulate coach handoff (RBF)</button>
+  <button id="sim-fna">…(Fear &amp; Anxiety)</button>
+</div>
+
+<div class="stage">
+  <!-- Same stub a Systeme lesson carries. Engine/key filled by hand for live
+       draft-bot mounting (Gateway calls stay mocked either way). -->
+  <div id="freedom-home"
+       data-engine="https://script.google.com/macros/s/AKfycbyK2JsuFXH81NNJg_DKiqNuI0QGZDQuOhTPcjORmp3fERJd_GyEQ7zxn2HiZhf7pb05ig/exec"
+       data-key="at_0be3649ff972549d8ed8a0760740c4ba555324de"
+       data-draft="1"
+       data-full-tracker-url="https://example.com/full-tracker-lesson"></div>
+  <pre id="mock-log">mock log —\n</pre>
+</div>
+
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var scenario = qs.get('s') || 'wizard';
+  document.querySelectorAll('.bar a').forEach(function (a) {
+    if (a.getAttribute('href') === '?s=' + scenario) a.className = 'on';
+  });
+
+  var SCORE_QUESTIONS = {
+    easy: 'How EASY is it to not do your UB? (0-10)',
+    enjoy: 'How ENJOYABLE is it to not do your UB? (0-10)',
+    conf: 'How CONFIDENT are you that you can rewire your brain? (0-10)'
+  };
+  var DAY1_LABELS = {
+    d1_t1: 'No-Brainer Willpower Eliminator', d1_t2: 'Minimalist Plan',
+    d1_t3: 'Feel Good Start', d1_t4: 'Create Joyous Chaos',
+    d1_withdrawal: 'Withdrawal Helper (optional)'
+  };
+  var DAILY_LABELS = {
+    jumpstart: 'I did the Happiness & Success Jumpstart today',
+    rbf: 'I used the Rapid Behavioral Freedom tool and/or Fear & Anxiety tool for this many minutes today (0 if unused)',
+    exp: 'Real-World Freedom Experiments: what I did to skip or delay my UB',
+    wins: 'Wins: what felt easier or different today? Any other wins?',
+    opps: 'Opportunities or Concerns: tempting moments, challenges, slip-ups…',
+    notes: 'Anything else worth noting today? (Optional. The AI Coach does not read this.)'
+  };
+
+  // ---- mutable model per scenario ----
+  var M = {
+    stage: 4, currentDay: 5, ub: 'late-night doomscrolling', jumpstart: '7am, while my coffee brews',
+    day1: { d1_t1: true, d1_t2: true, d1_t3: true, d1_t4: true, d1_withdrawal: false },
+    afterPh: true,
+    daily: {},   // per-day: {jumpstart, rbf, exp, wins, opps, notes, scores:{easy,enjoy,conf}}
+    progress: null
+  };
+  if (scenario === 'wizard') { M.stage = 0; M.currentDay = 0; M.ub = ''; M.jumpstart = ''; M.day1 = { d1_t1:false,d1_t2:false,d1_t3:false,d1_t4:false,d1_withdrawal:false }; M.afterPh = false; }
+  if (scenario === 'day1_fresh') { M.currentDay = 1; M.day1 = { d1_t1:false,d1_t2:false,d1_t3:false,d1_t4:false,d1_withdrawal:false }; M.afterPh = false; }
+  if (scenario === 'day1_scores') { M.currentDay = 1; M.afterPh = false; }
+  if (scenario === 'day5') { M.currentDay = 5; }
+  if (scenario === 'day9') {
+    M.currentDay = 9;
+    M.progress = { ok: true, currentDay: 9, baseline: { easy: 2, enjoy: 1, conf: 3 }, baselineLabel: 'Baseline',
+      current: { easy: 6, enjoy: 5, conf: 7 }, currentLabel: 'Day 8', hasData: true,
+      fromBaseline: { easy: 4, enjoy: 4, conf: 4 },
+      last7: { fromLabel: 'Day 2', deltas: { easy: 2, enjoy: 3, conf: 1 } } };
+  }
+
+  function logLine(s) {
+    var el = document.getElementById('mock-log');
+    el.textContent += s + '\n';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function dayResp(day) {
+    var fields = [];
+    if (day === 0) {
+      fields = [
+        { key: 'd0_all', label: 'I understand…and I’m looking forward to the rewiring!', type: 'check', value: false },
+        { key: 'd0_ph_plan', label: 'My Day 1 Freedom Power Hour time and place:', type: 'text', value: '' }
+      ];
+      return { day: 0, title: 'Day 0', fields: fields };
+    }
+    if (day === 1) {
+      Object.keys(M.day1).forEach(function (k) {
+        fields.push({ key: k, label: DAY1_LABELS[k], type: 'check', value: M.day1[k] });
+      });
+      return { day: 1, title: 'Day 1: Freedom Power Hour Check-In', fields: fields,
+        scores: { label: 'After Power Hour', questions: SCORE_QUESTIONS, values: {} } };
+    }
+    var d = M.daily[day] || {};
+    Object.keys(DAILY_LABELS).forEach(function (k) {
+      var type = (k === 'jumpstart') ? 'check' : (k === 'rbf' ? 'number' : 'textarea');
+      fields.push({ key: k, label: DAILY_LABELS[k], type: type, value: (d[k] == null ? (type === 'check' ? false : '') : d[k]) });
+    });
+    return { day: day, title: 'Day ' + day + ': Daily Check-In', fields: fields,
+      scores: { label: 'Day ' + day + ' Freedom Scores', questions: SCORE_QUESTIONS, values: d.scores || {} } };
+  }
+  function completionMap() {
+    var c = { 0: true, 1: (M.day1.d1_t1 && M.day1.d1_t2 && M.day1.d1_t3 && M.day1.d1_t4 && M.afterPh) };
+    for (var d = 2; d <= M.currentDay; d++) c[d] = !!(M.daily[d] && M.daily[d].jumpstart);
+    return c;
+  }
+  function stateResp() {
+    return { ok: true, firstName: 'Testy', token: 'mock-token', projects: [{ projectId: '1', label: 'Test project' }],
+      activeProjectId: '1', projectType: 'ACCELERATOR', currentDay: M.currentDay, maxDay: 7, maxTrackedDay: 400,
+      writable: true, unlimited: false, canCreateProject: false, confidence: { optedOut: false, since: '' },
+      setup: { stage: M.stage, ub: M.ub, jumpstart: M.jumpstart },
+      scoreQuestions: SCORE_QUESTIONS, prompts: {}, uiCopy: {},
+      day: (M.stage >= 4 ? dayResp(M.currentDay) : null), completion: (M.stage >= 4 ? completionMap() : null) };
+  }
+
+  window.__FH_MOCK_NO_COACH = true;   // coach.v3 needs real Gateway auth; simulate via the bar buttons
+  window.__FH_MOCK_CALL = function (p) {
+    var summary = p.action + (p.day != null ? ' day=' + p.day : '') + (p.step ? ' step=' + p.step : '');
+    if (p.fields) summary += ' fields=' + JSON.stringify(p.fields);
+    if (p.dayScores) summary += ' dayScores=' + JSON.stringify(p.dayScores);
+    if (p.scores) summary += ' scores=' + JSON.stringify(p.scores);
+    if (p.confidentForever) summary += ' confidentForever=true';
+    logLine('→ ' + summary);
+
+    if (p.action === 'state') return stateResp();
+    if (p.action === 'getDay') return { ok: true, activeProjectId: '1', day: dayResp(Number(p.day)) };
+    if (p.action === 'setupSave') {
+      if (p.step === 'ub') { M.ub = p.ub; M.stage = Math.max(M.stage, 1); return { ok: true, stage: M.stage, ub: M.ub }; }
+      if (p.step === 'baseline') { M.stage = Math.max(M.stage, 2); return { ok: true, stage: M.stage }; }
+      if (p.step === 'jumpstart') { M.jumpstart = p.jumpstart; M.stage = Math.max(M.stage, 3); return { ok: true, stage: M.stage, jumpstart: M.jumpstart }; }
+      if (p.step === 'complete') { M.stage = 4; return { ok: true, stage: 4, currentDay: M.currentDay, day: dayResp(M.currentDay), completion: completionMap() }; }
+    }
+    if (p.action === 'save') {
+      var day = Number(p.day);
+      if (day === 1) {
+        Object.keys(p.fields || {}).forEach(function (k) { if (k in M.day1) M.day1[k] = !!p.fields[k]; });
+        if (p.dayScores && (p.dayScores.easy != null)) M.afterPh = true;
+      } else if (day === 0) {
+        // day-0 fields not modeled beyond echo
+      } else {
+        var d = M.daily[day] = M.daily[day] || {};
+        Object.keys(p.fields || {}).forEach(function (k) { d[k] = (k === 'jumpstart') ? !!p.fields[k] : p.fields[k]; });
+        if (p.dayScores) d.scores = p.dayScores;
+      }
+      return { ok: true, saved: Object.keys(p.fields || {}), failed: [], day: dayResp(day), completion: completionMap() };
+    }
+    if (p.action === 'progressReview') return M.progress || { ok: true, hasData: false };
+    if (p.action === 'recover' || p.action === 'activate') return { ok: true, token: 'mock-token' };
+    return { ok: false, error: 'mock: unhandled action ' + p.action };
+  };
+
+  // Simulated coach handoff (what coach.v3's button dispatches).
+  function sim(tool) {
+    var prompt = 'Today I feel tempted in the late evening. The thought "just five minutes won\'t hurt" keeps coming up. ' +
+      'My unwanted behavior is late-night doomscrolling. Help me rewire this with the counter that five minutes is never five minutes, ' +
+      'and the reversal that my phone charges outside the bedroom either way.';
+    var ev;
+    try { ev = new CustomEvent('fc:prompt-send', { detail: { prompt: prompt, tool: tool } }); }
+    catch (e) { ev = document.createEvent('CustomEvent'); ev.initCustomEvent('fc:prompt-send', false, false, { prompt: prompt, tool: tool }); }
+    document.dispatchEvent(ev);
+    logLine('→ dispatched fc:prompt-send (' + tool + ')');
+  }
+  document.getElementById('sim-rbf').onclick = function () { sim('Rapid Behavioral Freedom tool'); };
+  document.getElementById('sim-fna').onclick = function () { sim('Fear & Anxiety Relief tool, then the Rapid Behavioral Freedom tool'); };
+
+  // Load the widget first (real Pages copy not needed locally — use the repo sibling), then freedom-home.
+  var w = document.createElement('script');
+  w.src = '../ai_tools/widget/ai-tools-widget.v1.js?ts=' + Date.now();
+  w.onload = function () {
+    var s = document.createElement('script');
+    s.src = './freedom-home.v1.js?ts=' + Date.now();
+    document.body.appendChild(s);
+  };
+  document.body.appendChild(w);
+})();
+</script>
+</body>
+</html>
