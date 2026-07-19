@@ -54,10 +54,10 @@
       REFRESH_BTN: '\u21bb Refresh',
       REFRESH_DOING: 'Refreshing\u2026',
       REFRESH_DONE: 'Updated \u2713',
-      INTRO: 'Everything I say is based on what\u2019s in your tracker and what you tell me. Tell me more about your situation, or tap below and I will point you to your next move.',
+      INTRO: 'My recommendations come from what you\u2019ve told me. The more you tell me about your situation, the more I can help. Tell me more, or tap below and I will point you to your next move.',
       RECOMMEND_BTN: 'Recommend my next move',
-      RECOMMEND_THINKING: 'Reading your tracker\u2026',
-      CHAT_PLACEHOLDER: 'Type a message to your coach\u2026',
+      RECOMMEND_THINKING: 'Looking back over your week\u2026',
+      CHAT_PLACEHOLDER: 'Answer here, or just tell me what\u2019s going on\u2026',
       SEND_BTN: 'Send',
       THINKING: 'Thinking\u2026',
       COPY_BUTTON: 'Copy prompt',
@@ -66,21 +66,31 @@
       TOOL_PREFIX: 'Paste into: ',
       SEND_TO_TOOL: 'Load into the tool below \u2193',
       SENT_TO_TOOL: 'Loaded \u2713 \u2014 scroll down to continue',
-      REVIEW_TITLE: 'Suggested tracker update',
+      REVIEW_TITLE: 'Save this to your log?',
       REVIEW_CURRENT: 'Now',
       REVIEW_AFTER: 'After this update',
       REVIEW_KEEP: 'Your entry (we keep this)',
       REVIEW_ADD: 'We’ll add',
       REVIEW_EMPTY: '(empty)',
-      APPLY_BTN: 'Update my tracker',
-      APPLY_SAVING: 'Updating\u2026',
-      APPLIED: 'Tracker updated \u2713',
+      APPLY_BTN: 'Save it',
+      APPLY_SAVING: 'Saving\u2026',
+      APPLIED: 'Saved \u2713',
       DISMISS_BTN: 'Not now',
       DISMISSED: 'No problem. It is still your call.',
+      // Freedom Home auto-log chips (log-then-tell; Undo appears only when
+      // there is a previous value to restore \u2014 the Gateway refuses empty writes).
+      LOGGED_WIN: 'Logged as a win \u2713',
+      LOGGED_OPP: 'Noted as something to work on \u2713',
+      LOGGED_EXP: 'Logged your experiment \u2713',
+      LOGGED_GENERIC: 'Logged for you \u2713',
+      LOGGED_SAVING: 'Logging\u2026',
+      LOGGED_UNDO: 'Undo',
+      LOGGED_UNDOING: 'Removing\u2026',
+      LOGGED_UNDONE: 'Removed. Your call, always.',
       ERROR_GENERIC: 'Something hiccuped on my end. Try that again in a moment.',
-      NO_PROJECT_TITLE: 'Activate your tracker first',
-      NO_PROJECT_TEXT: 'Open your Freedom Tracker once to activate it on this account, then come back here and I will be ready.',
-      READONLY_NOTE: 'Your editing window has closed. I can still talk things through, but I cannot write to your tracker.',
+      NO_PROJECT_TITLE: 'Almost ready',
+      NO_PROJECT_TEXT: 'Your access is still being set up on this device. Give it a moment, then refresh this page and I will be ready.',
+      READONLY_NOTE: 'Your editing window has closed. I can still talk things through, but I cannot save new entries for you.',
       // --- Phase 5: guided emotion-first flow ---
       MORE_HELP_BTN: 'More help options',
       MORE_HELP_CLOSE: 'Close',
@@ -517,7 +527,9 @@
       callGateway({ action: 'coachRecommend', projectId: state.activeProjectId })
         .then(function (data) {
           if (!data.ok) { pushCoach(data.error || COPY.ERROR_GENERIC); return; }
-          pushCoach(data.message || '', { prompt: data.prompt, tool: data.tool });
+          // Pass any proposal through too — recommend responses can carry one
+          // (auto-logged in Freedom Home, review card elsewhere).
+          pushCoach(data.message || '', { prompt: data.prompt, tool: data.tool, proposal: data.proposal || null });
         })
         .catch(function () { pushCoach(COPY.ERROR_GENERIC); })
         .then(function () {
@@ -811,7 +823,15 @@
         if (!replaying) { fcDispatch('fc:prompt', { prompt: msg.prompt, tool: msg.tool || '' }); }
       }
       if (msg.proposal && msg.proposal.updates && msg.proposal.updates.length) {
-        bubble.appendChild(reviewCardNode(msg.proposal));
+        if (window.FREEDOM_HOME === true) {
+          // Freedom Home: log-then-tell. The entry saves immediately and is
+          // announced with a light chip (+ Undo when restorable) — no review
+          // card, no decision. Replays render the chip without re-applying.
+          bubble.appendChild(autoLogChipNode(msg));
+          if (!replaying && !msg._autoApplied) { runAutoApply(msg); }
+        } else {
+          bubble.appendChild(reviewCardNode(msg.proposal));
+        }
       }
 
       row.appendChild(bubble);
@@ -920,6 +940,96 @@
     // ============================================================
     // Review card  (before / after, then one-tap apply)
     // ============================================================
+    // ============================================================
+    // Freedom Home auto-log (log-then-tell). Reuses the shipped
+    // fc-review-done styling so no new CSS ships with this feature.
+    // ============================================================
+    function autoLogLabel(field) {
+      if (field === 'wins') { return COPY.LOGGED_WIN; }
+      if (field === 'opportunities') { return COPY.LOGGED_OPP; }
+      if (field === 'experiments') { return COPY.LOGGED_EXP; }
+      return COPY.LOGGED_GENERIC;
+    }
+    function autoLogChipNode(msg) {
+      var chip = document.createElement('div');
+      chip.className = 'fc-review fc-review-done';
+      msg._chipEl = chip;
+      renderAutoLogChip(msg, msg._autoApplied ? 'done' : 'saving');
+      return chip;
+    }
+    function renderAutoLogChip(msg, phase, note) {
+      var chip = msg._chipEl;
+      if (!chip) { return; }
+      var updates = (msg.proposal && msg.proposal.updates) || [];
+      var html = '';
+      if (phase === 'saving') {
+        html = '<div class="fc-review-donerow">' + esc(COPY.LOGGED_SAVING) + '</div>';
+      } else if (phase === 'undone') {
+        html = '<div class="fc-review-donerow">' + esc(COPY.LOGGED_UNDONE) + '</div>';
+      } else {
+        // done: one line per update + a single Undo when every update can
+        // be restored (the Gateway refuses empty writes, so an update whose
+        // previous value was empty cannot be undone server-side).
+        var undoable = updates.length > 0;
+        for (var i = 0; i < updates.length; i++) {
+          if (!updates[i].current) { undoable = false; }
+          html += '<div class="fc-review-donerow">' + esc(autoLogLabel(updates[i].field)) + '</div>';
+        }
+        if (undoable) {
+          html += '<div class="fc-review-donerow"><a href="#" class="fc-undo-link">' + esc(COPY.LOGGED_UNDO) + '</a></div>';
+        }
+        if (note) { html += '<div class="fc-review-donerow">' + esc(note) + '</div>'; }
+      }
+      chip.innerHTML = html;
+      var undo = chip.querySelector('.fc-undo-link');
+      if (undo) {
+        undo.addEventListener('click', function (e) {
+          e.preventDefault();
+          runAutoUndo(msg);
+        });
+      }
+    }
+    function runAutoApply(msg) {
+      msg._autoApplied = true;
+      var updates = [];
+      var src = msg.proposal.updates;
+      for (var i = 0; i < src.length; i++) {
+        updates.push({ field: src[i].field, finalText: src[i].finalText });
+      }
+      callGateway({ action: 'coachApply', projectId: state.activeProjectId, updates: updates })
+        .then(function (data) {
+          if (!data.ok) { return autoLogFallback(msg); }
+          renderAutoLogChip(msg, 'done');
+          fcDispatch('fc:applied', { updates: src });
+        })
+        .catch(function () { autoLogFallback(msg); });
+    }
+    function runAutoUndo(msg) {
+      var chip = msg._chipEl;
+      if (chip) { chip.innerHTML = '<div class="fc-review-donerow">' + esc(COPY.LOGGED_UNDOING) + '</div>'; }
+      var updates = [];
+      var src = msg.proposal.updates;
+      for (var i = 0; i < src.length; i++) {
+        updates.push({ field: src[i].field, finalText: src[i].current });
+      }
+      callGateway({ action: 'coachApply', projectId: state.activeProjectId, updates: updates })
+        .then(function (data) {
+          if (!data.ok) { return renderAutoLogChip(msg, 'done', data.error || COPY.ERROR_GENERIC); }
+          renderAutoLogChip(msg, 'undone');
+          fcDispatch('fc:applied', { updates: src, undone: true });
+        })
+        .catch(function () { renderAutoLogChip(msg, 'done', COPY.ERROR_GENERIC); });
+    }
+    // Auto-apply failed (offline, window closed, rejected): fall back to the
+    // classic review card so nothing the coach drafted is ever lost.
+    function autoLogFallback(msg) {
+      var chip = msg._chipEl;
+      if (!chip || !chip.parentNode) { return; }
+      var card = reviewCardNode(msg.proposal);
+      chip.parentNode.replaceChild(card, chip);
+      msg._chipEl = null;
+    }
+
     function reviewCardNode(proposal) {
       var card = document.createElement('div');
       card.className = 'fc-review';

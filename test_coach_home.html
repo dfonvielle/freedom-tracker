@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coach.v3 — Freedom Home auto-log harness</title>
+<style>
+  body { font: 14px/1.5 -apple-system, sans-serif; margin: 0; background: #eef1f5; }
+  .bar { background: #1d2733; color: #fff; padding: 10px 14px; font-size: 13px; }
+  .stage { max-width: 720px; margin: 18px auto; padding: 0 12px; }
+  #stub-log { background: #101418; color: #9fe0a8; font: 12px/1.5 ui-monospace, monospace;
+       border-radius: 10px; padding: 12px; max-height: 240px; overflow: auto;
+       white-space: pre-wrap; margin: 18px 0; }
+</style>
+</head>
+<body>
+<div class="bar">coach.v3 auto-log harness — window.FREEDOM_HOME=true, all Gateway calls stubbed.
+Recommend #1 → proposal with a previous value (undoable). Recommend #2 → first entry of the day (no undo).</div>
+
+<div class="stage">
+  <div id="freedom-coach"></div>
+  <pre id="stub-log">stub log —\n</pre>
+</div>
+
+<script>
+(function () {
+  window.FREEDOM_HOME = true;
+  try { localStorage.setItem('ag_ft_token', 'tok-harness'); } catch (e) {}
+  try { localStorage.removeItem('ag_ft_cache_v6'); } catch (e) {}   // no stale fast-paint
+
+  function logLine(s) {
+    var el = document.getElementById('stub-log');
+    el.textContent += s + '\n';
+    el.scrollTop = el.scrollHeight;
+  }
+  document.addEventListener('fc:applied', function (ev) {
+    logLine('EVENT fc:applied' + (ev.detail && ev.detail.undone ? ' (undone)' : ''));
+  });
+
+  var recommendCount = 0;
+  function route(p) {
+    if (p.action === 'state') {
+      return { ok: true, activeProjectId: '1', firstName: 'Testy', currentDay: 5, maxDay: 7,
+        writable: true, projects: [{ projectId: '1', label: 'test' }],
+        setup: { ub: 'late-night doomscrolling' }, uiCopy: {} };
+    }
+    if (p.action === 'recover') { return { ok: true, token: 'tok-harness' }; }
+    if (p.action === 'coachRecommend') {
+      recommendCount++;
+      var undoable = (recommendCount === 1);
+      return { ok: true,
+        message: 'Good to see you. Noting that as a win. What felt hardest today?',
+        proposal: { summary: 'Add to Wins', updates: [{
+          field: 'wins', label: 'Wins', day: 5, mode: 'append',
+          current: undoable ? 'earlier win' : '',
+          addedText: 'new win from the coach',
+          finalText: undoable ? 'earlier win\nnew win from the coach' : 'new win from the coach'
+        }] } };
+    }
+    if (p.action === 'coachApply') {
+      logLine('coachApply finalText=' + JSON.stringify((p.updates && p.updates[0] && p.updates[0].finalText) || ''));
+      return { ok: true, applied: ['wins'], failed: [] };
+    }
+    if (p.action === 'coachHelpMenu') { return { ok: true, ub: 'doomscrolling', feelings: [] }; }
+    return { ok: false, error: 'stub: unhandled ' + p.action };
+  }
+
+  var realFetch = window.fetch;
+  window.fetch = function (url, opts) {
+    var u = String(url);
+    if (u.indexOf('script.google.com') >= 0) {
+      var p = {};
+      try { p = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
+      logLine('→ ' + p.action);
+      var resp = route(p);
+      return Promise.resolve({ ok: true, json: function () { return Promise.resolve(resp); } });
+    }
+    if (u.indexOf('/api/') === 0 || u.indexOf('/api/') > 0) {
+      return Promise.reject(new Error('no identity in harness'));
+    }
+    return realFetch.apply(window, arguments);
+  };
+
+  var s = document.createElement('script');
+  s.src = './coach.v3.js?ts=' + Date.now();
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

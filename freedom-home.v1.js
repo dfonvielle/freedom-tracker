@@ -126,6 +126,7 @@
     STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). Share your experiments, wins, and concerns — your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',
     STEP2_TOOL_WAITING: 'Your rewiring tool will open here — talk to your coach first, or start it directly:',
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
+    STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
     STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out — continue below.',
     STEP3_TITLE: '3 · Log your progress (30 seconds)',
     STEP3_MINUTES: 'Minutes with the rewiring tool(s) today (0 if none):',
@@ -1086,9 +1087,23 @@
       slot.appendChild(coachNode);   // moving a live node keeps its DOM + chat
     }
     loadCoachScript();
-    document.getElementById('fh-tool-direct').addEventListener('click', function () {
-      mountDailyTool(TOOLS.dailyDefault, '');
-    });
+    // Tool button: a tool NEVER auto-mounts (tools appear only via the coach
+    // handoff or an explicit tap). When today's tool already holds a real
+    // conversation, the button becomes "Continue where you left off" so a
+    // refresh recovers the session in one tap without surprising anyone.
+    var resumeBot = todaysToolSession_();
+    var directBtn = document.getElementById('fh-tool-direct');
+    if (resumeBot && directBtn) {
+      var hintEl = document.getElementById('fh-tool-hint');
+      if (hintEl) { hintEl.style.display = 'none'; }
+      directBtn.textContent = COPY.STEP2_TOOL_RESUME.replace('{TOOL}', toolDisplayName_(resumeBot));
+      directBtn.className = 'fh-btn';   // primary when resuming
+    }
+    if (directBtn) {
+      directBtn.addEventListener('click', function () {
+        mountDailyTool(resumeBot || TOOLS.dailyDefault, '');
+      });
+    }
 
     // Step 3 — minutes + scores, one save.
     document.getElementById('fh-day-save').addEventListener('click', function () {
@@ -1135,23 +1150,29 @@
         .catch(function () { btn.disabled = false; });
     });
 
-    // Refresh resilience: if today's tool already holds a conversation,
-    // remount it so a re-render never "loses" the visible session.
-    var resumeBot = todaysToolSession_();
-    if (resumeBot) { mountDailyTool(resumeBot, ''); }
   }
 
-  // Which of today's tools should a re-render resume? The last one the
+  // Which of today's tools should the resume button offer? The last one the
   // student actually touched (stamped in mountDailyTool) wins; otherwise
   // F&A before RBF, since F&A only exists when the coach routed there.
+  // A session counts only when the STUDENT said something — a mount that
+  // merely greeted is not a conversation worth resurrecting.
   function toolSessionExists_(botId) {
     var key = 'ai_tools.v1.' + botId + (state.draft ? '.draft' : '') + '.kd' + state.currentDay + '-' + botId;
     try {
       var raw = localStorage.getItem(key);
       if (!raw) { return false; }
       var s = JSON.parse(raw);
-      return !!(s && s.messages && s.messages.length);
+      if (!s || !s.messages || !s.messages.length) { return false; }
+      for (var i = 0; i < s.messages.length; i++) {
+        if (s.messages[i] && s.messages[i].role === 'user') { return true; }
+      }
+      return false;
     } catch (e) { return false; }
+  }
+  function toolDisplayName_(botId) {
+    if (botId === 'bh_fearanxiety') { return 'Fear & Anxiety Relief tool'; }
+    return 'Rapid Behavioral Freedom tool';
   }
   function todaysToolSession_() {
     var last = '';
@@ -1262,7 +1283,10 @@
   function mountDailyTool(botId, promptText) {
     var hint = document.getElementById('fh-tool-hint');
     var direct = document.getElementById('fh-tool-direct');
-    if (promptText && hint) { hint.textContent = COPY.STEP2_TOOL_LOADED; }
+    if (hint) {
+      if (promptText) { hint.textContent = COPY.STEP2_TOOL_LOADED; }
+      else { hint.style.display = 'none'; }   // no stale "will open here" above a live tool
+    }
     if (direct) { direct.style.display = 'none'; }
     // Remember which tool the student touched LAST today, so a re-render
     // resumes the right one when both tools hold sessions.
