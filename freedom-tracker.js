@@ -12,21 +12,27 @@
    To roll back: point it at the previous version, commit.
    NEVER rename this file — its stable name is the whole point.
 
-   Week 2 note: if Week 2 ships as its own loader, route on the
-   container, e.g.:
-     if (document.getElementById('freedom-tracker-w2')) load('loader-w2.v1.js');
-     else load(CURRENT_LOADER);
+   SURFACE ROUTING — one bootstrap, every surface:
+     <div id="freedom-home">    -> CURRENT_HOME   (the one-page rail)
+     anything else              -> CURRENT_LOADER (the full tracker,
+                                   original behavior for every old stub)
    ============================================================ */
 (function () {
   'use strict';
 
-  // >>> THE ONE LINE YOU EDIT ON EVERY UPGRADE <<<
-  var CURRENT_LOADER = 'loader.v7.js';
+  // >>> THE LINES YOU EDIT ON EVERY UPGRADE <<<
+  var CURRENT_LOADER = 'loader.v7.js';        // full tracker views
+  var CURRENT_HOME = 'freedom-home.v1.js';    // Freedom Home one-page rail
 
   var BASE = 'https://dfonvielle.github.io/freedom-tracker/';
 
-  var s = document.createElement('script');
-  s.src = BASE + CURRENT_LOADER;
-  s.async = true;
-  document.head.appendChild(s);
+  function load(file) {
+    var s = document.createElement('script');
+    s.src = BASE + file;
+    s.async = true;
+    document.head.appendChild(s);
+  }
+
+  if (document.getElementById('freedom-home')) { load(CURRENT_HOME); }
+  else { load(CURRENT_LOADER); }
 })();
