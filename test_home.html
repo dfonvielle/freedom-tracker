@@ -85,10 +85,19 @@
   if (scenario === 'day5') { M.currentDay = 5; }
   if (scenario === 'day9') {
     M.currentDay = 9;
+    // REAL Gateway shapes (GatewayReflections): baseline/current are FLAT
+    // values; fromBaseline + last7.deltas are {from,to,change} OBJECTS;
+    // wins is {items:[{day,text}], total}. Keep this mirroring reality —
+    // flat-number deltas here once hid a "[object Object]" bug.
     M.progress = { ok: true, currentDay: 9, baseline: { easy: 2, enjoy: 1, conf: 3 }, baselineLabel: 'Baseline',
       current: { easy: 6, enjoy: 5, conf: 7 }, currentLabel: 'Day 8', hasData: true,
-      fromBaseline: { easy: 4, enjoy: 4, conf: 4 },
-      last7: { fromLabel: 'Day 2', deltas: { easy: 2, enjoy: 3, conf: 1 } } };
+      fromBaseline: { easy: { from: 2, to: 6, change: 4 }, enjoy: { from: 1, to: 5, change: 4 }, conf: { from: 3, to: 7, change: 4 } },
+      last7: { fromLabel: 'Day 2', deltas: { easy: { from: 4, to: 6, change: 2 }, enjoy: { from: 2, to: 5, change: 3 }, conf: { from: 6, to: 7, change: 1 } } },
+      wins: { items: [
+        { day: 8, text: 'Read a whole chapter in bed, phone stayed in the kitchen' },
+        { day: 6, text: 'Evening felt lighter, no pull after dinner' },
+        { day: 4, text: 'Noticed the urge, watched it pass without acting' }
+      ], total: 7 } };
   }
   if (scenario === 'multi') {
     M.currentDay = 5;

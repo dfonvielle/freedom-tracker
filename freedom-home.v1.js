@@ -123,13 +123,13 @@
     STEP1_CHECK: 'I did my Happiness & Success Jumpstart',
     STEP1_ANCHOR: 'Your moment: {ANCHOR}',
     STEP2_TITLE: '2 · Talk it out, then rewire',
-    STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). When your coach hands you a loaded prompt, one tap sends it into your rewiring tool below.',
+    STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). Share your experiments, wins, and concerns — your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',
     STEP2_TOOL_WAITING: 'Your rewiring tool will open here — talk to your coach first, or start it directly:',
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out — continue below.',
-    STEP3_TITLE: '3 · Log your day (1 minute)',
-    STEP3_MINUTES: 'Minutes with the rewiring tool today (0 if none):',
-    STEP3_SAVE: 'Save my day →',
+    STEP3_TITLE: '3 · Log your progress (30 seconds)',
+    STEP3_MINUTES: 'Minutes with the rewiring tool(s) today (0 if none):',
+    STEP3_SAVE: 'Save my progress →',
     STEP3_SAVED: 'Saved ✓ — see you tomorrow!',
     CONF_FOREVER: 'I’m 100% confident I can rewire my brain — never ask me about confidence again.',
 
@@ -138,6 +138,11 @@
     PROGRESS_TITLE: 'Your movement so far',
     PROGRESS_BASELINE: 'Baseline',
     PROGRESS_EMPTY: 'Log a day’s scores and your movement shows up here.',
+    PROGRESS_UP: 'Real movement since your baseline. That is your rewiring working.',
+    PROGRESS_FLAT: 'Steady is fine. Every session stacks quiet groundwork, and the wins below are proof.',
+    PROGRESS_DOWN: 'Scores dip sometimes, and nothing is lost. Every concern is an opportunity for rewiring, and your wins below are still yours.',
+    WINS_TITLE: 'Your wins so far',
+    WINS_EARLIER: '…plus {N} earlier wins in your full tracker.',
 
     // Activation (mirrors loader.v7)
     ACTIVATE_TITLE: 'Activate your Freedom Page',
@@ -194,6 +199,7 @@
     _recoverTried: false
   };
   var rootEl = null;
+  var coachNode = null;        // the coach's PERSISTENT DOM (survives re-renders)
   var setupPollTimer = null;   // "Setting up…" auto-retry (renderSettingUp)
   function clearSetupPoll_() {
     if (setupPollTimer) { window.clearInterval(setupPollTimer); setupPollTimer = null; }
@@ -1002,8 +1008,10 @@
     var day = state.day || { fields: [] };
     var jumpDone = !!fieldVal(day, 'jumpstart');
     var anchor = state.setup.jumpstart || '';
-    var loggedSomething = !!(fieldVal(day, 'wins') || fieldVal(day, 'exp') || fieldVal(day, 'opps'));
     var scoresVals = (day.scores && day.scores.values) || {};
+    var minutesVal = fieldVal(day, 'rbf');
+    var loggedSomething = (minutesVal != null && minutesVal !== '')
+      || (scoresVals.easy != null || scoresVals.enjoy != null);
     var hideConf = !!(state.confidence && state.confidence.optedOut);
 
     renderShell(
@@ -1017,11 +1025,13 @@
         '<div class="fh-msg" id="fh-jump-msg"></div>' +
       '</div>' +
 
-      // STEP 2 — coach + tool
+      // STEP 2 — coach + tool. The coach div is ADOPTED below, never
+      // recreated: coach.v3 boots once per page load, so a fresh empty div
+      // after a re-render would stay empty forever (the Refresh bug).
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.STEP2_TITLE) + '</h3>' +
         '<p class="fh-sub">' + esc(COPY.STEP2_SUB) + '</p>' +
-        '<div id="freedom-coach"></div>' +
+        '<div id="fh-coach-slot"></div>' +
         '<div class="fh-divider"></div>' +
         '<div id="fh-tool-area">' +
           '<p class="fh-sub" id="fh-tool-hint">' + esc(COPY.STEP2_TOOL_WAITING) + '</p>' +
@@ -1030,15 +1040,14 @@
         '</div>' +
       '</div>' +
 
-      // STEP 3 — daily log
+      // STEP 3 — log your progress. Minutes + scores ONLY: the narrative
+      // fields (experiments, wins, opportunities) flow through the coach,
+      // which offers to log them (fc:applied confirms below). They remain
+      // fully editable in the full tracker.
       '<div class="fh-card' + (loggedSomething ? ' fh-card-done' : '') + '">' +
         '<h3>' + esc(COPY.STEP3_TITLE) + (loggedSomething ? ' <span class="fh-done-tick">✓</span>' : '') + '</h3>' +
         '<div class="fh-field"><label class="fh-label">' + esc(COPY.STEP3_MINUTES) + '</label>' +
-        '<input type="number" min="0" step="1" id="fh-min" value="' + esc(fieldVal(day, 'rbf') == null ? '' : fieldVal(day, 'rbf')) + '" /></div>' +
-        dailyTextarea(day, 'exp') +
-        dailyTextarea(day, 'wins') +
-        dailyTextarea(day, 'opps') +
-        dailyTextarea(day, 'notes') +
+        '<input type="number" min="0" step="1" id="fh-min" value="' + esc(minutesVal == null ? '' : minutesVal) + '" /></div>' +
         scoreInputHtml('easy', 'fh-ds-', scoresVals.easy) +
         scoreInputHtml('enjoy', 'fh-ds-', scoresVals.enjoy) +
         (hideConf ? '' : scoreInputHtml('conf', 'fh-ds-', scoresVals.conf)) +
@@ -1070,21 +1079,20 @@
         .catch(function (err) { setMsg('fh-jump-msg', String(err), false); });
     });
 
-    // Step 2 — the coach (script injected on first daily render) + tool.
+    // Step 2 — adopt the persistent coach node, then ensure its script.
+    var slot = document.getElementById('fh-coach-slot');
+    if (slot) {
+      if (!coachNode) { coachNode = document.createElement('div'); coachNode.id = 'freedom-coach'; }
+      slot.appendChild(coachNode);   // moving a live node keeps its DOM + chat
+    }
     loadCoachScript();
     document.getElementById('fh-tool-direct').addEventListener('click', function () {
       mountDailyTool(TOOLS.dailyDefault, '');
     });
 
-    // Step 3 — one save for the whole log.
+    // Step 3 — minutes + scores, one save.
     document.getElementById('fh-day-save').addEventListener('click', function () {
-      var fields = {
-        rbf: document.getElementById('fh-min').value,
-        exp: document.getElementById('fh-ta-exp').value,
-        wins: document.getElementById('fh-ta-wins').value,
-        opps: document.getElementById('fh-ta-opps').value,
-        notes: document.getElementById('fh-ta-notes').value
-      };
+      var fields = { rbf: document.getElementById('fh-min').value };
       var keys = hideConf ? ['easy', 'enjoy'] : ['easy', 'enjoy', 'conf'];
       var dayScores = {};
       var anyScore = false;
@@ -1126,49 +1134,96 @@
         })
         .catch(function () { btn.disabled = false; });
     });
+
+    // Refresh resilience: if today's tool already holds a conversation,
+    // remount it so a re-render never "loses" the visible session.
+    var resumeBot = todaysToolSession_();
+    if (resumeBot) { mountDailyTool(resumeBot, ''); }
   }
 
-  function dailyTextarea(day, key) {
-    var label = '';
-    if (day && day.fields) {
-      for (var i = 0; i < day.fields.length; i++) {
-        if (day.fields[i].key === key) { label = day.fields[i].label; break; }
-      }
+  // Which of today's tools should a re-render resume? The last one the
+  // student actually touched (stamped in mountDailyTool) wins; otherwise
+  // F&A before RBF, since F&A only exists when the coach routed there.
+  function toolSessionExists_(botId) {
+    var key = 'ai_tools.v1.' + botId + (state.draft ? '.draft' : '') + '.kd' + state.currentDay + '-' + botId;
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) { return false; }
+      var s = JSON.parse(raw);
+      return !!(s && s.messages && s.messages.length);
+    } catch (e) { return false; }
+  }
+  function todaysToolSession_() {
+    var last = '';
+    try { last = localStorage.getItem('fh_last_tool_d' + state.currentDay) || ''; } catch (e) {}
+    if (last && toolSessionExists_(last)) { return last; }
+    var bots = ['bh_fearanxiety', TOOLS.dailyDefault];
+    for (var i = 0; i < bots.length; i++) {
+      if (toolSessionExists_(bots[i])) { return bots[i]; }
     }
-    if (!label) {
-      var fallback = { exp: 'Real-World Freedom Experiments', wins: 'Wins', opps: 'Opportunities or Concerns', notes: 'Notes (optional)' };
-      label = fallback[key] || key;
-    }
-    var val = fieldVal(day, key);
-    return '<div class="fh-field"><label class="fh-label">' + esc(label) + '</label>' +
-      '<textarea id="fh-ta-' + key + '" rows="2">' + esc(val == null ? '' : val) + '</textarea></div>';
+    return '';
   }
 
+  // The real Gateway's delta shapes are OBJECTS: fromBaseline[k] and
+  // last7.deltas[k] are {from, to, change} (GatewayReflections
+  // reflectDeltas_), NOT flat numbers — render .change. baseline/current
+  // ARE flat values. Getting this wrong printed "[object Object]" (Dave's
+  // Day-12 test); the mock harness now mirrors the real shapes exactly.
   function progressHtml(data) {
     if (!data.hasData) return '<p class="fh-sub">' + esc(COPY.PROGRESS_EMPTY) + '</p>';
     var mks = ['easy', 'enjoy', 'conf'];
     var names = { easy: 'Easy', enjoy: 'Enjoyable', conf: 'Confidence' };
-    var html = '<h3>' + esc(COPY.PROGRESS_TITLE) + '</h3><table class="fh-table"><tr><th></th>' +
+    var html = '<h3>' + esc(COPY.PROGRESS_TITLE) + '</h3>';
+    html += '<p class="fh-sub fh-headline">' + esc(progressHeadline_(data)) + '</p>';
+    html += '<table class="fh-table"><tr><th></th>' +
       '<th>' + esc(COPY.PROGRESS_BASELINE) + '</th><th>' + esc(data.currentLabel || 'Now') + '</th><th>Δ</th></tr>';
     for (var i = 0; i < mks.length; i++) {
       var k = mks[i];
       var b = data.baseline ? data.baseline[k] : null;
       var c = data.current ? data.current[k] : null;
-      var d = data.fromBaseline ? data.fromBaseline[k] : null;
+      var d = (data.fromBaseline && data.fromBaseline[k] && data.fromBaseline[k].change != null)
+        ? Number(data.fromBaseline[k].change) : null;
       html += '<tr><td>' + names[k] + '</td><td>' + esc(b == null ? '—' : b) + '</td><td>' +
         esc(c == null ? '—' : c) + '</td><td>' + esc(d == null ? '—' : (d > 0 ? '+' + d : d)) + '</td></tr>';
     }
     html += '</table>';
     if (data.last7 && data.last7.deltas) {
-      html += '<p class="fh-sub">Last ~7 days (' + esc(data.last7.fromLabel || '') + '): ';
       var parts = [];
       for (var j = 0; j < mks.length; j++) {
-        var dv = data.last7.deltas[mks[j]];
+        var dl = data.last7.deltas[mks[j]];
+        var dv = (dl && dl.change != null) ? Number(dl.change) : null;
         if (dv != null) parts.push(names[mks[j]] + ' ' + (dv > 0 ? '+' + dv : dv));
       }
-      html += esc(parts.join(' · ')) + '</p>';
+      if (parts.length) {
+        html += '<p class="fh-sub">Last ~7 days (' + esc(data.last7.fromLabel || '') + '): ' + esc(parts.join(' · ')) + '</p>';
+      }
+    }
+    // The rolling wins stack — the pat on the back, in the student's own words.
+    if (data.wins && data.wins.items && data.wins.items.length) {
+      html += '<h3 class="fh-wins-title">' + esc(COPY.WINS_TITLE) + '</h3><ul class="fh-wins">';
+      for (var w = 0; w < data.wins.items.length; w++) {
+        var it = data.wins.items[w];
+        var txt = String(it.text || '');
+        if (txt.length > 200) { txt = txt.slice(0, 200) + '…'; }
+        html += '<li><span class="fh-win-day">Day ' + esc(it.day) + '</span> ' + esc(txt) + '</li>';
+      }
+      html += '</ul>';
+      var extra = data.wins.total - data.wins.items.length;
+      if (extra > 0) { html += '<p class="fh-sub">' + esc(COPY.WINS_EARLIER.replace('{N}', String(extra))) + '</p>'; }
     }
     return html;
+  }
+
+  // Templated encouragement, tone keyed to the net baseline movement.
+  function progressHeadline_(data) {
+    var sum = 0, n = 0;
+    var fb = data.fromBaseline || {};
+    for (var k in fb) {
+      if (fb.hasOwnProperty(k) && fb[k] && fb[k].change != null) { sum += Number(fb[k].change); n++; }
+    }
+    if (n && sum > 0) return COPY.PROGRESS_UP;
+    if (n && sum < 0) return COPY.PROGRESS_DOWN;
+    return COPY.PROGRESS_FLAT;
   }
 
   /* ============================================================
@@ -1207,24 +1262,18 @@
   function mountDailyTool(botId, promptText) {
     var hint = document.getElementById('fh-tool-hint');
     var direct = document.getElementById('fh-tool-direct');
-    if (promptText) {
-      // Ride the widget's first-message injection: the prompt lives in a
-      // hidden text/markdown node, exactly like a lesson fixture would.
-      var node = document.getElementById('fh-first-msg');
-      if (!node) {
-        node = document.createElement('script');
-        node.type = 'text/markdown';
-        node.id = 'fh-first-msg';
-        document.body.appendChild(node);
-      }
-      node.textContent = promptText;
-      if (hint) hint.textContent = COPY.STEP2_TOOL_LOADED;
+    if (promptText && hint) { hint.textContent = COPY.STEP2_TOOL_LOADED; }
+    if (direct) { direct.style.display = 'none'; }
+    // Remember which tool the student touched LAST today, so a re-render
+    // resumes the right one when both tools hold sessions.
+    try { localStorage.setItem('fh_last_tool_d' + state.currentDay, botId); } catch (e) {}
+    mountTool(botId, { sessionKey: 'd' + state.currentDay + '-' + botId });
+    // The prompt rides AgtWidget.send: it lands in fresh AND restored
+    // sessions alike (the old only-on-fresh injection silently swallowed
+    // handoffs into an already-open tool).
+    if (promptText && window.AgtWidget && window.AgtWidget.send) {
+      window.AgtWidget.send(document.getElementById('fh-tool-stub'), promptText);
     }
-    if (direct) direct.style.display = 'none';
-    mountTool(botId, {
-      sessionKey: 'd' + state.currentDay + '-' + botId,
-      firstMessageFrom: promptText ? 'fh-first-msg' : ''
-    });
   }
 
   // coach.v3 injected from the folder THIS script came from, only once,
@@ -1249,26 +1298,17 @@
     if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
   });
 
-  // The coach just wrote the tracker (review card applied). Refresh the log
-  // card SURGICALLY: refetch the day, fill only inputs the student has left
-  // empty (never clobber typing), and confirm visibly. No re-render — the
-  // live coach and tool widgets must not be torn down.
+  // The coach just wrote the tracker (review card applied). The narrative
+  // fields no longer live on this page, so just refetch the day (keeps
+  // done-styling honest on the next render) and confirm visibly. No
+  // re-render — the live coach and tool widgets must not be torn down.
   document.addEventListener('fc:applied', function () {
     callGateway({ action: 'getDay', projectId: state.activeProjectId, day: state.currentDay })
       .then(function (data) {
-        if (!data.ok || !data.day) return;
-        state.day = data.day;
-        writeStateCache();
-        var map = { rbf: 'fh-min', exp: 'fh-ta-exp', wins: 'fh-ta-wins', opps: 'fh-ta-opps', notes: 'fh-ta-notes' };
-        for (var k in map) {
-          var el = document.getElementById(map[k]);
-          if (!el) continue;
-          var v = fieldVal(state.day, k);
-          if (v != null && v !== '' && String(el.value || '').trim() === '') { el.value = v; }
-        }
+        if (data.ok && data.day) { state.day = data.day; writeStateCache(); }
         setMsg('fh-day-msg', COPY.COACH_LOGGED, true);
       })
-      .catch(function () {});
+      .catch(function () { setMsg('fh-day-msg', COPY.COACH_LOGGED, true); });
   });
 
   /* ============================================================
@@ -1325,6 +1365,11 @@
       '#freedom-home .fh-table th,#freedom-home .fh-table td{border-bottom:1px solid #e3e9ef;padding:6px 8px;text-align:center;}' +
       '#freedom-home .fh-table td:first-child,#freedom-home .fh-table th:first-child{text-align:left;}' +
       '#freedom-home .fh-toolpick{margin-top:8px;}' +
+      '#freedom-home .fh-headline{font-weight:600;color:#2c5a3f;}' +
+      '#freedom-home .fh-wins-title{margin-top:16px;}' +
+      '#freedom-home .fh-wins{margin:6px 0 4px;padding-left:20px;text-align:left;font-size:14px;}' +
+      '#freedom-home .fh-wins li{margin:6px 0;}' +
+      '#freedom-home .fh-win-day{display:inline-block;background:#e7f3ec;color:#2c9a4b;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;}' +
       '#fh-tool{margin-top:12px;}';
     var style = document.createElement('style');
     style.id = 'fh-styles';
