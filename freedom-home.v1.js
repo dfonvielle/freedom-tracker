@@ -105,9 +105,17 @@
     PH_SCORES_TITLE: 'One last thing: your Freedom Scores after the Power Hour',
     PH_SCORES_SUB: 'Compare these to your baseline any time in your full tracker.',
     PH_SCORES_BTN: 'Save my scores →',
+    PH_RESUME_NOTE: 'Stop anytime — this page remembers exactly where you left off.',
     PH_CELEBRATE_TITLE: '🎉 Day 1 complete — massive rewiring head start!',
     PH_CELEBRATE_TEXT: 'You just did the single biggest day of this whole process. From tomorrow, each day takes just 7–22 minutes. Come back to this same page — it will show you exactly what to do.',
     PH_REVIEW_LINK: 'Revisit a Power Hour tool',
+    WITHDRAWAL_LINK: 'Worried about withdrawal or cravings? Try the optional Withdrawal Helper →',
+    WITHDRAWAL_TITLE: 'Optional: Withdrawal Helper',
+    WITHDRAWAL_SUB: 'A focused tool for handling withdrawal worries. Totally optional — use it if it speaks to you.',
+    WITHDRAWAL_DONE: 'Done with this tool → back',
+    COACH_LOGGED: 'Your coach logged this for you ✓',
+    SETUP_POLLING: 'Checking automatically — this usually takes under a minute…',
+    PROJ_NEW: '+ Start a new project',
 
     // Daily rail
     DAILY_STRIP_TITLE: 'Today’s rhythm — three small steps',
@@ -186,6 +194,10 @@
     _recoverTried: false
   };
   var rootEl = null;
+  var setupPollTimer = null;   // "Setting up…" auto-retry (renderSettingUp)
+  function clearSetupPoll_() {
+    if (setupPollTimer) { window.clearInterval(setupPollTimer); setupPollTimer = null; }
+  }
 
   /* ============================================================
    * Small helpers (same shapes as loader.v7)
@@ -334,6 +346,7 @@
           projects: state.projects, activeProjectId: state.activeProjectId,
           currentDay: state.currentDay, maxTrackedDay: state.maxTrackedDay,
           writable: state.writable, confidence: state.confidence,
+          canCreateProject: state.canCreateProject === true,
           setup: state.setup, scoreQuestions: state.scoreQuestions,
           completion: state.completion, day: state.day,
           firstName: (state.identity && state.identity.firstName) || ''
@@ -349,6 +362,7 @@
     state.maxTrackedDay = snap.maxTrackedDay || 7;
     state.writable = (snap.writable === false) ? false : true;
     state.confidence = snap.confidence || { optedOut: false, since: '' };
+    state.canCreateProject = snap.canCreateProject === true;
     state.setup = snap.setup || state.setup;
     state.scoreQuestions = snap.scoreQuestions || null;
     state.completion = snap.completion || null;
@@ -380,6 +394,7 @@
     state.maxTrackedDay = data.maxTrackedDay || 7;
     state.writable = (data.writable === false) ? false : true;
     state.confidence = data.confidence || { optedOut: false, since: '' };
+    state.canCreateProject = data.canCreateProject === true;
     state.setup = data.setup || { stage: 0, ub: '', jumpstart: '' };
     state.scoreQuestions = data.scoreQuestions || null;
     if (data.completion) state.completion = data.completion;
@@ -466,17 +481,39 @@
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.SETUP_TITLE) + '</h3>' +
         '<p class="fh-sub">' + esc(COPY.SETUP_TEXT) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.SETUP_POLLING) + '</p>' +
         '<button class="fh-btn" id="fh-setup-retry">' + esc(COPY.SETUP_RETRY) + '</button>' +
         '<div class="fh-linkline"><a href="#" id="fh-setup-manual">' + esc(COPY.SETUP_MANUAL) + '</a></div>' +
       '</div>';
     document.getElementById('fh-setup-retry').addEventListener('click', function () {
+      clearSetupPoll_();
       state._recoverTried = false;
       attemptRecover('');
     });
     document.getElementById('fh-setup-manual').addEventListener('click', function (e) {
       e.preventDefault();
+      clearSetupPoll_();
       renderPairing('');
     });
+    // Auto-retry: a buyer who clicks through within seconds of purchase can
+    // beat the enrollment webhook. Poll quietly — 4 tries × 15s stays well
+    // under the Gateway's recover rate cap (8 per 5 min) and leaves budget
+    // for manual retries.
+    clearSetupPoll_();
+    var polls = 0;
+    setupPollTimer = window.setInterval(function () {
+      polls++;
+      if (polls > 4) { clearSetupPoll_(); return; }
+      callGateway({ action: 'recover' }).then(function (data) {
+        if (data.ok && data.token) {
+          clearSetupPoll_();
+          persistTokenFromResponse(data);
+          clearStateCache();
+          rootEl.innerHTML = shellLoading();
+          loadState(false);
+        }
+      }).catch(function () {});
+    }, 15000);
   }
   function renderPairing(notice) {
     var emailNote = state.identity && state.identity.email
@@ -554,12 +591,31 @@
   function renderShell(bodyHtml) {
     var name = (state.identity && state.identity.firstName) ? ' ' + state.identity.firstName : '';
     var dayLabel = COPY.HEADER_DAY.replace('{DAY}', String(state.currentDay));
+
+    // Project picker — hidden for the normal one-project student; appears
+    // only with multiple projects or the unlimited entitlement (the Gateway
+    // decides entitlement; we only render what it says — never decide here).
+    var pickerHtml = '';
+    if ((state.projects && state.projects.length > 1) || state.canCreateProject) {
+      var opts = '';
+      for (var pi = 0; pi < (state.projects || []).length; pi++) {
+        var p = state.projects[pi];
+        var pid = String(p.projectId);
+        opts += '<option value="' + esc(pid) + '"' + (pid === String(state.activeProjectId) ? ' selected' : '') + '>'
+          + esc(p.label || ('Project ' + pid)) + '</option>';
+      }
+      if (state.canCreateProject) { opts += '<option value="__new">' + esc(COPY.PROJ_NEW) + '</option>'; }
+      pickerHtml = '<select id="fh-proj" class="fh-proj">' + opts + '</select>';
+    }
+
     rootEl.innerHTML =
       '<div class="fh-wrap">' +
         '<div class="fh-header">' +
           '<div><div class="fh-daychip">' + esc(dayLabel) + '</div>' +
           '<div class="fh-hi">' + esc(COPY.HEADER_HI.replace('{NAME}', name ? ',' + name : '')) + '</div></div>' +
-          '<button class="fh-refresh" id="fh-refresh">' + esc(COPY.REFRESH_BTN) + '</button>' +
+          '<div class="fh-hdr-right">' + pickerHtml +
+            '<button class="fh-refresh" id="fh-refresh">' + esc(COPY.REFRESH_BTN) + '</button>' +
+          '</div>' +
         '</div>' +
         '<div id="fh-body">' + bodyHtml + '</div>' +
         (state.fullTrackerUrl
@@ -575,9 +631,29 @@
         route();
       }).catch(function () { route(); });
     });
+    var ps = document.getElementById('fh-proj');
+    if (ps) ps.addEventListener('change', function () {
+      var v = this.value;
+      clearSetupPoll_();
+      state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+      rootEl.innerHTML = shellLoading();
+      if (v === '__new') {
+        // Same flow as loader.v7's "+ Start a new project": create in place,
+        // then reload state — the fresh project lands in the setup wizard.
+        callGateway({ action: 'createProject' }).then(function (data) {
+          state.activeProjectId = (data && data.ok && data.projectId != null) ? String(data.projectId) : null;
+          clearStateCache();
+          loadState(false);
+        }).catch(function () { loadState(false); });
+        return;
+      }
+      state.activeProjectId = v;
+      loadState(false);
+    });
   }
 
   function route() {
+    clearSetupPoll_();
     unmountTool();
     var step = nextStep();
     if (step.phase === 'wizard') return renderWizard();
@@ -786,7 +862,7 @@
       phStripHtml(idx) +
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.PH_TOOL_OF.replace('{I}', String(idx + 1)).replace('{NAME}', tool.name)) + '</h3>' +
-        '<p class="fh-sub">' + esc(COPY.PH_INTRO) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.PH_INTRO) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
         '<div id="fh-tool"></div>' +
         '<button class="fh-btn" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
         '<div class="fh-msg" id="fh-ph-msg"></div>' +
@@ -859,11 +935,45 @@
         '<h3>' + esc(COPY.PH_CELEBRATE_TITLE) + '</h3>' +
         '<p class="fh-sub">' + esc(COPY.PH_CELEBRATE_TEXT) + '</p>' +
         '<div class="fh-linkline"><a href="#" id="fh-ph-review">' + esc(COPY.PH_REVIEW_LINK) + '</a></div>' +
+        '<div class="fh-linkline"><a href="#" id="fh-withdrawal-link">' + esc(COPY.WITHDRAWAL_LINK) + '</a></div>' +
       '</div>');
     document.getElementById('fh-ph-review').addEventListener('click', function (e) {
       e.preventDefault();
       state.forcedPhase = null;
       renderPowerHourPicker();
+    });
+    document.getElementById('fh-withdrawal-link').addEventListener('click', function (e) {
+      e.preventDefault();
+      renderWithdrawal();
+    });
+  }
+
+  // The optional Withdrawal Helper (bh_withdrawal). Reachable from the Day-1
+  // celebrate card and the tool picker; "done" marks the optional d1_withdrawal
+  // tick (a usage marker — nothing requires it) and routes back.
+  function renderWithdrawal() {
+    renderShell(
+      phStripHtml(-1) +
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.WITHDRAWAL_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.WITHDRAWAL_SUB) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
+        '<div id="fh-tool"></div>' +
+        '<button class="fh-btn fh-secondary" id="fh-wd-done">' + esc(COPY.WITHDRAWAL_DONE) + '</button>' +
+        '<div class="fh-msg" id="fh-wd-msg"></div>' +
+      '</div>');
+    mountTool('bh_withdrawal', { sessionKey: 'ph-bh_withdrawal' });
+    document.getElementById('fh-wd-done').addEventListener('click', function () {
+      callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: { d1_withdrawal: true } })
+        .then(function (data) {
+          if (data.ok) {
+            if (state.currentDay === 1) { state.day = data.day || state.day; }
+            else { state.phDay = data.day || state.phDay; }
+            if (data.completion) state.completion = data.completion;
+            writeStateCache();
+          }
+          route();
+        })
+        .catch(function () { route(); });
     });
   }
   function renderPowerHourPicker() {
@@ -871,6 +981,7 @@
     for (var i = 0; i < TOOLS.powerHour.length; i++) {
       html += '<button class="fh-btn fh-secondary fh-toolpick" data-idx="' + i + '">' + esc(TOOLS.powerHour[i].name) + '</button>';
     }
+    html += '<button class="fh-btn fh-secondary" id="fh-pick-wd">' + esc(COPY.WITHDRAWAL_TITLE) + '</button>';
     html += '</div>';
     renderShell(html);
     var picks = rootEl.querySelectorAll('.fh-toolpick');
@@ -879,6 +990,9 @@
         renderPowerHour(Number(this.getAttribute('data-idx')));
       });
     }
+    document.getElementById('fh-pick-wd').addEventListener('click', function () {
+      renderWithdrawal();
+    });
   }
 
   /* ============================================================
@@ -1135,6 +1249,28 @@
     if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
   });
 
+  // The coach just wrote the tracker (review card applied). Refresh the log
+  // card SURGICALLY: refetch the day, fill only inputs the student has left
+  // empty (never clobber typing), and confirm visibly. No re-render — the
+  // live coach and tool widgets must not be torn down.
+  document.addEventListener('fc:applied', function () {
+    callGateway({ action: 'getDay', projectId: state.activeProjectId, day: state.currentDay })
+      .then(function (data) {
+        if (!data.ok || !data.day) return;
+        state.day = data.day;
+        writeStateCache();
+        var map = { rbf: 'fh-min', exp: 'fh-ta-exp', wins: 'fh-ta-wins', opps: 'fh-ta-opps', notes: 'fh-ta-notes' };
+        for (var k in map) {
+          var el = document.getElementById(map[k]);
+          if (!el) continue;
+          var v = fieldVal(state.day, k);
+          if (v != null && v !== '' && String(el.value || '').trim() === '') { el.value = v; }
+        }
+        setMsg('fh-day-msg', COPY.COACH_LOGGED, true);
+      })
+      .catch(function () {});
+  });
+
   /* ============================================================
    * STYLES
    * ============================================================ */
@@ -1163,6 +1299,8 @@
       '#freedom-home .fh-check{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;margin:10px 0;}' +
       '#freedom-home .fh-check input{width:auto;margin-top:3px;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;}' +
+      '#freedom-home .fh-hdr-right{display:flex;gap:8px;align-items:center;flex:none;}' +
+      '#freedom-home .fh-proj{border:1px solid #c4cfd9;border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;color:#4a5765;background:#fff;max-width:170px;}' +
       '#freedom-home .fh-msg{margin-top:8px;font-size:13.5px;min-height:18px;}' +
       '#freedom-home .fh-good{color:#2c9a4b;}#freedom-home .fh-bad{color:#c0392b;}' +
       '#freedom-home .fh-note{background:#fff6e5;border:1px solid #f0dbae;border-radius:8px;padding:8px 10px;font-size:13.5px;margin:8px 0;}' +

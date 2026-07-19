@@ -26,8 +26,11 @@
   <a href="?s=day1_scores">day1 scores</a>
   <a href="?s=day5">day5 daily</a>
   <a href="?s=day9">day9 progress</a>
+  <a href="?s=multi">multi-project</a>
+  <a href="?s=settingup">setting-up poll</a>
   <button id="sim-rbf">Simulate coach handoff (RBF)</button>
   <button id="sim-fna">…(Fear &amp; Anxiety)</button>
+  <button id="sim-apply">Simulate coach apply</button>
 </div>
 
 <div class="stage">
@@ -87,6 +90,17 @@
       fromBaseline: { easy: 4, enjoy: 4, conf: 4 },
       last7: { fromLabel: 'Day 2', deltas: { easy: 2, enjoy: 3, conf: 1 } } };
   }
+  if (scenario === 'multi') {
+    M.currentDay = 5;
+    M.projects = [{ projectId: '1', label: 'late-night doomscrolling' }, { projectId: '2', label: 'sugar after dinner' }];
+    M.canCreate = true;
+  }
+  if (scenario === 'settingup') {
+    // Fresh buyer beat the webhook: state fails, recover says notFound twice,
+    // then the tracker "appears" and the poll grants a token -> wizard.
+    M.stage = 0; M.currentDay = 0; M.ub = ''; M.jumpstart = '';
+    M._granted = false; M._notFoundLeft = 2;
+  }
 
   function logLine(s) {
     var el = document.getElementById('mock-log');
@@ -124,9 +138,12 @@
     return c;
   }
   function stateResp() {
-    return { ok: true, firstName: 'Testy', token: 'mock-token', projects: [{ projectId: '1', label: 'Test project' }],
-      activeProjectId: '1', projectType: 'ACCELERATOR', currentDay: M.currentDay, maxDay: 7, maxTrackedDay: 400,
-      writable: true, unlimited: false, canCreateProject: false, confidence: { optedOut: false, since: '' },
+    return { ok: true, firstName: 'Testy', token: 'mock-token',
+      projects: M.projects || [{ projectId: '1', label: 'Test project' }],
+      activeProjectId: M.activeId || ((M.projects && M.projects[0]) ? M.projects[0].projectId : '1'),
+      projectType: 'ACCELERATOR', currentDay: M.currentDay, maxDay: 7, maxTrackedDay: 400,
+      writable: true, unlimited: !!M.canCreate, canCreateProject: !!M.canCreate,
+      confidence: { optedOut: false, since: '' },
       setup: { stage: M.stage, ub: M.ub, jumpstart: M.jumpstart },
       scoreQuestions: SCORE_QUESTIONS, prompts: {}, uiCopy: {},
       day: (M.stage >= 4 ? dayResp(M.currentDay) : null), completion: (M.stage >= 4 ? completionMap() : null) };
@@ -141,7 +158,25 @@
     if (p.confidentForever) summary += ' confidentForever=true';
     logLine('→ ' + summary);
 
-    if (p.action === 'state') return stateResp();
+    if (p.action === 'state') {
+      if (scenario === 'settingup' && !M._granted) return { ok: false, error: 'Unknown token.' };
+      if (p.projectId) M.activeId = String(p.projectId);
+      return stateResp();
+    }
+    if (p.action === 'recover') {
+      if (scenario === 'settingup') {
+        if (M._notFoundLeft > 0) { M._notFoundLeft--; return { ok: true, notFound: true }; }
+        M._granted = true;
+        return { ok: true, token: 'mock-token' };
+      }
+      return { ok: true, token: 'mock-token' };
+    }
+    if (p.action === 'createProject') {
+      M.projects = M.projects || [{ projectId: '1', label: 'Test project' }];
+      M.projects.push({ projectId: '3', label: '(new project)' });
+      M.activeId = '3'; M.stage = 0; M.currentDay = 0; M.ub = ''; M.jumpstart = '';
+      return { ok: true, projectId: '3' };
+    }
     if (p.action === 'getDay') return { ok: true, activeProjectId: '1', day: dayResp(Number(p.day)) };
     if (p.action === 'setupSave') {
       if (p.step === 'ub') { M.ub = p.ub; M.stage = Math.max(M.stage, 1); return { ok: true, stage: M.stage, ub: M.ub }; }
@@ -164,7 +199,7 @@
       return { ok: true, saved: Object.keys(p.fields || {}), failed: [], day: dayResp(day), completion: completionMap() };
     }
     if (p.action === 'progressReview') return M.progress || { ok: true, hasData: false };
-    if (p.action === 'recover' || p.action === 'activate') return { ok: true, token: 'mock-token' };
+    if (p.action === 'activate') return { ok: true, token: 'mock-token' };
     return { ok: false, error: 'mock: unhandled action ' + p.action };
   };
 
@@ -181,6 +216,18 @@
   }
   document.getElementById('sim-rbf').onclick = function () { sim('Rapid Behavioral Freedom tool'); };
   document.getElementById('sim-fna').onclick = function () { sim('Fear & Anxiety Relief tool, then the Rapid Behavioral Freedom tool'); };
+
+  // What coach.v3 dispatches after a review-card apply succeeds. The mock
+  // "writes" a win first, so the getDay refetch has something to show.
+  document.getElementById('sim-apply').onclick = function () {
+    var d = M.daily[M.currentDay] = M.daily[M.currentDay] || {};
+    d.wins = '(logged by your coach) Evening felt lighter without the scroll';
+    var ev;
+    try { ev = new CustomEvent('fc:applied', { detail: { updates: [{ field: 'wins' }] } }); }
+    catch (e) { ev = document.createEvent('CustomEvent'); ev.initCustomEvent('fc:applied', false, false, {}); }
+    document.dispatchEvent(ev);
+    logLine('→ dispatched fc:applied (mock wrote wins)');
+  };
 
   // Load the widget first (real Pages copy not needed locally — use the repo sibling), then freedom-home.
   var w = document.createElement('script');

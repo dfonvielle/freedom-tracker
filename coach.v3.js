@@ -760,6 +760,9 @@
             return;
           }
           markReviewApplied(cardEl);
+          // Freedom Home: the coach just wrote the tracker — let the host
+          // page refresh its daily-log card so the student sees it landed.
+          fcDispatch('fc:applied', { updates: proposal.updates });
         })
         .catch(function () {
           setReviewMsg(cardEl, COPY.ERROR_GENERIC, false);
@@ -805,7 +808,7 @@
         bubble.appendChild(promptBoxNode(msg.prompt, msg.tool));
         // Freedom Home handoff: announce the prompt to the host page.
         // Replayed history stays silent so a reload never re-arms tools.
-        if (!replaying) { fcDispatch('fc:prompt', msg.prompt, msg.tool); }
+        if (!replaying) { fcDispatch('fc:prompt', { prompt: msg.prompt, tool: msg.tool || '' }); }
       }
       if (msg.proposal && msg.proposal.updates && msg.proposal.updates.length) {
         bubble.appendChild(reviewCardNode(msg.proposal));
@@ -838,14 +841,14 @@
     }
 
     // Dispatch a Freedom Home handoff event (ES5-safe CustomEvent).
-    function fcDispatch(name, prompt, tool) {
+    function fcDispatch(name, detail) {
       try {
         var ev;
         if (typeof window.CustomEvent === 'function') {
-          ev = new CustomEvent(name, { detail: { prompt: prompt, tool: tool || '' } });
+          ev = new CustomEvent(name, { detail: detail || {} });
         } else {
           ev = document.createEvent('CustomEvent');
-          ev.initCustomEvent(name, false, false, { prompt: prompt, tool: tool || '' });
+          ev.initCustomEvent(name, false, false, detail || {});
         }
         document.dispatchEvent(ev);
       } catch (e) {}
@@ -872,7 +875,7 @@
         sendBtn.style.marginBottom = '8px';
         sendBtn.textContent = COPY.SEND_TO_TOOL;
         sendBtn.addEventListener('click', function () {
-          fcDispatch('fc:prompt-send', text, tool);
+          fcDispatch('fc:prompt-send', { prompt: text, tool: tool || '' });
           sendBtn.textContent = COPY.SENT_TO_TOOL;
           sendBtn.disabled = true;
         });
