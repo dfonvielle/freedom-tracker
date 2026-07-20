@@ -1585,10 +1585,15 @@
     var css =
       '#freedom-home{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1d2733;line-height:1.5;text-align:left;}' +
       // Host pages (Systeme.io) style bare h3/p/div/li globally (centered,
-      // serif, host colors). Pin everything back to the container's own
-      // chain — same hardening lesson the widget learned in real lessons.
-      // "inherit" (not a hard value) keeps .fh-center cards centered.
-      '#freedom-home h3,#freedom-home p,#freedom-home div,#freedom-home label,#freedom-home li,#freedom-home td,#freedom-home th{font-family:inherit;text-align:inherit;letter-spacing:inherit;text-transform:none;color:inherit;}' +
+      // serif, host colors). Pin OUR OWN furniture back to the container's
+      // chain — "inherit" (not a hard value) keeps .fh-center cards centered.
+      // SCOPED TO fh-/progress CLASSES ON PURPOSE (phone-test lesson
+      // 2026-07-20): a bare "#freedom-home div/p" rule outranks EVERY class
+      // rule inside the mounted widget/coach (ID beats class), and it forced
+      // the page's dark text color onto the widget's dark chat panel —
+      // near-invisible messages. Never write a selector here that can match
+      // anything inside #fh-tool or #freedom-coach.
+      '#freedom-home .fh-card > h3,#freedom-home #fh-progress h3,#freedom-home .fh-strip-title,#freedom-home .fh-hi,#freedom-home .fh-sub,#freedom-home .fh-goal,#freedom-home .fh-label,#freedom-home .fh-check,#freedom-home .fh-msg,#freedom-home .fh-note,#freedom-home .fh-linkline,#freedom-home .fh-dots-label,#freedom-home .fh-wins li,#freedom-home .fh-table td,#freedom-home .fh-table th{font-family:inherit;text-align:inherit;letter-spacing:inherit;text-transform:none;color:inherit;}' +
       // FULLSCREEN TAKEOVER: the rail root becomes a fixed full-viewport
       // scroller (inside the fullscreened lesson iframe, or of the page
       // itself in self mode). env() pads for notches where it applies.
@@ -1602,8 +1607,14 @@
       'font-size:20px;line-height:1;cursor:pointer;display:none;padding:0;}' +
       FS_CHROME_CSS +
       '#freedom-home .fh-wrap{max-width:720px;margin:0 auto;}' +
-      '#freedom-home .fh-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 14px;}' +
-      '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;}' +
+      // flex-wrap + a real min width for the greeting column: on phones the
+      // picker+refresh drop to their own row instead of squeezing "Hi, Max —
+      // here's your next step." into a one-word-per-line sliver (phone-test
+      // finding 2026-07-20).
+      '#freedom-home .fh-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 14px;}' +
+      '#freedom-home .fh-header > div:first-child{flex:1 1 230px;min-width:0;}' +
+      '#freedom-home .fh-hdr-right{margin-left:auto;}' +
+      '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;white-space:nowrap;}' +
       '#freedom-home .fh-hi{font-size:15px;color:#4a5765;margin-top:6px;}' +
       '#freedom-home .fh-refresh{background:none;border:1px solid #c4cfd9;border-radius:8px;padding:7px 12px;color:#4a5765;cursor:pointer;font:inherit;font-size:13px;}' +
       '#freedom-home .fh-card{background:#fff;border:1px solid #e3e9ef;border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 2px 8px rgba(20,40,70,.05);}' +
