@@ -25,7 +25,7 @@ flowchart LR
 | Loader chain (v7 + #freedom-home route) | 🟢 live via Pages | [loader.v7.js](loader.v7.js) |
 | Coach v3 (fc:prompt events, send-to-tool) | 🟢 built | [coach.v3.js](coach.v3.js) |
 | Freedom Home one-page rail | 🟡 built + mock-harness green, awaiting live test | [freedom-home.v1.js](freedom-home.v1.js) |
-| Mobile fullscreen takeover (9.8) | 🟢 **proven on Dave's iPhone** (2026-07-20); round 2 shipped same-day: tools popup fullscreen OVER the rail (standalone parity), minimized rail = hint card, one-bubble invariant — awaiting Dave's round-3 phone look | [test_home_lesson.html](test_home_lesson.html) |
+| Mobile fullscreen takeover (9.8) | 🟢 **proven on Dave's iPhone** (2026-07-20); rounds 2–3 shipped same-day: tools popup fullscreen OVER the rail, minimized rail = hint card, one-bubble invariant, **coach fullscreen sheet** (uncapped flexing transcript, pinned composer; handoff closes sheet → tool) — awaiting Dave's next phone look | [test_home_lesson.html](test_home_lesson.html) |
 | 9.7 polish (auto-log chips w/ undo, de-trackered copy) | 🟢 done | git log |
 | Test harnesses | 🟢 in repo | [test_coach_home.html](test_coach_home.html) · [test_home.html](test_home.html) |
 
