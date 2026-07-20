@@ -48,8 +48,8 @@ flowchart LR
 | Embedded in | Systeme.io lessons (Freedom course) |
 | Data authority | [freedom_tracker_gateway](https://github.com/dfonvielle/freedom_tracker_gateway) /exec |
 | Bots | [ai_tools](https://github.com/dfonvielle/ai_tools) via the public widget |
-| Student sheets | per-student tracker sheets from Dave's master template — ⚠️ template URL NEEDED in `mission_control/data/sheets.json` |
-| Google Apps Script | none in this repo (student sheets carry their own script; server logic lives in the Gateway) |
+| Data | all student data lives in the [Gateway's](https://github.com/dfonvielle/freedom_tracker_gateway) authority sheet — this repo touches no spreadsheet directly |
+| Google Apps Script | **none — verified 2026-07-20** (zero GAS code; pure browser JS calling the Gateway's /exec) |
 
 ## 🤖 AI leverage
 
