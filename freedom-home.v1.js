@@ -399,13 +399,16 @@
       var parsed = JSON.parse(raw);
       if (parsed.token !== state.token) return null;
       if ((Date.now() - parsed.at) / 3600000 > CONFIG.STATE_CACHE_HOURS) return null;
+      // Snapshot from a previous local date: still paint instantly, but the
+      // follow-up refresh must bypass caches (see loadState).
+      if (parsed.today && parsed.today !== new Date().toDateString()) { state._freshNext = true; }
       return parsed;
     } catch (e) { return null; }
   }
   function writeStateCache() {
     try {
       localStorage.setItem(LS.cache, JSON.stringify({
-        at: Date.now(), token: state.token,
+        at: Date.now(), today: new Date().toDateString(), token: state.token,
         snapshot: {
           projects: state.projects, activeProjectId: state.activeProjectId,
           currentDay: state.currentDay, maxTrackedDay: state.maxTrackedDay,
@@ -441,6 +444,10 @@
     payload.accountId = (state.identity && state.identity.accountId) || '';
     payload.email = (state.identity && state.identity.email) || '';
     payload.token = state.token || '';
+    // Student's timezone (additive, 2026-07-20): the Gateway rolls the day
+    // at the student's local midnight. Zone only — never the client clock.
+    try { payload.tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { payload.tz = ''; }
+    try { payload.tzo = new Date().getTimezoneOffset(); } catch (e2) {}
     if (typeof window.__FH_MOCK_CALL === 'function') {
       return Promise.resolve(window.__FH_MOCK_CALL(payload));
     }
@@ -469,7 +476,12 @@
   }
 
   function loadState(background) {
-    callGateway({ action: 'state', projectId: state.activeProjectId })
+    var payload = { action: 'state', projectId: state.activeProjectId };
+    // Crossed midnight since the cached snapshot? Bust server caches so
+    // yesterday's Day N can never survive into today (the day-rollover
+    // confusion from Dave's Day-12/13 morning).
+    if (state._freshNext) { payload.fresh = true; state._freshNext = false; }
+    callGateway(payload)
       .then(function (data) {
         if (!data.ok) {
           if (background) return;

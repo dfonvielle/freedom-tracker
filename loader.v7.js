@@ -602,6 +602,10 @@
     payload.accountId = (state.identity && state.identity.accountId) || '';
     payload.email = (state.identity && state.identity.email) || '';
     payload.token = state.token || '';
+    // Student's timezone (additive, 2026-07-20): the Gateway rolls the day
+    // at the student's local midnight. Zone only — never the client clock.
+    try { payload.tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { payload.tz = ''; }
+    try { payload.tzo = new Date().getTimezoneOffset(); } catch (e2) {}
     return fetch(CONFIG.GATEWAY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
