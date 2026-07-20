@@ -25,7 +25,8 @@ flowchart LR
 | Loader chain (v7 + #freedom-home route) | 🟢 live via Pages | [loader.v7.js](loader.v7.js) |
 | Coach v3 (fc:prompt events, send-to-tool) | 🟢 built | [coach.v3.js](coach.v3.js) |
 | Freedom Home one-page rail | 🟡 built + mock-harness green, awaiting live test | [freedom-home.v1.js](freedom-home.v1.js) |
-| Mobile fullscreen takeover (9.8) | 🟢 **proven on Dave's iPhone** (2026-07-20); rounds 2–4 shipped same-day: tools popup fullscreen OVER the rail, minimized rail = hint card, one-bubble invariant, coach fullscreen sheet — round 4 fixed the sheet on real accounts (fc-scroll single scroll region: composer always pinned, help panel never crushed; "How can I help?" placeholder; bubble hides while sheet open) — awaiting Dave's next phone look | [test_home_lesson.html](test_home_lesson.html) |
+| Mobile fullscreen takeover (9.8) | 🟢 **proven on Dave's iPhone** (2026-07-20); rounds 2–4 shipped same-day: tools popup fullscreen OVER the rail, minimized rail = hint card, one-bubble invariant, coach fullscreen sheet (round-4 fc-scroll fix: composer pinned, help never crushed) | [test_home_lesson.html](test_home_lesson.html) |
+| Grandpa polish 9.9 (rounds 5–7) | 🟢 shipped 2026-07-20: coach GREETS first (templated bubble, intro box gone, more-help demoted), one-button de-plumbed handoff + newest-wins, warm-start tools ("your coach filled me in"), goal line + goal&plan edit card (updateGoals), what's-this → coach, **day rolls at student-local midnight** (Gateway @30; clients send tz) — Dave verifies Day-N flip at his midnight | plan doc 9.9 note |
 | 9.7 polish (auto-log chips w/ undo, de-trackered copy) | 🟢 done | git log |
 | Test harnesses | 🟢 in repo | [test_coach_home.html](test_coach_home.html) · [test_home.html](test_home.html) |
 
