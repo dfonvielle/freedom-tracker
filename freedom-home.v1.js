@@ -30,6 +30,31 @@
    coach.v3, so activation done anywhere works everywhere. Only the
    state snapshot cache is home-specific (ag_fh_cache_v1).
 
+   MOBILE FULLSCREEN TAKEOVER (ChatNode parity — added 2026-07-19):
+   on phones (parent width ≤ 768) the whole rail takes over the screen
+   the moment the lesson loads, exactly like the ChatNode popups did.
+   Mechanism: Systeme.io lesson blocks run in a SAME-ORIGIN iframe, so
+   we add a css class (injected into the PARENT page's head) that makes
+   THE IFRAME ITSELF position:fixed fullscreen — nothing inside moves
+   documents, so every getElementById/render in this file and coach.v3
+   keeps working untouched. The rail root also becomes a fixed
+   full-viewport scroller inside the iframe (.fh-fs-on), which doubles
+   as the standalone-page path when there is no iframe at all.
+   Furniture injected into the parent (style, launcher bubble, URL
+   watchdog) is tagged data-fh-owned — deliberately DIFFERENT from the
+   widget's data-agt-owned, whose cleanup-on-mount would otherwise
+   delete our chrome every time a tool mounts. Scroll lock is a body
+   CLASS (fh-fs-lock), immune to the widget's style.overflow='' reset.
+   Minimize (floating – button) restores the inline lesson view; the
+   lower-left launcher bubble reopens (lower-right belongs to
+   Systeme.io's own course icon). Tools mounted while fullscreen get
+   data-inline="1" so the widget renders in the rail instead of
+   spawning a second popup that would fight this one for the screen.
+   If a styled ancestor traps position:fixed (transform etc.), we
+   detect the failed takeover and degrade to the plain inline rail.
+   Desktop is UNCHANGED (inline is correct there — ChatNode does the
+   same).
+
    TEST HOOK: when window.__FH_MOCK_CALL is defined (test_home.html),
    every Gateway call routes there instead of the network, and identity
    is stubbed. Production pages never define it.
@@ -202,6 +227,11 @@
   var rootEl = null;
   var coachNode = null;        // the coach's PERSISTENT DOM (survives re-renders)
   var setupPollTimer = null;   // "Setting up…" auto-retry (renderSettingUp)
+  // Mobile fullscreen takeover state (see header). mode: '' = inline (desktop,
+  // cross-origin parent, or degraded), 'frame' = lesson iframe fullscreened
+  // from the parent, 'self' = no iframe, the rail root itself is the layer.
+  var FS = { mode: '', open: false, frameEl: null, pWin: null, pDoc: null, launcher: null, minBtn: null };
+  var FS_OWNED = 'data-fh-owned';   // tags OUR parent-side furniture only
   function clearSetupPoll_() {
     if (setupPollTimer) { window.clearInterval(setupPollTimer); setupPollTimer = null; }
   }
@@ -1267,6 +1297,15 @@
     stub.setAttribute('data-engine', state.engine);
     stub.setAttribute('data-key', state.engineKey);
     if (state.draft) stub.setAttribute('data-draft', '1');
+    if (FS.mode) {
+      // Inside our own fullscreen takeover the tool renders IN the rail —
+      // a second popup would fight this one for the screen. Size the card
+      // to the visible height so the chat is roomy but the done/continue
+      // button below stays one short scroll away.
+      stub.setAttribute('data-inline', '1');
+      var fsH = Math.max(380, Math.min(640, Math.round((window.innerHeight || 600) * 0.62)));
+      stub.setAttribute('data-height', String(fsH));
+    }
     stub.setAttribute('data-session-key', opts.sessionKey || (botId + '-default'));
     if (opts.firstMessageFrom) stub.setAttribute('data-first-message-from', opts.firstMessageFrom);
     holder.appendChild(stub);
@@ -1336,12 +1375,232 @@
   });
 
   /* ============================================================
+   * MOBILE FULLSCREEN TAKEOVER (see header). Boot-side machinery only:
+   * nothing here re-renders or is re-rendered — renderShell never needs
+   * to know. All lookups stay in THIS document (no DOM ever moves).
+   * ============================================================ */
+
+  // Launcher bubble + scroll-lock rules. Injected into BOTH documents:
+  // ours (self mode) and the parent's (frame mode).
+  var FS_CHROME_CSS =
+    '.fh-fs-launcher{position:fixed;bottom:16px;z-index:999991;width:56px;height:56px;' +
+    'border-radius:50%;border:none;background:#2f6df6;display:none;align-items:center;' +
+    'justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);}' +
+    '.fh-fs-launcher-left{left:16px;}.fh-fs-launcher-right{right:16px;}' +
+    'body.fh-fs-lock{overflow:hidden !important;}';
+
+  // The takeover itself: the lesson IFRAME becomes the phone screen.
+  // Stylesheet !important beats the inline height Systeme's resizer keeps
+  // writing on the frame; 100dvh wins over 100% where supported (iOS bars).
+  var FS_FRAME_CSS =
+    '.fh-fs-frame{position:fixed !important;top:0 !important;left:0 !important;' +
+    'width:100vw !important;height:100% !important;height:100dvh !important;' +
+    'max-width:none !important;max-height:none !important;min-height:0 !important;' +
+    'margin:0 !important;padding:0 !important;border:0 !important;border-radius:0 !important;' +
+    'transform:none !important;z-index:999990 !important;background:#f5f8fb !important;' +
+    'display:block !important;}';
+
+  function fsLauncherSvg_() {
+    return '<svg width="26" height="26" viewBox="0 0 24 24" fill="none">' +
+      '<path d="M12 3C7 3 3 6.6 3 11c0 2.2 1 4.2 2.7 5.6L5 21l4.2-1.7c.9.2 1.8.4 2.8.4 5 0 9-3.6 9-8s-4-8.7-9-8.7z" fill="#fff"/></svg>';
+  }
+
+  function fsParent_() {
+    try {
+      if (window.parent && window.parent !== window && window.parent.document) {
+        return { win: window.parent, doc: window.parent.document };
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function setupFullscreen_() {
+    // Phones get the ChatNode treatment. Measure the PARENT window when we
+    // can — the lesson iframe can be narrower than the device. 0 width
+    // (hidden/prerendered frame) counts as desktop: inline degrades
+    // gracefully, a surprise takeover does not.
+    var p = fsParent_();
+    var width = window.innerWidth;
+    try { if (p) { width = p.win.innerWidth; } } catch (e) {}
+    if (!(width > 0 && width <= 768)) { return; }
+
+    var frame = null;
+    try { frame = window.frameElement; } catch (e) { frame = null; }   // cross-origin access throws
+
+    if (frame && p) {
+      FS.mode = 'frame'; FS.frameEl = frame; FS.pWin = p.win; FS.pDoc = p.doc;
+      fsCleanupParent_(p.win, p.doc);   // a previous lesson's leftovers (SPA swaps)
+      fsInjectParentBits_();
+    } else if (!frame) {
+      FS.mode = 'self';                 // standalone page (harness / direct hosting)
+      fsInjectSelfBits_();
+    } else {
+      return;                           // iframe with a cross-origin parent: stay inline
+    }
+    fsMakeMinBtn_();
+    fsSetOpen_(true);                   // auto-open the moment the lesson loads
+    if (FS.mode === 'frame') { window.setTimeout(fsVerifyOrDegrade_, 150); }
+  }
+
+  function fsInjectParentBits_() {
+    try {
+      var doc = FS.pDoc;
+      if (!doc.getElementById('fh-fs-styles')) {
+        var st = doc.createElement('style');
+        st.id = 'fh-fs-styles';
+        st.setAttribute(FS_OWNED, '1');
+        st.textContent = FS_FRAME_CSS + FS_CHROME_CSS;
+        doc.head.appendChild(st);
+      }
+      var b = doc.createElement('button');
+      b.type = 'button';
+      b.className = 'fh-fs-launcher fh-fs-launcher-left';
+      b.setAttribute(FS_OWNED, '1');
+      b.setAttribute('aria-label', 'Open your Freedom Page');
+      b.innerHTML = fsLauncherSvg_();
+      b.onclick = function () { fsSetOpen_(true); };
+      doc.body.appendChild(b);
+      FS.launcher = b;
+      fsArmWatchdog_();
+    } catch (e) {}
+  }
+
+  function fsInjectSelfBits_() {
+    // Own-document chrome only (injectStyles already carries FS_CHROME_CSS
+    // for this document — see there). Just the launcher node.
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fh-fs-launcher fh-fs-launcher-left';
+    b.setAttribute('aria-label', 'Open your Freedom Page');
+    b.innerHTML = fsLauncherSvg_();
+    b.onclick = function () { fsSetOpen_(true); };
+    document.body.appendChild(b);
+    FS.launcher = b;
+  }
+
+  // Floating minimize button — FS chrome, not render output, so it exists in
+  // EVERY state (loading, pairing, wizard, rail) and survives re-renders.
+  function fsMakeMinBtn_() {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fh-fs-min';
+    b.title = 'Minimize';
+    b.setAttribute('aria-label', 'Minimize');
+    b.innerHTML = '&#8211;';
+    b.onclick = function () { fsSetOpen_(false); };
+    document.body.appendChild(b);
+    FS.minBtn = b;
+  }
+
+  function fsSetOpen_(open) {
+    if (!FS.mode) { return; }
+    FS.open = !!open;
+    if (rootEl) {
+      if (open) { rootEl.classList.add('fh-fs-on'); }
+      else { rootEl.classList.remove('fh-fs-on'); }
+    }
+    if (FS.mode === 'frame') {
+      try {
+        if (open) { FS.frameEl.classList.add('fh-fs-frame'); FS.pDoc.body.classList.add('fh-fs-lock'); }
+        else { FS.frameEl.classList.remove('fh-fs-frame'); FS.pDoc.body.classList.remove('fh-fs-lock'); }
+      } catch (e) {}
+    } else {
+      if (open) { document.body.classList.add('fh-fs-lock'); }
+      else { document.body.classList.remove('fh-fs-lock'); }
+    }
+    if (FS.launcher) { FS.launcher.style.display = open ? 'none' : 'flex'; }
+    if (FS.minBtn) { FS.minBtn.style.display = open ? 'block' : 'none'; }
+  }
+
+  // Belt & braces: if a transformed/filtered ancestor traps position:fixed,
+  // the "fullscreen" frame is still column-sized. Fall back to the plain
+  // inline rail (today's behavior) instead of a locked half-takeover.
+  function fsVerifyOrDegrade_() {
+    if (FS.mode !== 'frame' || !FS.open) { return; }
+    var ok = false;
+    try {
+      var r = FS.frameEl.getBoundingClientRect();
+      var vw = FS.pWin.innerWidth, vh = FS.pWin.innerHeight;
+      ok = (r.top <= 2 && r.left <= 2 && r.width >= vw - 4 && r.height >= vh * 0.85);
+    } catch (e) {}
+    if (!ok) { fsTeardown_(); }
+  }
+
+  function fsTeardown_() {
+    fsSetOpen_(false);
+    if (FS.mode === 'frame') { fsCleanupParent_(FS.pWin, FS.pDoc); FS.launcher = null; }
+    if (FS.launcher && FS.launcher.parentNode) { FS.launcher.parentNode.removeChild(FS.launcher); }
+    if (FS.minBtn && FS.minBtn.parentNode) { FS.minBtn.parentNode.removeChild(FS.minBtn); }
+    FS.mode = ''; FS.launcher = null; FS.minBtn = null;
+  }
+
+  // Remove whatever a PREVIOUS home lesson left in the parent (Systeme.io
+  // swaps lessons SPA-style). Ours only — everything we inject is tagged.
+  function fsCleanupParent_(pWin, pDoc) {
+    try {
+      if (pWin.__fhWatchdogId) { pWin.clearInterval(pWin.__fhWatchdogId); pWin.__fhWatchdogId = 0; }
+      var owned = pDoc.querySelectorAll('[' + FS_OWNED + ']');
+      for (var i = 0; i < owned.length; i++) {
+        try { owned[i].parentNode && owned[i].parentNode.removeChild(owned[i]); } catch (e) {}
+      }
+      pDoc.body.classList.remove('fh-fs-lock');
+      var f = pDoc.querySelectorAll('.fh-fs-frame');
+      for (var j = 0; j < f.length; j++) {
+        try { f[j].classList.remove('fh-fs-frame'); } catch (e2) {}
+      }
+    } catch (e) {}
+  }
+
+  // URL watchdog — lives in the PARENT window so it survives this iframe's
+  // death when the student navigates to another lesson. Same pattern the
+  // widget has proven live; separate id/global so the two never collide.
+  function fsArmWatchdog_() {
+    try {
+      var doc = FS.pDoc;
+      if (doc.getElementById('fh-fs-watchdog')) { return; }
+      var s = doc.createElement('script');
+      s.id = 'fh-fs-watchdog';
+      s.setAttribute(FS_OWNED, '1');
+      s.textContent = '(function(){' +
+        'var last=window.location.href;' +
+        'window.__fhWatchdogId=setInterval(function(){' +
+          'if(window.location.href===last)return;' +
+          'clearInterval(window.__fhWatchdogId);window.__fhWatchdogId=0;' +
+          'var owned=document.querySelectorAll("[' + FS_OWNED + ']");' +
+          'for(var i=0;i<owned.length;i++){try{owned[i].parentNode&&owned[i].parentNode.removeChild(owned[i]);}catch(e){}}' +
+          'try{document.body.classList.remove("fh-fs-lock");}catch(e){}' +
+          'var f=document.querySelectorAll(".fh-fs-frame");' +
+          'for(var j=0;j<f.length;j++){try{f[j].classList.remove("fh-fs-frame");}catch(e){}}' +
+        '},750);' +
+        '})();';
+      doc.body.appendChild(s);
+    } catch (e) {}
+  }
+
+  /* ============================================================
    * STYLES
    * ============================================================ */
   function injectStyles() {
     if (document.getElementById('fh-styles')) return;
     var css =
-      '#freedom-home{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1d2733;line-height:1.5;}' +
+      '#freedom-home{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1d2733;line-height:1.5;text-align:left;}' +
+      // Host pages (Systeme.io) style bare h3/p/div/li globally (centered,
+      // serif, host colors). Pin everything back to the container's own
+      // chain — same hardening lesson the widget learned in real lessons.
+      // "inherit" (not a hard value) keeps .fh-center cards centered.
+      '#freedom-home h3,#freedom-home p,#freedom-home div,#freedom-home label,#freedom-home li,#freedom-home td,#freedom-home th{font-family:inherit;text-align:inherit;letter-spacing:inherit;text-transform:none;color:inherit;}' +
+      // FULLSCREEN TAKEOVER: the rail root becomes a fixed full-viewport
+      // scroller (inside the fullscreened lesson iframe, or of the page
+      // itself in self mode). env() pads for notches where it applies.
+      '#freedom-home.fh-fs-on{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999990;' +
+      'overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f5f8fb;box-sizing:border-box;' +
+      'padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px));}' +
+      // keep the header clear of the floating minimize button
+      '#freedom-home.fh-fs-on .fh-header{padding-right:38px;}' +
+      '.fh-fs-min{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:999992;' +
+      'width:34px;height:34px;border-radius:50%;border:none;background:rgba(29,39,51,.55);color:#fff;' +
+      'font-size:20px;line-height:1;cursor:pointer;display:none;padding:0;}' +
+      FS_CHROME_CSS +
       '#freedom-home .fh-wrap{max-width:720px;margin:0 auto;}' +
       '#freedom-home .fh-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 14px;}' +
       '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;}' +
@@ -1412,6 +1671,7 @@
     state.engineKey = rootEl.getAttribute('data-key') || '';
     state.draft = rootEl.getAttribute('data-draft') === '1';
     state.fullTrackerUrl = rootEl.getAttribute('data-full-tracker-url') || '';
+    if (!FS.mode) { setupFullscreen_(); }   // once per page load (boot re-runs on retry)
 
     // TEST HOOK — mock transport: skip identity entirely.
     if (typeof window.__FH_MOCK_CALL === 'function') {

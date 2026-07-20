@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>freedom-home — fake Systeme.io lesson (fullscreen takeover test)</title>
+<style>
+  body { font: 15px/1.5 -apple-system, sans-serif; margin: 0; background: #f4f6f8; }
+  .topbar { background: #1c2733; color: #fff; padding: 10px 12px; display: flex; gap: 8px;
+            align-items: center; flex-wrap: wrap; }
+  .topbar b { flex: 1 1 100%; font-size: 12.5px; opacity: .85; }
+  .topbar button, .topbar select { padding: 6px 10px; border: none; border-radius: 8px;
+            background: #2f6df6; color: #fff; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .topbar button.off { background: #46586c; }
+  .topbar select { background: #334152; }
+  .lesson { max-width: 860px; margin: 20px auto; padding: 0 14px; }
+  .lesson h1 { font-size: 20px; }
+  .lesson iframe { width: 100%; border: 1px dashed #b6c2cf; border-radius: 8px;
+            min-height: 740px; background: #fff; }
+  .hint { font-size: 12.5px; color: #789; margin: 8px 0; }
+  /* Hostile host styles mimicking Systeme.io's global CSS (same block as
+     ai_tools/widget/test_embed.html) — the rail must shrug ALL of this off. */
+  h2, h3, h4 { color: #141414; text-align: center; font-family: Georgia, serif; }
+  p { color: #222; margin: 14px 0; text-align: center; font-size: 17px; }
+  div { text-align: center; }
+  ul { list-style: none; padding: 0; }
+  /* fake Systeme.io course icon, lower-RIGHT — the launcher must avoid it */
+  .sio-icon { position: fixed; right: 16px; bottom: 16px; width: 56px; height: 56px;
+            border-radius: 50%; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25);
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            z-index: 5; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <b>FAKE SYSTEME.IO — the lesson block is a same-origin iframe; nav swaps content
+     SPA-style (pushState, no reload). On a phone-width window the rail must take
+     over this WHOLE page the moment Lesson 1 loads.</b>
+  <button id="nav1">Lesson 1 (Freedom Home)</button>
+  <button id="nav2" class="off">Lesson 2 (no tool)</button>
+  <select id="scen">
+    <option value="wizard">wizard</option>
+    <option value="day1_fresh">day1 fresh</option>
+    <option value="day1_scores">day1 scores</option>
+    <option value="day5" selected>day5 daily</option>
+    <option value="day9">day9 progress</option>
+    <option value="settingup">setting-up poll</option>
+  </select>
+  <button id="sim-rbf">Coach handoff (RBF)</button>
+  <button id="sim-fna">…(F&amp;A)</button>
+</div>
+
+<div class="lesson" id="lesson"></div>
+<div class="sio-icon" title="Systeme.io's own icon owns this corner">🎓</div>
+
+<script>
+(function () {
+  var lesson = document.getElementById('lesson');
+
+  function scenario() { return document.getElementById('scen').value; }
+  function frameEl() { return lesson.querySelector('iframe'); }
+
+  function render(n) {
+    if (n === 1) {
+      lesson.innerHTML =
+        '<h1>Lesson 1 — Your Freedom Page</h1>' +
+        '<div class="hint">The rail should take over the whole screen on mobile widths.</div>' +
+        '<iframe src="test_home.html?s=' + scenario() + '"></iframe>';
+    } else {
+      lesson.innerHTML =
+        '<h1>Lesson 2 — plain video lesson, no tool</h1>' +
+        '<p>If the fullscreen frame, launcher bubble, or scroll lock from Lesson 1 is ' +
+        'still here, the watchdog FAILED.</p>';
+    }
+  }
+
+  function go(n) {
+    // Systeme.io-style SPA navigation: URL changes, content swaps, no reload.
+    history.pushState({}, '', '?lesson=' + n);
+    render(n);
+    document.getElementById('nav1').className = n === 1 ? '' : 'off';
+    document.getElementById('nav2').className = n === 2 ? '' : 'off';
+  }
+
+  document.getElementById('nav1').onclick = function () { go(1); };
+  document.getElementById('nav2').onclick = function () { go(2); };
+  document.getElementById('scen').onchange = function () { go(1); };
+
+  function simSend(kind) {
+    var f = frameEl();
+    if (f && f.contentWindow) { f.contentWindow.postMessage({ fhSim: kind }, '*'); }
+  }
+  document.getElementById('sim-rbf').onclick = function () { simSend('rbf'); };
+  document.getElementById('sim-fna').onclick = function () { simSend('fna'); };
+
+  render(/lesson=2/.test(location.search) ? 2 : 1);
+})();
+</script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 
 ## Headline
 
-Freedom Home build **phases 5–9.7 DONE**; next milestone is **Dave's live human test** (plan phase 10).
+Freedom Home build **phases 5–9.8 DONE** — 9.8 (2026-07-19) gave the rail the **ChatNode-style mobile fullscreen takeover** (phone = whole screen; desktop unchanged; tools render inline in the rail via the widget's new `data-inline`). Next milestone is **Dave's phone + desktop live test** (plan phase 10).
 
 ```mermaid
 flowchart LR
@@ -25,12 +25,13 @@ flowchart LR
 | Loader chain (v7 + #freedom-home route) | 🟢 live via Pages | [loader.v7.js](loader.v7.js) |
 | Coach v3 (fc:prompt events, send-to-tool) | 🟢 built | [coach.v3.js](coach.v3.js) |
 | Freedom Home one-page rail | 🟡 built + mock-harness green, awaiting live test | [freedom-home.v1.js](freedom-home.v1.js) |
+| Mobile fullscreen takeover (9.8) | 🟡 built + fake-lesson harness green (takeover, minimize/launcher, inline tools, SPA cleanup, degrade); awaiting Dave's phone test | [test_home_lesson.html](test_home_lesson.html) |
 | 9.7 polish (auto-log chips w/ undo, de-trackered copy) | 🟢 done | git log |
 | Test harnesses | 🟢 in repo | [test_coach_home.html](test_coach_home.html) · [test_home.html](test_home.html) |
 
 ## Progress
 
-**Done:** phases 5–9.7 of the Freedom Home plan (shell, wizard, power-hour, daily, progress, coach persistence, session resume, auto-log chips, de-trackered voice).
+**Done:** phases 5–9.8 of the Freedom Home plan (shell, wizard, power-hour, daily, progress, coach persistence, session resume, auto-log chips, de-trackered voice, mobile fullscreen takeover).
 
 - [ ] Phase 10 — Dave live test on a real lesson
 - [ ] Phase 11 — September model bump (scheduled; before Gemini 2.5-Flash's Oct 16 deprecation)

@@ -226,6 +226,17 @@
   document.getElementById('sim-rbf').onclick = function () { sim('Rapid Behavioral Freedom tool'); };
   document.getElementById('sim-fna').onclick = function () { sim('Fear & Anxiety Relief tool, then the Rapid Behavioral Freedom tool'); };
 
+  // test_home_lesson.html (fake Systeme parent) drives the sims from ITS bar
+  // while the fullscreen rail covers ours. postMessage keeps the dispatch in
+  // THIS document, where freedom-home listens.
+  window.addEventListener('message', function (ev) {
+    var d = ev && ev.data;
+    if (!d || !d.fhSim) return;
+    if (d.fhSim === 'rbf') { sim('Rapid Behavioral Freedom tool'); }
+    if (d.fhSim === 'fna') { sim('Fear & Anxiety Relief tool, then the Rapid Behavioral Freedom tool'); }
+    if (d.fhSim === 'apply') { document.getElementById('sim-apply').onclick(); }
+  });
+
   // What coach.v3 dispatches after a review-card apply succeeds. The mock
   // "writes" a win first, so the getDay refetch has something to show.
   document.getElementById('sim-apply').onclick = function () {
