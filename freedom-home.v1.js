@@ -45,11 +45,17 @@
    widget's data-agt-owned, whose cleanup-on-mount would otherwise
    delete our chrome every time a tool mounts. Scroll lock is a body
    CLASS (fh-fs-lock), immune to the widget's style.overflow='' reset.
-   Minimize (floating – button) restores the inline lesson view; the
-   lower-left launcher bubble reopens (lower-right belongs to
-   Systeme.io's own course icon). Tools mounted while fullscreen get
-   data-inline="1" so the widget renders in the rail instead of
-   spawning a second popup that would fight this one for the screen.
+   Minimize (floating – button) collapses the rail to a one-line hint
+   card ("tap the blue chat bubble…" — never the scrunched inline app);
+   the lower-left launcher bubble reopens (lower-right belongs to
+   Systeme.io's own course icon). Tools mounted while fullscreen open
+   as the widget's NORMAL fullscreen popup OVER the rail (round 2,
+   2026-07-20): on a phone a chat gets the whole screen, and the tool's
+   – button lands the student back on the rail where Continue lives —
+   identical rhythm to the standalone tool lessons. The stacked
+   takeovers don't collide: separate owned-tags, class-based (vs
+   inline-style) scroll locks, and the widget overlay z-orders above
+   the rail.
    If a styled ancestor traps position:fixed (transform etc.), we
    detect the failed takeover and degrade to the plain inline rail.
    Desktop is UNCHANGED (inline is correct there — ChatNode does the
@@ -125,6 +131,7 @@
     PH_STRIP_TITLE: 'Day 1 — Freedom Power Hour',
     PH_TOOL_OF: 'Tool {I} of 4: {NAME}',
     PH_INTRO: 'Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
+    PH_INTRO_POPUP: 'Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below — the next tool opens right away.',
     PH_DONE_BTN: 'I finished this tool → Continue',
     PH_DONE_SAVING: 'Saving…',
     PH_SCORES_TITLE: 'One last thing: your Freedom Scores after the Power Hour',
@@ -153,6 +160,7 @@
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
     STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out — continue below.',
+    STEP2_TOOL_LOADED_POPUP: 'Your tool just opened with what you and your coach worked out. If you close it, tap the blue chat bubble to bring it back.',
     STEP3_TITLE: '3 · Log your progress (30 seconds)',
     STEP3_MINUTES: 'Minutes with the rewiring tool(s) today (0 if none):',
     STEP3_SAVE: 'Save my progress →',
@@ -230,7 +238,7 @@
   // Mobile fullscreen takeover state (see header). mode: '' = inline (desktop,
   // cross-origin parent, or degraded), 'frame' = lesson iframe fullscreened
   // from the parent, 'self' = no iframe, the rail root itself is the layer.
-  var FS = { mode: '', open: false, frameEl: null, pWin: null, pDoc: null, launcher: null, minBtn: null };
+  var FS = { mode: '', open: false, frameEl: null, pWin: null, pDoc: null, launcher: null, minBtn: null, hadTool: false };
   var FS_OWNED = 'data-fh-owned';   // tags OUR parent-side furniture only
   function clearSetupPoll_() {
     if (setupPollTimer) { window.clearInterval(setupPollTimer); setupPollTimer = null; }
@@ -899,7 +907,7 @@
       phStripHtml(idx) +
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.PH_TOOL_OF.replace('{I}', String(idx + 1)).replace('{NAME}', tool.name)) + '</h3>' +
-        '<p class="fh-sub">' + esc(COPY.PH_INTRO) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
+        '<p class="fh-sub">' + esc(FS.mode ? COPY.PH_INTRO_POPUP : COPY.PH_INTRO) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
         '<div id="fh-tool"></div>' +
         '<button class="fh-btn" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
         '<div class="fh-msg" id="fh-ph-msg"></div>' +
@@ -1297,15 +1305,18 @@
     stub.setAttribute('data-engine', state.engine);
     stub.setAttribute('data-key', state.engineKey);
     if (state.draft) stub.setAttribute('data-draft', '1');
-    if (FS.mode) {
-      // Inside our own fullscreen takeover the tool renders IN the rail —
-      // a second popup would fight this one for the screen. Size the card
-      // to the visible height so the chat is roomy but the done/continue
-      // button below stays one short scroll away.
-      stub.setAttribute('data-inline', '1');
-      var fsH = Math.max(380, Math.min(640, Math.round((window.innerHeight || 600) * 0.62)));
-      stub.setAttribute('data-height', String(fsH));
-    }
+    // On phones the widget does its normal fullscreen popup OVER the
+    // fullscreen rail — deliberately (Dave's phone round 2, 2026-07-20): a
+    // chat squeezed into a card inside a scrolling page is exactly the
+    // scrunch this project exists to kill; on a phone a chat gets the WHOLE
+    // screen, and the – button drops the student back on this rail where
+    // the Continue button lives — the same minimize-to-lesson rhythm the
+    // standalone tool lessons have already trained. The two takeovers don't
+    // fight: the widget's overlay (z 999999) sits above the rail, its
+    // cleanup sweeps only [data-agt-owned], and the rail's scroll lock is a
+    // body CLASS the widget's style.overflow resets can't touch. (The
+    // data-inline="1" widget flag from round 1 remains available for any
+    // embed that truly wants an in-page card.)
     stub.setAttribute('data-session-key', opts.sessionKey || (botId + '-default'));
     if (opts.firstMessageFrom) stub.setAttribute('data-first-message-from', opts.firstMessageFrom);
     holder.appendChild(stub);
@@ -1323,7 +1334,7 @@
     var hint = document.getElementById('fh-tool-hint');
     var direct = document.getElementById('fh-tool-direct');
     if (hint) {
-      if (promptText) { hint.textContent = COPY.STEP2_TOOL_LOADED; }
+      if (promptText) { hint.textContent = FS.mode ? COPY.STEP2_TOOL_LOADED_POPUP : COPY.STEP2_TOOL_LOADED; }
       else { hint.style.display = 'none'; }   // no stale "will open here" above a live tool
     }
     if (direct) { direct.style.display = 'none'; }
@@ -1357,8 +1368,12 @@
   document.addEventListener('fc:prompt-send', function (ev) {
     var d = (ev && ev.detail) || {};
     mountDailyTool(TOOLS.routeBot(d.tool), String(d.prompt || ''));
-    var stub = document.getElementById('fh-tool-stub');
-    if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+    // Scroll to the in-page card only when the tool actually renders there —
+    // on phones it opens as a fullscreen popup instead.
+    if (!FS.mode) {
+      var stub = document.getElementById('fh-tool-stub');
+      if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+    }
   });
 
   // The coach just wrote the tracker (review card applied). The narrative
@@ -1420,6 +1435,10 @@
     // (hidden/prerendered frame) counts as desktop: inline degrades
     // gracefully, a surprise takeover does not.
     var p = fsParent_();
+    // Sweep a previous boot's parent furniture on EVERY boot (same rule as
+    // the widget) — even a desktop-width boot, so stale launchers/styles
+    // from an earlier mobile visit can't linger when the URL never changed.
+    if (p) { fsCleanupParent_(p.win, p.doc); }
     var width = window.innerWidth;
     try { if (p) { width = p.win.innerWidth; } } catch (e) {}
     if (!(width > 0 && width <= 768)) { return; }
@@ -1429,7 +1448,6 @@
 
     if (frame && p) {
       FS.mode = 'frame'; FS.frameEl = frame; FS.pWin = p.win; FS.pDoc = p.doc;
-      fsCleanupParent_(p.win, p.doc);   // a previous lesson's leftovers (SPA swaps)
       fsInjectParentBits_();
     } else if (!frame) {
       FS.mode = 'self';                 // standalone page (harness / direct hosting)
@@ -1495,9 +1513,27 @@
   function fsSetOpen_(open) {
     if (!FS.mode) { return; }
     FS.open = !!open;
+    // ONE bubble, one meaning. Minimizing the rail unmounts any tool popup
+    // (its widget launcher included — otherwise it stacks on ours in the
+    // same corner and the bubble reopens the TOOL while the hint promises
+    // the Freedom Page, with no path back to the rail's Continue button).
+    // The chat itself is safe in localStorage; reopening routes back into
+    // the current step, which remounts/resumes the right tool.
+    if (!open && state.toolMountedBot) {
+      FS.hadTool = true;
+      unmountTool();
+    }
+    if (open && FS.hadTool) {
+      FS.hadTool = false;
+      window.setTimeout(function () { try { route(); } catch (e) {} }, 0);
+    }
     if (rootEl) {
-      if (open) { rootEl.classList.add('fh-fs-on'); }
-      else { rootEl.classList.remove('fh-fs-on'); }
+      // Minimized on a phone, the rail does NOT render as a scrunched inline
+      // app (grandpa can't tell what he's looking at — Dave's phone round 2);
+      // it collapses to a one-line hint card (fh-fs-hint ::before), exactly
+      // like the standalone tool lessons' "tap the bubble" pattern.
+      if (open) { rootEl.classList.add('fh-fs-on'); rootEl.classList.remove('fh-fs-hint'); }
+      else { rootEl.classList.remove('fh-fs-on'); rootEl.classList.add('fh-fs-hint'); }
     }
     if (FS.mode === 'frame') {
       try {
@@ -1528,6 +1564,9 @@
 
   function fsTeardown_() {
     fsSetOpen_(false);
+    // Degrade means "be the plain inline rail" — that must stay VISIBLE, so
+    // drop the minimized-hint state fsSetOpen_(false) just applied.
+    if (rootEl) { rootEl.classList.remove('fh-fs-hint'); }
     if (FS.mode === 'frame') { fsCleanupParent_(FS.pWin, FS.pDoc); FS.launcher = null; }
     if (FS.launcher && FS.launcher.parentNode) { FS.launcher.parentNode.removeChild(FS.launcher); }
     if (FS.minBtn && FS.minBtn.parentNode) { FS.minBtn.parentNode.removeChild(FS.minBtn); }
@@ -1602,6 +1641,12 @@
       'padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px));}' +
       // keep the header clear of the floating minimize button
       '#freedom-home.fh-fs-on .fh-header{padding-right:38px;}' +
+      // Minimized-on-phone state: hide the app, show ONE plain hint line
+      // (a ::before pseudo-element — innerHTML re-renders can't wipe it).
+      '#freedom-home.fh-fs-hint > *{display:none !important;}' +
+      '#freedom-home.fh-fs-hint::before{content:"Your Freedom Page is open — tap the blue chat bubble at the lower left to bring it back.";' +
+      'display:block;background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:14px;' +
+      'font-size:14px;line-height:1.5;color:#5a6875;text-align:left;}' +
       '.fh-fs-min{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:999992;' +
       'width:34px;height:34px;border-radius:50%;border:none;background:rgba(29,39,51,.55);color:#fff;' +
       'font-size:20px;line-height:1;cursor:pointer;display:none;padding:0;}' +
