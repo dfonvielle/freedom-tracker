@@ -1227,7 +1227,21 @@
         // messages
         '#freedom-coach .fc-msg{font-size:13.5px;margin-top:7px;min-height:16px;}' +
         '#freedom-coach .fc-good{color:#1f6f5c;}' +
-        '#freedom-coach .fc-bad{color:#b3392f;}';
+        '#freedom-coach .fc-bad{color:#b3392f;}' +
+        // FULLSCREEN SHEET MODE (Freedom Home, phones — 2026-07-20). When
+        // Home hosts this coach inside its .fh-coach-sheet takeover, the
+        // card fills the sheet and the TRANSCRIPT becomes the flexing
+        // region (the 430px cap comes off), so the composer stays pinned
+        // at the bottom like a real chat app and the transcript's own
+        // scrolling (which our JS drives) keeps working. A tall guided-help
+        // panel scrolls itself rather than pushing the composer off-screen.
+        // Additive: outside a .fh-coach-sheet nothing here matches —
+        // inline and standalone embeds are pixel-identical to before.
+        '.fh-coach-sheet #freedom-coach{max-width:none;margin:0;height:100%;}' +
+        '.fh-coach-sheet #freedom-coach .fc-card{height:100%;box-sizing:border-box;display:flex;flex-direction:column;border:none;border-radius:0;}' +
+        '.fh-coach-sheet #freedom-coach .fc-help{flex:0 1 auto;min-height:0;overflow-y:auto;}' +
+        '.fh-coach-sheet #freedom-coach .fc-transcript{flex:1 1 140px;min-height:140px;max-height:none;}' +
+        '.fh-coach-sheet #freedom-coach .fc-inputrow{flex:none;}';
       var style = document.createElement('style');
       style.id = 'fc-styles';
       style.textContent = css;

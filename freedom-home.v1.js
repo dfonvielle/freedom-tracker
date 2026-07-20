@@ -156,6 +156,9 @@
     STEP1_ANCHOR: 'Your moment: {ANCHOR}',
     STEP2_TITLE: '2 · Talk it out, then rewire',
     STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). Share your experiments, wins, and concerns — your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',
+    STEP2_SUB_POPUP: 'Tell your coach what’s going on (or tap “Recommend my next move”). Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',
+    STEP2_COACH_OPEN: 'Talk to your coach →',
+    COACH_SHEET_TITLE: 'Your AI Coach',
     STEP2_TOOL_WAITING: 'Your rewiring tool will open here — talk to your coach first, or start it directly:',
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
@@ -238,7 +241,8 @@
   // Mobile fullscreen takeover state (see header). mode: '' = inline (desktop,
   // cross-origin parent, or degraded), 'frame' = lesson iframe fullscreened
   // from the parent, 'self' = no iframe, the rail root itself is the layer.
-  var FS = { mode: '', open: false, frameEl: null, pWin: null, pDoc: null, launcher: null, minBtn: null, hadTool: false };
+  var FS = { mode: '', open: false, frameEl: null, pWin: null, pDoc: null, launcher: null, minBtn: null, hadTool: false,
+             coachSheet: null, coachBody: null, coachOpen: false };
   var FS_OWNED = 'data-fh-owned';   // tags OUR parent-side furniture only
   function clearSetupPoll_() {
     if (setupPollTimer) { window.clearInterval(setupPollTimer); setupPollTimer = null; }
@@ -1069,7 +1073,8 @@
       // after a re-render would stay empty forever (the Refresh bug).
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.STEP2_TITLE) + '</h3>' +
-        '<p class="fh-sub">' + esc(COPY.STEP2_SUB) + '</p>' +
+        '<p class="fh-sub">' + esc(FS.mode ? COPY.STEP2_SUB_POPUP : COPY.STEP2_SUB) + '</p>' +
+        (FS.mode ? '<button class="fh-btn" id="fh-coach-open">' + esc(COPY.STEP2_COACH_OPEN) + '</button>' : '') +
         '<div id="fh-coach-slot"></div>' +
         '<div class="fh-divider"></div>' +
         '<div id="fh-tool-area">' +
@@ -1119,10 +1124,18 @@
     });
 
     // Step 2 — adopt the persistent coach node, then ensure its script.
-    var slot = document.getElementById('fh-coach-slot');
-    if (slot) {
-      if (!coachNode) { coachNode = document.createElement('div'); coachNode.id = 'freedom-coach'; }
-      slot.appendChild(coachNode);   // moving a live node keeps its DOM + chat
+    if (!coachNode) { coachNode = document.createElement('div'); coachNode.id = 'freedom-coach'; }
+    if (FS.mode) {
+      // Phones: the coach lives in its fullscreen sheet; the card offers
+      // the big button. The node sits (hidden) in the sheet so coach.v3
+      // finds it attached and boots normally.
+      fsEnsureCoachSheet_();
+      FS.coachBody.appendChild(coachNode);
+      var coachBtn = document.getElementById('fh-coach-open');
+      if (coachBtn) { coachBtn.addEventListener('click', function () { fsCoachOpen_(true); }); }
+    } else {
+      var slot = document.getElementById('fh-coach-slot');
+      if (slot) { slot.appendChild(coachNode); }   // moving a live node keeps its DOM + chat
     }
     loadCoachScript();
     // Tool button: a tool NEVER auto-mounts (tools appear only via the coach
@@ -1367,6 +1380,7 @@
   // The handoff: coach.v3's "Load into the tool below ↓" button.
   document.addEventListener('fc:prompt-send', function (ev) {
     var d = (ev && ev.detail) || {};
+    if (FS.mode) { fsCoachOpen_(false); }   // the tool takes the screen next
     mountDailyTool(TOOLS.routeBot(d.tool), String(d.prompt || ''));
     // Scroll to the in-page card only when the tool actually renders there —
     // on phones it opens as a fullscreen popup instead.
@@ -1510,9 +1524,50 @@
     FS.minBtn = b;
   }
 
+  // COACH SHEET — on phones the coach gets the whole screen too. A fixed
+  // layer INSIDE this document (the lesson iframe is already fullscreen),
+  // so the coach's own getElementById wiring never notices anything; the
+  // persistent coachNode is adopted into the sheet body instead of the
+  // step-2 card slot — the exact move renderDaily already performs
+  // between re-renders. coach.v3 carries its own sheet-aware layout CSS.
+  function fsEnsureCoachSheet_() {
+    if (FS.coachSheet) { return; }
+    var sheet = document.createElement('div');
+    sheet.className = 'fh-coach-sheet';
+    var head = document.createElement('div');
+    head.className = 'fh-sheet-head';
+    var title = document.createElement('div');
+    title.className = 'fh-sheet-title';
+    title.textContent = COPY.COACH_SHEET_TITLE;
+    var min = document.createElement('button');
+    min.type = 'button';
+    min.className = 'fh-sheet-min';
+    min.title = 'Minimize';
+    min.setAttribute('aria-label', 'Back to your Freedom Page');
+    min.innerHTML = '&#8211;';
+    min.onclick = function () { fsCoachOpen_(false); };
+    head.appendChild(title);
+    head.appendChild(min);
+    var body = document.createElement('div');
+    body.className = 'fh-sheet-body';
+    sheet.appendChild(head);
+    sheet.appendChild(body);
+    document.body.appendChild(sheet);
+    FS.coachSheet = sheet;
+    FS.coachBody = body;
+  }
+
+  function fsCoachOpen_(open) {
+    if (!FS.coachSheet) { return; }
+    FS.coachOpen = !!open;
+    if (open) { FS.coachSheet.classList.add('fh-open'); }
+    else { FS.coachSheet.classList.remove('fh-open'); }
+  }
+
   function fsSetOpen_(open) {
     if (!FS.mode) { return; }
     FS.open = !!open;
+    if (!open) { fsCoachOpen_(false); }   // rail minimize also puts the coach away
     // ONE bubble, one meaning. Minimizing the rail unmounts any tool popup
     // (its widget launcher included — otherwise it stacks on ours in the
     // same corner and the bubble reopens the TOOL while the hint promises
@@ -1567,10 +1622,14 @@
     // Degrade means "be the plain inline rail" — that must stay VISIBLE, so
     // drop the minimized-hint state fsSetOpen_(false) just applied.
     if (rootEl) { rootEl.classList.remove('fh-fs-hint'); }
+    fsCoachOpen_(false);
     if (FS.mode === 'frame') { fsCleanupParent_(FS.pWin, FS.pDoc); FS.launcher = null; }
     if (FS.launcher && FS.launcher.parentNode) { FS.launcher.parentNode.removeChild(FS.launcher); }
     if (FS.minBtn && FS.minBtn.parentNode) { FS.minBtn.parentNode.removeChild(FS.minBtn); }
     FS.mode = ''; FS.launcher = null; FS.minBtn = null;
+    // A fast-paint may already have rendered mobile furniture (coach button
+    // instead of the inline coach) — re-render on the inline path.
+    if (rootEl && rootEl.querySelector('.fh-wrap')) { try { route(); } catch (e) {} }
   }
 
   // Remove whatever a PREVIOUS home lesson left in the parent (Systeme.io
@@ -1643,6 +1702,16 @@
       '#freedom-home.fh-fs-on .fh-header{padding-right:38px;}' +
       // Minimized-on-phone state: hide the app, show ONE plain hint line
       // (a ::before pseudo-element — innerHTML re-renders can't wipe it).
+      // Coach sheet chrome (fh- classes only; the coach styles its own
+      // internals for sheet mode — see coach.v3 injectStyles).
+      '.fh-coach-sheet{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999994;background:#f7faf9;' +
+      'display:none;flex-direction:column;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);}' +
+      '.fh-coach-sheet.fh-open{display:flex;}' +
+      '.fh-sheet-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+      'padding:10px 14px;background:#1f6f5c;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
+      '.fh-sheet-title{font-weight:700;font-size:16px;}' +
+      '.fh-sheet-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
+      '.fh-sheet-body{flex:1;min-height:0;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}' +
       '#freedom-home.fh-fs-hint > *{display:none !important;}' +
       '#freedom-home.fh-fs-hint::before{content:"Your Freedom Page is open — tap the blue chat bubble at the lower left to bring it back.";' +
       'display:block;background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:14px;' +

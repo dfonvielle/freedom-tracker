@@ -158,7 +158,44 @@
       day: (M.stage >= 4 ? dayResp(M.currentDay) : null), completion: (M.stage >= 4 ? completionMap() : null) };
   }
 
-  window.__FH_MOCK_NO_COACH = true;   // coach.v3 needs real Gateway auth; simulate via the bar buttons
+  // REAL coach.v3 UI, driven by a fetch stub (pattern lifted from
+  // test_coach_home.html). Only the Gateway deployment is intercepted —
+  // the widget's engine calls (a different deployment id) pass through to
+  // the live draft engine. Home's own calls use __FH_MOCK_CALL, not fetch.
+  var GATEWAY_ID = 'AKfycbxokJhAPaX6';
+  var realFetch = window.fetch;
+  window.fetch = function (url, opts) {
+    var u = String(url);
+    if (u.indexOf(GATEWAY_ID) >= 0) {
+      var p = {};
+      try { p = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
+      logLine('→ coach ' + p.action);
+      var resp = coachRoute(p);
+      return Promise.resolve({ ok: true, json: function () { return Promise.resolve(resp); } });
+    }
+    if (u.indexOf('/api/') >= 0) { return Promise.reject(new Error('no identity in harness')); }
+    return realFetch.apply(window, arguments);
+  };
+  function coachRoute(p) {
+    if (p.action === 'state') {
+      return { ok: true, activeProjectId: '1', firstName: 'Testy', currentDay: M.currentDay, maxDay: 7,
+        writable: true, projects: [{ projectId: '1', label: 'test' }],
+        setup: { ub: M.ub || 'late-night doomscrolling' }, uiCopy: {} };
+    }
+    if (p.action === 'recover') { return { ok: true, token: 'tok-harness' }; }
+    if (p.action === 'coachRecommend') {
+      return { ok: true,
+        message: 'Day ' + M.currentDay + ' — your evenings keep coming up. Load this into your Rapid Behavioral Freedom tool. Send it in, then add your own words about what is going on right now.',
+        prompt: 'I want to make it easier and more enjoyable to not do the following behavior: late-night doomscrolling. The thought that comes up is "just five minutes". Help me rewire it.',
+        tool: 'Rapid Behavioral Freedom tool' };
+    }
+    if (p.action === 'coachChat') {
+      return { ok: true, message: 'Heard. Logging that quietly. What felt easier today?' };
+    }
+    if (p.action === 'coachApply') { return { ok: true, applied: ['wins'], failed: [] }; }
+    if (p.action === 'coachHelpMenu') { return { ok: true, ub: M.ub || 'doomscrolling', feelings: [] }; }
+    return { ok: false, error: 'stub: unhandled ' + p.action };
+  }
   window.__FH_MOCK_CALL = function (p) {
     var summary = p.action + (p.day != null ? ' day=' + p.day : '') + (p.step ? ' step=' + p.step : '');
     if (p.fields) summary += ' fields=' + JSON.stringify(p.fields);
