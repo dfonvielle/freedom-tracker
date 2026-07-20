@@ -156,9 +156,24 @@
     STEP1_ANCHOR: 'Your moment: {ANCHOR}',
     STEP2_TITLE: '2 · Talk it out, then rewire',
     STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). Share your experiments, wins, and concerns — your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',
-    STEP2_SUB_POPUP: 'Tell your coach what’s going on (or tap “Recommend my next move”). Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',
+    STEP2_SUB_POPUP: 'Tell your coach what’s going on (or tap “Recommend my next move”). Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',   // unused since round 5 (card diet — the coach's own greeting teaches)
     STEP2_COACH_OPEN: 'Talk to your coach →',
     COACH_SHEET_TITLE: 'Your AI Coach',
+    // Round 5: handed-off tools greet warm, not cold — same tool, same
+    // session key, presentation-only (the widget's greeting override).
+    WARM_GREETING: '## Your coach filled me in\n\nI have what you two worked out — it lands below as your first message.\n\nAdd anything you like, or we dive straight in.',
+    // Round 6: goal visibility + editing (rides the Gateway updateGoals
+    // action the full tracker already uses).
+    GOAL_LINE_PREFIX: 'Freedom from: ',
+    GOAL_TITLE: 'Your goal & plan',
+    GOAL_UB_LABEL: 'I want to make it easier and more enjoyable to be free from:',
+    GOAL_JS_LABEL: 'My morning rewiring moment (the H&S Jumpstart):',
+    GOAL_SAVE: 'Save changes',
+    GOAL_SAVED: 'Saved ✓ — your coach and tools use the new wording from now on.',
+    GOAL_BACK: '← Back to my next step',
+    STEP1_CHANGE: 'Change my moment',
+    STEP1_WHATS_THIS: 'What’s this?',
+    WHATS_THIS_Q: 'Remind me how the Happiness & Success Jumpstart works — the short version, please.',
     STEP2_TOOL_WAITING: 'Your rewiring tool will open here — talk to your coach first, or start it directly:',
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
@@ -666,6 +681,11 @@
             '<button class="fh-refresh" id="fh-refresh">' + esc(COPY.REFRESH_BTN) + '</button>' +
           '</div>' +
         '</div>' +
+        // Round 6: the goal, always visible in full — tapping opens the
+        // goal & plan card (see it, rephrase it, change the morning moment).
+        ((state.setup && state.setup.stage >= 4 && state.setup.ub)
+          ? '<button class="fh-goal-line" id="fh-goal-line">' + esc(COPY.GOAL_LINE_PREFIX) + esc(state.setup.ub) + ' ›</button>'
+          : '') +
         '<div id="fh-body">' + bodyHtml + '</div>' +
         (state.fullTrackerUrl
           ? '<div class="fh-footer"><a href="' + esc(state.fullTrackerUrl) + '">' + esc(COPY.FOOTER_FULL_TRACKER) + '</a></div>'
@@ -699,6 +719,11 @@
       state.activeProjectId = v;
       loadState(false);
     });
+    var gl = document.getElementById('fh-goal-line');
+    if (gl) gl.addEventListener('click', function () {
+      state.forcedPhase = 'goalplan';
+      route();
+    });
   }
 
   function route() {
@@ -710,7 +735,70 @@
     if (step.phase === 'power_hour') return renderPowerHour(step.index != null ? step.index : 0);
     if (step.phase === 'after_scores') return renderAfterScores();
     if (step.phase === 'day1_done') return renderDay1Done();
+    if (step.phase === 'goalplan') return renderGoalPlan();
     return renderDaily();
+  }
+
+  /* ============================================================
+   * GOAL & PLAN (round 6) — see and edit the goal wording and the
+   * morning moment. Rides the Gateway's existing updateGoals action
+   * (same contract the full tracker uses).
+   * ============================================================ */
+  function renderGoalPlan() {
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.GOAL_TITLE) + '</h3>' +
+        '<label class="fh-label">' + esc(COPY.GOAL_UB_LABEL) + '</label>' +
+        '<textarea id="fh-goal-ub" rows="3">' + esc(state.setup.ub) + '</textarea>' +
+        '<label class="fh-label">' + esc(COPY.GOAL_JS_LABEL) + '</label>' +
+        '<input type="text" id="fh-goal-js" value="' + esc(state.setup.jumpstart) + '" />' +
+        '<button class="fh-btn" id="fh-goal-save">' + esc(COPY.GOAL_SAVE) + '</button>' +
+        '<div class="fh-msg" id="fh-goal-msg"></div>' +
+        '<div class="fh-linkline fh-center"><a href="#" id="fh-goal-back">' + esc(COPY.GOAL_BACK) + '</a></div>' +
+      '</div>');
+    document.getElementById('fh-goal-save').addEventListener('click', function () {
+      var ub = document.getElementById('fh-goal-ub').value.trim();
+      var js = document.getElementById('fh-goal-js').value.trim();
+      if (!validText(ub)) return setMsg('fh-goal-msg', COPY.WIZ1_ERROR, false);
+      if (!validText(js)) return setMsg('fh-goal-msg', COPY.WIZ3_ERROR, false);
+      setMsg('fh-goal-msg', COPY.SAVING, true);
+      callGateway({ action: 'updateGoals', projectId: state.activeProjectId, ub: ub, jumpstart: js })
+        .then(function (data) {
+          if (!data.ok) {
+            if (data.windowClosed) { state.writable = false; writeStateCache(); }
+            return setMsg('fh-goal-msg', data.error || 'Could not save.', false);
+          }
+          state.setup.ub = data.ub;
+          state.setup.jumpstart = data.jumpstart;
+          writeStateCache();
+          setMsg('fh-goal-msg', COPY.GOAL_SAVED, true);
+        })
+        .catch(function (err) { setMsg('fh-goal-msg', String(err), false); });
+    });
+    document.getElementById('fh-goal-back').addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = null;
+      route();
+    });
+  }
+
+  // Ask the coach something on the student's behalf (round 6: the
+  // "What's this?" refreshers). Opens the coach surface, then rides
+  // coach.v3's FreedomCoach.ask — polling briefly because the coach
+  // script loads/boots async on first render.
+  function askCoach_(question) {
+    if (FS.mode) { fsCoachOpen_(true); }
+    else if (coachNode && coachNode.scrollIntoView) {
+      try { coachNode.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+    }
+    var tries = 0;
+    var t = window.setInterval(function () {
+      tries++;
+      if (window.FreedomCoach && window.FreedomCoach.ask) {
+        window.clearInterval(t);
+        window.FreedomCoach.ask(question);
+      } else if (tries > 20) { window.clearInterval(t); }
+    }, 400);
   }
 
   /* ============================================================
@@ -1065,20 +1153,25 @@
         '<h3>' + esc(COPY.STEP1_TITLE) + (jumpDone ? ' <span class="fh-done-tick">✓</span>' : '') + '</h3>' +
         (anchor ? '<p class="fh-sub">' + esc(COPY.STEP1_ANCHOR.replace('{ANCHOR}', anchor)) + '</p>' : '') +
         '<label class="fh-check"><input type="checkbox" id="fh-jump"' + (jumpDone ? ' checked' : '') + '/> ' + esc(COPY.STEP1_CHECK) + '</label>' +
+        // Round 6: every "huh?" routes to the coach; every setting has a door.
+        '<div class="fh-linkline"><a href="#" id="fh-js-change">' + esc(COPY.STEP1_CHANGE) + '</a> · <a href="#" id="fh-js-what">' + esc(COPY.STEP1_WHATS_THIS) + '</a></div>' +
         '<div class="fh-msg" id="fh-jump-msg"></div>' +
       '</div>' +
 
       // STEP 2 — coach + tool. The coach div is ADOPTED below, never
       // recreated: coach.v3 boots once per page load, so a fresh empty div
       // after a re-render would stay empty forever (the Refresh bug).
+      // Round-5 diet: no explainer paragraph — the coach's own greeting
+      // teaches; on phones there's no "tool below" hint either (the tool
+      // opens fullscreen, so the sentence would describe furniture that
+      // isn't there).
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.STEP2_TITLE) + '</h3>' +
-        '<p class="fh-sub">' + esc(FS.mode ? COPY.STEP2_SUB_POPUP : COPY.STEP2_SUB) + '</p>' +
         (FS.mode ? '<button class="fh-btn" id="fh-coach-open">' + esc(COPY.STEP2_COACH_OPEN) + '</button>' : '') +
         '<div id="fh-coach-slot"></div>' +
         '<div class="fh-divider"></div>' +
         '<div id="fh-tool-area">' +
-          '<p class="fh-sub" id="fh-tool-hint">' + esc(COPY.STEP2_TOOL_WAITING) + '</p>' +
+          (FS.mode ? '' : '<p class="fh-sub" id="fh-tool-hint">' + esc(COPY.STEP2_TOOL_WAITING) + '</p>') +
           '<button class="fh-btn fh-secondary" id="fh-tool-direct">' + esc(COPY.STEP2_TOOL_DIRECT) + '</button>' +
           '<div id="fh-tool"></div>' +
         '</div>' +
@@ -1107,6 +1200,19 @@
       '</div>');
 
     rootEl.addEventListener('input', function () { state.dirty = true; });
+
+    // Step 1 helper links (round 6).
+    var jsChange = document.getElementById('fh-js-change');
+    if (jsChange) jsChange.addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = 'goalplan';
+      route();
+    });
+    var jsWhat = document.getElementById('fh-js-what');
+    if (jsWhat) jsWhat.addEventListener('click', function (e) {
+      e.preventDefault();
+      askCoach_(COPY.WHATS_THIS_Q);
+    });
 
     // Step 1 — save the jumpstart tick immediately on change.
     document.getElementById('fh-jump').addEventListener('change', function () {
@@ -1331,6 +1437,7 @@
     // data-inline="1" widget flag from round 1 remains available for any
     // embed that truly wants an in-page card.)
     stub.setAttribute('data-session-key', opts.sessionKey || (botId + '-default'));
+    if (opts.greetingFrom) stub.setAttribute('data-greeting-from', opts.greetingFrom);
     if (opts.firstMessageFrom) stub.setAttribute('data-first-message-from', opts.firstMessageFrom);
     holder.appendChild(stub);
     window.AgtWidget.mount(stub);
@@ -1354,7 +1461,23 @@
     // Remember which tool the student touched LAST today, so a re-render
     // resumes the right one when both tools hold sessions.
     try { localStorage.setItem('fh_last_tool_d' + state.currentDay, botId); } catch (e) {}
-    mountTool(botId, { sessionKey: 'd' + state.currentDay + '-' + botId });
+    // Warm start (round 5): a handed-off tool greets "your coach filled me
+    // in" instead of the cold opening question. Presentation-only — the
+    // widget's greeting override; explicit session-key means the session
+    // is NOT re-keyed, and the engine flow underneath is untouched.
+    var mountOpts = { sessionKey: 'd' + state.currentDay + '-' + botId };
+    if (promptText) {
+      var wg = document.getElementById('fh-warm-greet');
+      if (!wg) {
+        wg = document.createElement('script');
+        wg.type = 'text/markdown';
+        wg.id = 'fh-warm-greet';
+        document.body.appendChild(wg);   // outside rootEl: survives re-renders
+      }
+      wg.textContent = COPY.WARM_GREETING;
+      mountOpts.greetingFrom = 'fh-warm-greet';
+    }
+    mountTool(botId, mountOpts);
     // The prompt rides AgtWidget.send: it lands in fresh AND restored
     // sessions alike (the old only-on-fresh injection silently swallowed
     // handoffs into an already-open tool).
@@ -1741,6 +1864,7 @@
       '#freedom-home .fh-header > div:first-child{flex:1 1 230px;min-width:0;}' +
       '#freedom-home .fh-hdr-right{margin-left:auto;}' +
       '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;white-space:nowrap;}' +
+      '#freedom-home .fh-goal-line{display:block;width:100%;text-align:left;background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;color:#2f4a68;margin:0 0 12px;cursor:pointer;}' +
       '#freedom-home .fh-hi{font-size:15px;color:#4a5765;margin-top:6px;}' +
       '#freedom-home .fh-refresh{background:none;border:1px solid #c4cfd9;border-radius:8px;padding:7px 12px;color:#4a5765;cursor:pointer;font:inherit;font-size:13px;}' +
       '#freedom-home .fh-card{background:#fff;border:1px solid #e3e9ef;border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 2px 8px rgba(20,40,70,.05);}' +

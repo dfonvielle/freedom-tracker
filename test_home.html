@@ -262,6 +262,10 @@
       }
       return { ok: true, saved: Object.keys(p.fields || {}), failed: [], day: dayResp(day), completion: completionMap() };
     }
+    if (p.action === 'updateGoals') {
+      M.ub = p.ub; M.jumpstart = p.jumpstart;
+      return { ok: true, ub: p.ub, jumpstart: p.jumpstart };
+    }
     if (p.action === 'progressReview') return M.progress || { ok: true, hasData: false };
     if (p.action === 'activate') return { ok: true, token: 'mock-token' };
     return { ok: false, error: 'mock: unhandled action ' + p.action };
