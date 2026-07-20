@@ -162,18 +162,21 @@
     // Round 5: handed-off tools greet warm, not cold — same tool, same
     // session key, presentation-only (the widget's greeting override).
     WARM_GREETING: '## Your coach filled me in\n\nI have what you two worked out — it lands below as your first message.\n\nAdd anything you like, or we dive straight in.',
-    // Round 6: goal visibility + editing (rides the Gateway updateGoals
-    // action the full tracker already uses).
-    GOAL_LINE_PREFIX: 'Freedom from: ',
+    // Round 6/8: goal visibility + editing (rides the Gateway updateGoals
+    // action the full tracker already uses). Round 8: the box carries BOTH
+    // context lines (goal + morning moment) and is the one edit door.
+    GOAL_LINE_PREFIX: 'I want freedom from: ',
+    GOAL_JS_PREFIX: 'H&S Jumpstart: ',
     GOAL_TITLE: 'Your goal & plan',
     GOAL_UB_LABEL: 'I want to make it easier and more enjoyable to be free from:',
     GOAL_JS_LABEL: 'My morning rewiring moment (the H&S Jumpstart):',
     GOAL_SAVE: 'Save changes',
     GOAL_SAVED: 'Saved ✓ — your coach and tools use the new wording from now on.',
     GOAL_BACK: '← Back to my next step',
-    STEP1_CHANGE: 'Change my moment',
-    STEP1_WHATS_THIS: 'What’s this?',
-    WHATS_THIS_Q: 'Remind me how the Happiness & Success Jumpstart works — the short version, please.',
+    STEP1_HELP: 'Get help with this →',
+    STEP3_OPEN: 'Log my progress →',
+    STEP3_CLOSE: 'Close',
+    STEP3_UPDATE: 'Saved ✓ — update my progress',
     STEP2_TOOL_WAITING: 'Your rewiring tool will open here — talk to your coach first, or start it directly:',
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
@@ -665,7 +668,6 @@
   function shellLoading() { return '<div class="fh-card fh-center">' + esc(COPY.LOADING) + '</div>'; }
 
   function renderShell(bodyHtml) {
-    var name = (state.identity && state.identity.firstName) ? ' ' + state.identity.firstName : '';
     var dayLabel = COPY.HEADER_DAY.replace('{DAY}', String(state.currentDay));
 
     // Project picker — hidden for the normal one-project student; appears
@@ -686,17 +688,22 @@
 
     rootEl.innerHTML =
       '<div class="fh-wrap">' +
+        // Round 8: ONE line — day chip, project picker, refresh. The
+        // greeting sentence is gone; real estate goes to the next step.
         '<div class="fh-header">' +
-          '<div><div class="fh-daychip">' + esc(dayLabel) + '</div>' +
-          '<div class="fh-hi">' + esc(COPY.HEADER_HI.replace('{NAME}', name ? ',' + name : '')) + '</div></div>' +
+          '<div class="fh-daychip">' + esc(dayLabel) + '</div>' +
           '<div class="fh-hdr-right">' + pickerHtml +
-            '<button class="fh-refresh" id="fh-refresh">' + esc(COPY.REFRESH_BTN) + '</button>' +
+            '<button class="fh-refresh" id="fh-refresh" title="Refresh" aria-label="Refresh">' + esc(FS.mode ? '↻' : COPY.REFRESH_BTN) + '</button>' +
           '</div>' +
         '</div>' +
-        // Round 6: the goal, always visible in full — tapping opens the
-        // goal & plan card (see it, rephrase it, change the morning moment).
+        // Rounds 6/8: the context box — the goal AND the morning moment,
+        // always visible in full; tapping opens the goal & plan editor.
         ((state.setup && state.setup.stage >= 4 && state.setup.ub)
-          ? '<button class="fh-goal-line" id="fh-goal-line">' + esc(COPY.GOAL_LINE_PREFIX) + esc(state.setup.ub) + ' ›</button>'
+          ? '<button class="fh-goal-line" id="fh-goal-line">' +
+              '<span class="fh-goal-caret">›</span>' +
+              '<div>' + esc(COPY.GOAL_LINE_PREFIX) + esc(state.setup.ub) + '</div>' +
+              (state.setup.jumpstart ? '<div class="fh-goal-js">' + esc(COPY.GOAL_JS_PREFIX) + esc(state.setup.jumpstart) + '</div>' : '') +
+            '</button>'
           : '') +
         '<div id="fh-body">' + bodyHtml + '</div>' +
         (state.fullTrackerUrl
@@ -794,24 +801,6 @@
     });
   }
 
-  // Ask the coach something on the student's behalf (round 6: the
-  // "What's this?" refreshers). Opens the coach surface, then rides
-  // coach.v3's FreedomCoach.ask — polling briefly because the coach
-  // script loads/boots async on first render.
-  function askCoach_(question) {
-    if (FS.mode) { fsCoachOpen_(true); }
-    else if (coachNode && coachNode.scrollIntoView) {
-      try { coachNode.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
-    }
-    var tries = 0;
-    var t = window.setInterval(function () {
-      tries++;
-      if (window.FreedomCoach && window.FreedomCoach.ask) {
-        window.clearInterval(t);
-        window.FreedomCoach.ask(question);
-      } else if (tries > 20) { window.clearInterval(t); }
-    }, 400);
-  }
 
   /* ============================================================
    * WIZARD (same 4 setupSave steps as loader.v7)
@@ -1150,7 +1139,6 @@
   function renderDaily() {
     var day = state.day || { fields: [] };
     var jumpDone = !!fieldVal(day, 'jumpstart');
-    var anchor = state.setup.jumpstart || '';
     var scoresVals = (day.scores && day.scores.values) || {};
     var minutesVal = fieldVal(day, 'rbf');
     var loggedSomething = (minutesVal != null && minutesVal !== '')
@@ -1163,10 +1151,11 @@
       // STEP 1 — jumpstart
       '<div class="fh-card' + (jumpDone ? ' fh-card-done' : '') + '">' +
         '<h3>' + esc(COPY.STEP1_TITLE) + (jumpDone ? ' <span class="fh-done-tick">✓</span>' : '') + '</h3>' +
-        (anchor ? '<p class="fh-sub">' + esc(COPY.STEP1_ANCHOR.replace('{ANCHOR}', anchor)) + '</p>' : '') +
         '<label class="fh-check"><input type="checkbox" id="fh-jump"' + (jumpDone ? ' checked' : '') + '/> ' + esc(COPY.STEP1_CHECK) + '</label>' +
-        // Round 6: every "huh?" routes to the coach; every setting has a door.
-        '<div class="fh-linkline"><a href="#" id="fh-js-change">' + esc(COPY.STEP1_CHANGE) + '</a> · <a href="#" id="fh-js-what">' + esc(COPY.STEP1_WHATS_THIS) + '</a></div>' +
+        // Round 8: the moment lives in the goal box up top; help opens the
+        // Minimalist Plan tool itself (their own Power Hour session — it
+        // teaches the plan and the H&S Jumpstart). Never a coach detour.
+        '<div class="fh-linkline"><a href="#" id="fh-js-help">' + esc(COPY.STEP1_HELP) + '</a></div>' +
         '<div class="fh-msg" id="fh-jump-msg"></div>' +
       '</div>' +
 
@@ -1189,20 +1178,24 @@
         '</div>' +
       '</div>' +
 
-      // STEP 3 — log your progress. Minutes + scores ONLY: the narrative
-      // fields (experiments, wins, opportunities) flow through the coach,
-      // which offers to log them (fc:applied confirms below). They remain
-      // fully editable in the full tracker.
+      // STEP 3 — log your progress. Minutes + scores ONLY (narrative fields
+      // flow through the coach). Round 8: the form is COLLAPSED behind one
+      // button — the fields are once-a-day furniture, and hiding them keeps
+      // the whole rhythm scannable on a phone. The button label carries the
+      // state ("Saved ✓ — update my progress"), so nothing is lost.
       '<div class="fh-card' + (loggedSomething ? ' fh-card-done' : '') + '">' +
         '<h3>' + esc(COPY.STEP3_TITLE) + (loggedSomething ? ' <span class="fh-done-tick">✓</span>' : '') + '</h3>' +
-        '<div class="fh-field"><label class="fh-label">' + esc(COPY.STEP3_MINUTES) + '</label>' +
-        '<input type="number" min="0" step="1" id="fh-min" value="' + esc(minutesVal == null ? '' : minutesVal) + '" /></div>' +
-        scoreInputHtml('easy', 'fh-ds-', scoresVals.easy) +
-        scoreInputHtml('enjoy', 'fh-ds-', scoresVals.enjoy) +
-        (hideConf ? '' : scoreInputHtml('conf', 'fh-ds-', scoresVals.conf)) +
-        (hideConf ? '' : '<label class="fh-check fh-conf"><input type="checkbox" id="fh-conf-forever"/> ' + esc(COPY.CONF_FOREVER) + '</label>') +
-        '<button class="fh-btn" id="fh-day-save">' + esc(COPY.STEP3_SAVE) + '</button>' +
-        '<div class="fh-msg" id="fh-day-msg"></div>' +
+        '<button class="fh-btn' + (loggedSomething ? ' fh-secondary' : '') + '" id="fh-log-toggle">' + esc(loggedSomething ? COPY.STEP3_UPDATE : COPY.STEP3_OPEN) + '</button>' +
+        '<div id="fh-log-body" style="display:none">' +
+          '<div class="fh-field"><label class="fh-label">' + esc(COPY.STEP3_MINUTES) + '</label>' +
+          '<input type="number" min="0" step="1" id="fh-min" value="' + esc(minutesVal == null ? '' : minutesVal) + '" /></div>' +
+          scoreInputHtml('easy', 'fh-ds-', scoresVals.easy) +
+          scoreInputHtml('enjoy', 'fh-ds-', scoresVals.enjoy) +
+          (hideConf ? '' : scoreInputHtml('conf', 'fh-ds-', scoresVals.conf)) +
+          (hideConf ? '' : '<label class="fh-check fh-conf"><input type="checkbox" id="fh-conf-forever"/> ' + esc(COPY.CONF_FOREVER) + '</label>') +
+          '<button class="fh-btn" id="fh-day-save">' + esc(COPY.STEP3_SAVE) + '</button>' +
+          '<div class="fh-msg" id="fh-day-msg"></div>' +
+        '</div>' +
       '</div>' +
 
       // Progress (pull, never push)
@@ -1213,17 +1206,29 @@
 
     rootEl.addEventListener('input', function () { state.dirty = true; });
 
-    // Step 1 helper links (round 6).
-    var jsChange = document.getElementById('fh-js-change');
-    if (jsChange) jsChange.addEventListener('click', function (e) {
+    // Step 1 help (round 8): their own Minimalist Plan session from the
+    // Power Hour — the tool that teaches the plan + the H&S Jumpstart.
+    var jsHelp = document.getElementById('fh-js-help');
+    if (jsHelp) jsHelp.addEventListener('click', function (e) {
       e.preventDefault();
-      state.forcedPhase = 'goalplan';
-      route();
+      mountTool('bh_minplan', { sessionKey: 'ph-bh_minplan' });
+      if (!FS.mode) {
+        var helpStub = document.getElementById('fh-tool-stub');
+        if (helpStub && helpStub.scrollIntoView) { try { helpStub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
+      }
     });
-    var jsWhat = document.getElementById('fh-js-what');
-    if (jsWhat) jsWhat.addEventListener('click', function (e) {
-      e.preventDefault();
-      askCoach_(COPY.WHATS_THIS_Q);
+
+    // Step 3 collapse/expand (round 8).
+    var logToggle = document.getElementById('fh-log-toggle');
+    var logBody = document.getElementById('fh-log-body');
+    if (logToggle && logBody) logToggle.addEventListener('click', function () {
+      var open = logBody.style.display !== 'none';
+      logBody.style.display = open ? 'none' : 'block';
+      if (open) {
+        logToggle.textContent = loggedSomething ? COPY.STEP3_UPDATE : COPY.STEP3_OPEN;
+      } else {
+        logToggle.textContent = COPY.STEP3_CLOSE;
+      }
     });
 
     // Step 1 — save the jumpstart tick immediately on change.
@@ -1301,6 +1306,11 @@
           state.dirty = false;
           writeStateCache();
           setMsg('fh-day-msg', COPY.STEP3_SAVED, true);
+          // Round 8: collapse on success — the button label carries the state.
+          var lb = document.getElementById('fh-log-body');
+          var lt = document.getElementById('fh-log-toggle');
+          if (lb) { lb.style.display = 'none'; }
+          if (lt) { lt.textContent = COPY.STEP3_UPDATE; lt.className = 'fh-btn fh-secondary'; }
         })
         .catch(function (err) { setMsg('fh-day-msg', String(err), false); });
     });
@@ -1872,11 +1882,14 @@
       // picker+refresh drop to their own row instead of squeezing "Hi, Max —
       // here's your next step." into a one-word-per-line sliver (phone-test
       // finding 2026-07-20).
-      '#freedom-home .fh-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 14px;}' +
-      '#freedom-home .fh-header > div:first-child{flex:1 1 230px;min-width:0;}' +
-      '#freedom-home .fh-hdr-right{margin-left:auto;}' +
+      // Round 8: one-line header — chip left, picker+refresh right; the
+      // picker flexes with ellipsis so everything truly fits one row.
+      '#freedom-home .fh-header{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 12px;}' +
+      '#freedom-home .fh-hdr-right{margin-left:auto;flex:1 1 auto;min-width:0;justify-content:flex-end;}' +
       '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;white-space:nowrap;}' +
-      '#freedom-home .fh-goal-line{display:block;width:100%;text-align:left;background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;color:#2f4a68;margin:0 0 12px;cursor:pointer;}' +
+      '#freedom-home .fh-goal-line{display:block;width:100%;text-align:left;background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:9px 30px 9px 12px;font:inherit;font-size:13.5px;color:#2f4a68;margin:0 0 12px;cursor:pointer;position:relative;line-height:1.45;}' +
+      '#freedom-home .fh-goal-js{margin-top:7px;}' +
+      '#freedom-home .fh-goal-caret{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:19px;color:#7a8794;}' +
       '#freedom-home .fh-hi{font-size:15px;color:#4a5765;margin-top:6px;}' +
       '#freedom-home .fh-refresh{background:none;border:1px solid #c4cfd9;border-radius:8px;padding:7px 12px;color:#4a5765;cursor:pointer;font:inherit;font-size:13px;}' +
       '#freedom-home .fh-card{background:#fff;border:1px solid #e3e9ef;border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 2px 8px rgba(20,40,70,.05);}' +
@@ -1896,7 +1909,7 @@
       '#freedom-home .fh-check input{width:auto;margin-top:3px;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;}' +
       '#freedom-home .fh-hdr-right{display:flex;gap:8px;align-items:center;flex:none;}' +
-      '#freedom-home .fh-proj{border:1px solid #c4cfd9;border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;color:#4a5765;background:#fff;max-width:170px;}' +
+      '#freedom-home .fh-proj{border:1px solid #c4cfd9;border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;color:#4a5765;background:#fff;flex:0 1 auto;min-width:0;max-width:220px;text-overflow:ellipsis;}' +
       '#freedom-home .fh-msg{margin-top:8px;font-size:13.5px;min-height:18px;}' +
       '#freedom-home .fh-good{color:#2c9a4b;}#freedom-home .fh-bad{color:#c0392b;}' +
       '#freedom-home .fh-note{background:#fff6e5;border:1px solid #f0dbae;border-radius:8px;padding:8px 10px;font-size:13.5px;margin:8px 0;}' +
