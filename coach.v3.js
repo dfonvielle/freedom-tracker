@@ -55,9 +55,11 @@
       REFRESH_DOING: 'Refreshing\u2026',
       REFRESH_DONE: 'Updated \u2713',
       INTRO: 'My recommendations come from what you\u2019ve told me. The more you tell me about your situation, the more I can help. Tell me more, or tap below and I will point you to your next move.',   // unused since round 5 (intro box removed; round 8 killed the greeting too \u2014 Dave: "greeting for the sake of greeting"). Key kept for UI-Copy-tab compat.
-      RECOMMEND_BTN: 'Recommend my next move',
-      RECOMMEND_CAPTION: 'Based on what you\u2019ve shared this past week.',
-      RECOMMEND_THINKING: 'Looking back over your week\u2026',
+      // Round 9 (Dave): "Recommend my next move" is GONE from Home \u2014 it
+      // steered from the past week's log, and a recommendation built on
+      // solved problems is one day behind the student. Two doors, both
+      // about TODAY: target it, or talk it out.
+      CHAT_HINT: '\u2026or just tell me what\u2019s going on below, and I\u2019ll help you find what to rewire.',
       CHAT_PLACEHOLDER: 'How can I help?',
       SEND_BTN: 'Send',
       THINKING: 'Thinking\u2026',
@@ -99,8 +101,8 @@
       NO_PROJECT_TEXT: 'Your access is still being set up on this device. Give it a moment, then refresh this page and I will be ready.',
       READONLY_NOTE: 'Your editing window has closed. I can still talk things through, but I cannot save new entries for you.',
       // --- Phase 5: guided emotion-first flow ---
-      MORE_HELP_BTN: 'More ways I can help',
-      MORE_HELP_CLOSE: 'Close help',
+      MORE_HELP_BTN: 'Target what’s challenging today →',
+      MORE_HELP_CLOSE: 'Close',
       HELP_LOADING: 'One moment\u2026',
       // Persistent target box, shown above the question and kept through the
       // whole flow. {UB} is the student's behavior.
@@ -485,11 +487,11 @@
           '<div class="fc-scroll">' +
           (state.writable ? '' : '<div class="fc-note fc-readonly">' + esc(COPY.READONLY_NOTE) + '</div>') +
           '<div id="fc-transcript" class="fc-transcript"></div>' +
-          '<button id="fc-recommend" class="fc-recbtn">' + esc(COPY.RECOMMEND_BTN) + '</button>' +
-          '<div class="fc-reccaption">' + esc(COPY.RECOMMEND_CAPTION) + '</div>' +
-          // round 8: back to a REAL button — Dave: the link version was
-          // "hard to see"; grandpa needs the door visible.
-          '<button id="fc-morehelp" class="fc-morehelpbtn">' + esc(COPY.MORE_HELP_BTN) + '</button>' +
+          // Round 9 (Dave): TWO DOORS, both about TODAY. The guided
+          // emotional-targeting flow is the primary button; the composer is
+          // the other door (the caption points at it).
+          '<button id="fc-morehelp" class="fc-recbtn">' + esc(COPY.MORE_HELP_BTN) + '</button>' +
+          '<div class="fc-reccaption">' + esc(COPY.CHAT_HINT) + '</div>' +
           '<div id="fc-help" class="fc-help"></div>' +
           '</div>' +
           '<div class="fc-inputrow">' +
@@ -504,7 +506,6 @@
         appendBubble(state.messages[i], true);
       }
 
-      document.getElementById('fc-recommend').addEventListener('click', onRecommend);
       document.getElementById('fc-morehelp').addEventListener('click', onMoreHelp);
       // wrapper on purpose: a bare handler would receive the click EVENT as
       // onSend's textArg and treat it as programmatic text
@@ -541,28 +542,9 @@
     // ============================================================
     // Move 1: Recommend my next move
     // ============================================================
-    function onRecommend() {
-      if (state.busy) { return; }
-      setBusy(true);
-      var btn = document.getElementById('fc-recommend');
-      var old = btn.textContent;
-      btn.textContent = COPY.RECOMMEND_THINKING;
-      btn.disabled = true;
-
-      callGateway({ action: 'coachRecommend', projectId: state.activeProjectId })
-        .then(function (data) {
-          if (!data.ok) { pushCoach(data.error || COPY.ERROR_GENERIC); return; }
-          // Pass any proposal through too — recommend responses can carry one
-          // (auto-logged in Freedom Home, review card elsewhere).
-          pushCoach(data.message || '', { prompt: data.prompt, tool: data.tool, proposal: data.proposal || null });
-        })
-        .catch(function () { pushCoach(COPY.ERROR_GENERIC); })
-        .then(function () {
-          btn.textContent = old;
-          btn.disabled = false;
-          setBusy(false);
-        });
-    }
+    // (onRecommend removed in round 9 — the coachRecommend ENDPOINT stays on
+    // the Gateway for the standalone coach.v2 lessons; Home just no longer
+    // offers a past-week recommendation.)
 
     // ============================================================
     // Move 2: Chat (+ propose-and-apply)

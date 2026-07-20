@@ -205,6 +205,12 @@
       return { ok: true, message: 'Heard. Logging that quietly. What felt easier today?' };
     }
     if (p.action === 'coachApply') { return { ok: true, applied: ['wins'], failed: [] }; }
+    if (p.action === 'coachBuildPrompt') {
+      return { ok: true,
+        message: 'Built from what you picked.',
+        prompt: 'I want to make it easier and more enjoyable to not do: late-night doomscrolling. To make this easier I want to stop feeling ' + (p.feeling || 'tempted') + '. Situation: ' + (p.text || '(none)') + '.',
+        tool: 'Rapid Behavioral Freedom tool' };
+    }
     if (p.action === 'coachHelpMenu') {
       return { ok: true, ub: M.ub || 'doomscrolling', feelings: [
         { key: 'overwhelm', label: 'Overwhelmed', group: 'Feelings' },
