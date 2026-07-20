@@ -54,7 +54,12 @@
       REFRESH_BTN: '\u21bb Refresh',
       REFRESH_DOING: 'Refreshing\u2026',
       REFRESH_DONE: 'Updated \u2713',
-      INTRO: 'My recommendations come from what you\u2019ve told me. The more you tell me about your situation, the more I can help. Tell me more, or tap below and I will point you to your next move.',
+      INTRO: 'My recommendations come from what you\u2019ve told me. The more you tell me about your situation, the more I can help. Tell me more, or tap below and I will point you to your next move.',   // unused since round 5 \u2014 the greeting bubble replaced the intro box (kept for UI-Copy-tab compat)
+      // Round 5 (2026-07-20): the coach OPENS BY TALKING \u2014 a templated
+      // greeting bubble built instantly from data we already hold (no model
+      // call, no wait). One light question, per the one-question doctrine.
+      GREET: 'Hi{NAME} \u2014 Day {DAY} of freedom from {UB}. Want me to set up today\u2019s rewiring session, or has something changed since yesterday?',
+      GREET_NO_UB: 'Hi{NAME} \u2014 Day {DAY}. Tell me what\u2019s going on, and I\u2019ll set up your rewiring session.',
       RECOMMEND_BTN: 'Recommend my next move',
       RECOMMEND_THINKING: 'Looking back over your week\u2026',
       CHAT_PLACEHOLDER: 'How can I help?',
@@ -64,8 +69,14 @@
       COPIED: 'Copied \u2713',
       COPY_FALLBACK: 'Press and hold the text above to copy it.',
       TOOL_PREFIX: 'Paste into: ',
-      SEND_TO_TOOL: 'Load into the tool below \u2193',
-      SENT_TO_TOOL: 'Loaded \u2713 \u2014 scroll down to continue',
+      SEND_TO_TOOL: 'Open my rewiring session \u2192',
+      SENT_TO_TOOL: 'Opened \u2713',
+      // Freedom Home prompt card (round 5): one line, one button; the raw
+      // prompt is OUR plumbing, tucked behind a small peek link.
+      PROMPT_READY: 'Your {TOOL} session is ready.',
+      PROMPT_READY_GENERIC: 'Your rewiring session is ready.',
+      PROMPT_PEEK: 'See what I\u2019m sending',
+      PROMPT_REPLACED: 'Replaced by the newer suggestion below.',
       REVIEW_TITLE: 'Save this to your log?',
       REVIEW_CURRENT: 'Now',
       REVIEW_AFTER: 'After this update',
@@ -92,8 +103,8 @@
       NO_PROJECT_TEXT: 'Your access is still being set up on this device. Give it a moment, then refresh this page and I will be ready.',
       READONLY_NOTE: 'Your editing window has closed. I can still talk things through, but I cannot save new entries for you.',
       // --- Phase 5: guided emotion-first flow ---
-      MORE_HELP_BTN: 'More help options',
-      MORE_HELP_CLOSE: 'Close',
+      MORE_HELP_BTN: 'More ways I can help',
+      MORE_HELP_CLOSE: 'Close help',
       HELP_LOADING: 'One moment\u2026',
       // Persistent target box, shown above the question and kept through the
       // whole flow. {UB} is the student's behavior.
@@ -270,8 +281,24 @@
           }
           var hasConvo = !!(state.messages && state.messages.length);
           if (!state.booted || (!hasConvo && !state.busy)) { renderCoach(); }
+          // The coach opens by TALKING (round 5): one templated greeting,
+          // instant (no model call), exactly one light question. Once per
+          // page load / per project — replays keep it via state.messages.
+          if (!hasConvo && !state._greeted && !state.busy) {
+            state._greeted = true;
+            pushCoach(coachGreeting_());
+          }
         })
         .catch(function () { renderNoProject(); });
+    }
+
+    function coachGreeting_() {
+      var name = state.firstName ? ' ' + state.firstName : '';
+      var ub = String(state.ub || '').trim();
+      var t = ub ? COPY.GREET : COPY.GREET_NO_UB;
+      return t.replace('{NAME}', name)
+              .replace('{DAY}', String(state.currentDay))
+              .replace('{UB}', ub);
     }
 
     // ============================================================
@@ -403,6 +430,7 @@
       if (!newId || String(newId) === String(state.activeProjectId)) { return; }
       state.activeProjectId = newId;
       state.messages = [];
+      state._greeted = false;   // the new project gets its own greeting
       state.helpOpen = false;
       state.helpMenu = null;     // help menu is localized per project, so refetch
       state.helpFeeling = null;
@@ -429,6 +457,7 @@
 
       // Clear the local conversation + guided-help state.
       state.messages = [];
+      state._greeted = false;   // refreshed coach greets again
       state.helpOpen = false;
       state.helpMenu = null;
       state.helpFeeling = null;
@@ -464,15 +493,15 @@
             coachProjectPickerHtml() +
           '</div>' +
           // fc-scroll: inert wrapper inline; in Freedom Home's fullscreen
-          // sheet it becomes THE scroll region — intro/buttons/help scroll
-          // away with the conversation while the composer stays pinned.
+          // sheet it becomes THE scroll region — conversation first, actions
+          // trailing it, composer pinned. The old intro box is gone: the
+          // greeting bubble (round 5) does its job as an actual message.
           '<div class="fc-scroll">' +
-          '<div class="fc-intro">' + esc(COPY.INTRO) + '</div>' +
           (state.writable ? '' : '<div class="fc-note fc-readonly">' + esc(COPY.READONLY_NOTE) + '</div>') +
-          '<button id="fc-recommend" class="fc-recbtn">' + esc(COPY.RECOMMEND_BTN) + '</button>' +
-          '<button id="fc-morehelp" class="fc-morehelpbtn">' + esc(COPY.MORE_HELP_BTN) + '</button>' +
-          '<div id="fc-help" class="fc-help"></div>' +
           '<div id="fc-transcript" class="fc-transcript"></div>' +
+          '<button id="fc-recommend" class="fc-recbtn">' + esc(COPY.RECOMMEND_BTN) + '</button>' +
+          '<button id="fc-morehelp" class="fc-morehelplink">' + esc(COPY.MORE_HELP_BTN) + '</button>' +
+          '<div id="fc-help" class="fc-help"></div>' +
           '</div>' +
           '<div class="fc-inputrow">' +
             '<textarea id="fc-input" rows="1" placeholder="' + esc(COPY.CHAT_PLACEHOLDER) + '"></textarea>' +
@@ -488,7 +517,9 @@
 
       document.getElementById('fc-recommend').addEventListener('click', onRecommend);
       document.getElementById('fc-morehelp').addEventListener('click', onMoreHelp);
-      document.getElementById('fc-send').addEventListener('click', onSend);
+      // wrapper on purpose: a bare handler would receive the click EVENT as
+      // onSend's textArg and treat it as programmatic text
+      document.getElementById('fc-send').addEventListener('click', function () { onSend(); });
       var fcProj = document.getElementById('fc-project');
       if (fcProj) { fcProj.addEventListener('change', function () { onProjectChange(this.value); }); }
       var fcRefresh = document.getElementById('fc-refresh');
@@ -547,13 +578,19 @@
     // ============================================================
     // Move 2: Chat (+ propose-and-apply)
     // ============================================================
-    function onSend() {
+    // No argument = the composer path. With a text argument (the host page's
+    // FreedomCoach.ask — e.g. Freedom Home's "What's this?" links) the
+    // composer is left untouched.
+    function onSend(textArg) {
       if (state.busy) { return; }
+      var fromComposer = (textArg == null);
       var input = document.getElementById('fc-input');
-      var text = String(input.value || '').trim();
+      var text = String(fromComposer ? ((input && input.value) || '') : textArg).trim();
       if (!text) { return; }
-      input.value = '';
-      input.style.height = 'auto';
+      if (fromComposer && input) {
+        input.value = '';
+        input.style.height = 'auto';
+      }
       pushStudent(text);
 
       setBusy(true);
@@ -869,6 +906,13 @@
       return wrap;
     }
 
+    // Host-page API (Freedom Home): ask the coach something on the student's
+    // behalf — e.g. the rail's "What's this?" refresher links. Rides the
+    // normal send path, so the answer lands in the transcript like any turn.
+    window.FreedomCoach = {
+      ask: function (text) { onSend(String(text || '')); }
+    };
+
     // Dispatch a Freedom Home handoff event (ES5-safe CustomEvent).
     function fcDispatch(name, detail) {
       try {
@@ -886,22 +930,35 @@
     // ============================================================
     // Prompt box  (ported from the tracker loader)
     // ============================================================
+    var lastPromptBox = null;   // newest-wins: older suggestions grey out
+
     function promptBoxNode(text, tool) {
       var box = document.createElement('div');
       box.className = 'fc-promptbox';
-      if (tool) {
-        var lab = document.createElement('div');
-        lab.className = 'fc-prompt-tool';
-        lab.textContent = COPY.TOOL_PREFIX + tool;
-        box.appendChild(lab);
-      }
-      // Freedom Home: hand the prompt straight to the tool on this page.
-      // The copy UI below stays as the universal fallback.
+      // Freedom Home (round 5): ONE line, ONE button. The raw prompt is our
+      // plumbing — grandpa never chooses between Load and Copy, and repeated
+      // Recommends can't stack live cards (the previous one greys out).
       if (window.FREEDOM_HOME === true) {
+        if (lastPromptBox) {
+          try {
+            lastPromptBox.className = 'fc-promptbox fc-prompt-old';
+            var oldBtns = lastPromptBox.querySelectorAll('button');
+            for (var ob = 0; ob < oldBtns.length; ob++) { oldBtns[ob].disabled = true; }
+            var oldReady = lastPromptBox.querySelector('.fc-prompt-ready');
+            if (oldReady) { oldReady.textContent = COPY.PROMPT_REPLACED; }
+          } catch (e) {}
+        }
+        lastPromptBox = box;
+
+        var ready = document.createElement('div');
+        ready.className = 'fc-prompt-ready';
+        ready.textContent = tool
+          ? COPY.PROMPT_READY.replace('{TOOL}', tool)
+          : COPY.PROMPT_READY_GENERIC;
+        box.appendChild(ready);
+
         var sendBtn = document.createElement('button');
         sendBtn.className = 'fc-copybtn fc-sendtool';
-        sendBtn.style.display = 'block';
-        sendBtn.style.marginBottom = '8px';
         sendBtn.textContent = COPY.SEND_TO_TOOL;
         sendBtn.addEventListener('click', function () {
           fcDispatch('fc:prompt-send', { prompt: text, tool: tool || '' });
@@ -909,6 +966,32 @@
           sendBtn.disabled = true;
         });
         box.appendChild(sendBtn);
+
+        var peekTa = document.createElement('textarea');
+        peekTa.className = 'fc-prompt';
+        peekTa.readOnly = true;
+        peekTa.rows = 4;
+        peekTa.value = text;
+        peekTa.style.display = 'none';
+        var peek = document.createElement('button');
+        peek.type = 'button';
+        peek.className = 'fc-peek';
+        peek.textContent = COPY.PROMPT_PEEK + ' ▸';
+        peek.addEventListener('click', function () {
+          var open = peekTa.style.display !== 'none';
+          peekTa.style.display = open ? 'none' : 'block';
+          peek.textContent = COPY.PROMPT_PEEK + (open ? ' ▸' : ' ▾');
+        });
+        box.appendChild(peek);
+        box.appendChild(peekTa);
+        return box;
+      }
+      // Standalone coach lessons: the classic label + prompt + Copy UI.
+      if (tool) {
+        var lab = document.createElement('div');
+        lab.className = 'fc-prompt-tool';
+        lab.textContent = COPY.TOOL_PREFIX + tool;
+        box.appendChild(lab);
       }
       var ta = document.createElement('textarea');
       ta.className = 'fc-prompt';
@@ -1173,6 +1256,13 @@
         // more-help button (secondary)
         '#freedom-coach .fc-morehelpbtn{width:100%;background:#eef3f6;color:#1f6f5c;border:1px solid #cfe0d9;padding:11px 18px;font-size:14.5px;min-height:42px;margin-bottom:8px;}' +
         '#freedom-coach .fc-morehelpbtn:active{opacity:.85;}' +
+        // round 5: more-help demoted from co-star button to a small link
+        '#freedom-coach .fc-morehelplink{display:block;margin:2px auto 8px;background:none;border:none;color:#1f6f5c;font-size:13.5px;font-weight:700;padding:6px 10px;text-decoration:underline;min-height:0;}' +
+        // round 5: the Freedom Home prompt card — one line, one button, peek link
+        '#freedom-coach .fc-prompt-ready{font-size:14.5px;font-weight:700;color:#1f6f5c;margin-bottom:8px;}' +
+        '#freedom-coach .fc-sendtool{display:block;width:100%;margin-bottom:2px;}' +
+        '#freedom-coach .fc-peek{display:inline-block;background:none;border:none;color:#5b6b7a;font-size:12.5px;font-weight:600;padding:6px 0 0;text-decoration:underline;min-height:0;}' +
+        '#freedom-coach .fc-prompt-old{opacity:.55;}' +
         // help panel
         '#freedom-coach .fc-help{}' +
         '#freedom-coach .fc-help-loading{color:#5b6b7a;font-size:14px;padding:8px 2px;}' +
