@@ -1855,8 +1855,11 @@
       '#freedom-home.fh-fs-on{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999990;' +
       'overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f5f8fb;box-sizing:border-box;' +
       'padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px));}' +
-      // keep the header clear of the floating minimize button
-      '#freedom-home.fh-fs-on .fh-header{padding-right:38px;}' +
+      // Reserve the floating minimize button's FULL lane (34px button at
+      // right:10 + 8px gap = 52px). 38px was tuned for the old wide
+      // "↻ Refresh" label, which survived a corner graze; round 8's
+      // icon-only ↻ sat entirely under the – (Dave: "we can only minimize").
+      '#freedom-home.fh-fs-on .fh-header{padding-right:52px;}' +
       // Minimized-on-phone state: hide the app, show ONE plain hint line
       // (a ::before pseudo-element — innerHTML re-renders can't wipe it).
       // Coach sheet chrome (fh- classes only; the coach styles its own
