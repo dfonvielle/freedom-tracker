@@ -46,6 +46,13 @@
 
 <script>
 (function () {
+  // Seed the shared device token so coach.v3 boots deterministically: with
+  // no token AND no identity (the /api/ fetches are rejected here), its
+  // attemptRecover() renders "Almost ready" without ever touching the
+  // network — a fresh browser profile would make the coach vanish from
+  // this harness. The stub ignores token values.
+  try { localStorage.setItem('ag_ft_token', 'tok-harness'); } catch (e) {}
+
   var qs = new URLSearchParams(location.search);
   var scenario = qs.get('s') || 'wizard';
   document.querySelectorAll('.bar a').forEach(function (a) {
@@ -178,8 +185,13 @@
   };
   function coachRoute(p) {
     if (p.action === 'state') {
+      // Three projects on purpose: the picker row is part of what overflowed
+      // Dave's real phone (round-3 composer-off-screen bug) — keep it tall.
       return { ok: true, activeProjectId: '1', firstName: 'Testy', currentDay: M.currentDay, maxDay: 7,
-        writable: true, projects: [{ projectId: '1', label: 'test' }],
+        writable: true,
+        projects: [{ projectId: '1', label: 'late-night doomscrolling' },
+                   { projectId: '2', label: 'sugar after dinner' },
+                   { projectId: '3', label: 'cruise-ship eating' }],
         setup: { ub: M.ub || 'late-night doomscrolling' }, uiCopy: {} };
     }
     if (p.action === 'recover') { return { ok: true, token: 'tok-harness' }; }
@@ -193,7 +205,13 @@
       return { ok: true, message: 'Heard. Logging that quietly. What felt easier today?' };
     }
     if (p.action === 'coachApply') { return { ok: true, applied: ['wins'], failed: [] }; }
-    if (p.action === 'coachHelpMenu') { return { ok: true, ub: M.ub || 'doomscrolling', feelings: [] }; }
+    if (p.action === 'coachHelpMenu') {
+      return { ok: true, ub: M.ub || 'doomscrolling', feelings: [
+        { key: 'overwhelm', label: 'Overwhelmed', group: 'Feelings' },
+        { key: 'fear', label: 'Fear & anxiety', group: 'Feelings' },
+        { key: 'bored', label: 'Bored / restless', group: 'Cravings' }
+      ] };
+    }
     return { ok: false, error: 'stub: unhandled ' + p.action };
   }
   window.__FH_MOCK_CALL = function (p) {

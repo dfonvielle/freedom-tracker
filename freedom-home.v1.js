@@ -1416,7 +1416,11 @@
     'border-radius:50%;border:none;background:#2f6df6;display:none;align-items:center;' +
     'justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);}' +
     '.fh-fs-launcher-left{left:16px;}.fh-fs-launcher-right{right:16px;}' +
-    'body.fh-fs-lock{overflow:hidden !important;}';
+    'body.fh-fs-lock{overflow:hidden !important;}' +
+    // While the coach sheet is open, a minimized tool's bubble must not sit
+    // on the coach's composer (both live lower-left). Hidden, not removed —
+    // closing the sheet brings it straight back.
+    'body.fh-coach-open .agt-launcher{display:none !important;}';
 
   // The takeover itself: the lesson IFRAME becomes the phone screen.
   // Stylesheet !important beats the inline height Systeme's resizer keeps
@@ -1562,6 +1566,13 @@
     FS.coachOpen = !!open;
     if (open) { FS.coachSheet.classList.add('fh-open'); }
     else { FS.coachSheet.classList.remove('fh-open'); }
+    // Hide a minimized tool's launcher bubble while the sheet is open
+    // (host body class — see FS_CHROME_CSS).
+    try {
+      var hostBody = (FS.mode === 'frame') ? FS.pDoc.body : document.body;
+      if (open) { hostBody.classList.add('fh-coach-open'); }
+      else { hostBody.classList.remove('fh-coach-open'); }
+    } catch (e) {}
   }
 
   function fsSetOpen_(open) {
@@ -1642,6 +1653,7 @@
         try { owned[i].parentNode && owned[i].parentNode.removeChild(owned[i]); } catch (e) {}
       }
       pDoc.body.classList.remove('fh-fs-lock');
+      pDoc.body.classList.remove('fh-coach-open');
       var f = pDoc.querySelectorAll('.fh-fs-frame');
       for (var j = 0; j < f.length; j++) {
         try { f[j].classList.remove('fh-fs-frame'); } catch (e2) {}
@@ -1666,7 +1678,7 @@
           'clearInterval(window.__fhWatchdogId);window.__fhWatchdogId=0;' +
           'var owned=document.querySelectorAll("[' + FS_OWNED + ']");' +
           'for(var i=0;i<owned.length;i++){try{owned[i].parentNode&&owned[i].parentNode.removeChild(owned[i]);}catch(e){}}' +
-          'try{document.body.classList.remove("fh-fs-lock");}catch(e){}' +
+          'try{document.body.classList.remove("fh-fs-lock");document.body.classList.remove("fh-coach-open");}catch(e){}' +
           'var f=document.querySelectorAll(".fh-fs-frame");' +
           'for(var j=0;j<f.length;j++){try{f[j].classList.remove("fh-fs-frame");}catch(e){}}' +
         '},750);' +

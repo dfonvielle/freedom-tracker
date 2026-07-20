@@ -57,7 +57,7 @@
       INTRO: 'My recommendations come from what you\u2019ve told me. The more you tell me about your situation, the more I can help. Tell me more, or tap below and I will point you to your next move.',
       RECOMMEND_BTN: 'Recommend my next move',
       RECOMMEND_THINKING: 'Looking back over your week\u2026',
-      CHAT_PLACEHOLDER: 'Answer here, or just tell me what\u2019s going on\u2026',
+      CHAT_PLACEHOLDER: 'How can I help?',
       SEND_BTN: 'Send',
       THINKING: 'Thinking\u2026',
       COPY_BUTTON: 'Copy prompt',
@@ -463,12 +463,17 @@
             '</div>' +
             coachProjectPickerHtml() +
           '</div>' +
+          // fc-scroll: inert wrapper inline; in Freedom Home's fullscreen
+          // sheet it becomes THE scroll region — intro/buttons/help scroll
+          // away with the conversation while the composer stays pinned.
+          '<div class="fc-scroll">' +
           '<div class="fc-intro">' + esc(COPY.INTRO) + '</div>' +
           (state.writable ? '' : '<div class="fc-note fc-readonly">' + esc(COPY.READONLY_NOTE) + '</div>') +
           '<button id="fc-recommend" class="fc-recbtn">' + esc(COPY.RECOMMEND_BTN) + '</button>' +
           '<button id="fc-morehelp" class="fc-morehelpbtn">' + esc(COPY.MORE_HELP_BTN) + '</button>' +
           '<div id="fc-help" class="fc-help"></div>' +
           '<div id="fc-transcript" class="fc-transcript"></div>' +
+          '</div>' +
           '<div class="fc-inputrow">' +
             '<textarea id="fc-input" rows="1" placeholder="' + esc(COPY.CHAT_PLACEHOLDER) + '"></textarea>' +
             '<button id="fc-send" class="fc-sendbtn">' + esc(COPY.SEND_BTN) + '</button>' +
@@ -845,6 +850,10 @@
     function scrollDown() {
       var tx = document.getElementById('fc-transcript');
       if (tx) { tx.scrollTop = tx.scrollHeight; }
+      // Sheet mode: the wrapper is the scroller (transcript is uncapped
+      // there). Scrolling a non-scrolling element is a harmless no-op.
+      var sc = document.querySelector('.fh-coach-sheet .fc-scroll');
+      if (sc) { sc.scrollTop = sc.scrollHeight; }
     }
 
     // Paragraph-aware text (the model writes short paragraphs).
@@ -1228,19 +1237,23 @@
         '#freedom-coach .fc-msg{font-size:13.5px;margin-top:7px;min-height:16px;}' +
         '#freedom-coach .fc-good{color:#1f6f5c;}' +
         '#freedom-coach .fc-bad{color:#b3392f;}' +
-        // FULLSCREEN SHEET MODE (Freedom Home, phones — 2026-07-20). When
-        // Home hosts this coach inside its .fh-coach-sheet takeover, the
-        // card fills the sheet and the TRANSCRIPT becomes the flexing
-        // region (the 430px cap comes off), so the composer stays pinned
-        // at the bottom like a real chat app and the transcript's own
-        // scrolling (which our JS drives) keeps working. A tall guided-help
-        // panel scrolls itself rather than pushing the composer off-screen.
+        // FULLSCREEN SHEET MODE (Freedom Home, phones — 2026-07-20, fixed
+        // same day after Dave's real-account screenshots). Structure: the
+        // card fills the sheet; fc-head pins at the top, fc-inputrow pins
+        // at the bottom, and fc-scroll — intro, buttons, help panel, and
+        // the UNCAPPED transcript — is the single scroll region between
+        // them. The first cut instead flexed the transcript alone, which
+        // over-constrained on real accounts (project picker + iOS chrome):
+        // the composer fell off-screen and the shrinkable help panel was
+        // crushed to 0px ("Close" with nothing revealed). Never mark any
+        // content region shrinkable here; let ONE region scroll.
         // Additive: outside a .fh-coach-sheet nothing here matches —
         // inline and standalone embeds are pixel-identical to before.
         '.fh-coach-sheet #freedom-coach{max-width:none;margin:0;height:100%;}' +
         '.fh-coach-sheet #freedom-coach .fc-card{height:100%;box-sizing:border-box;display:flex;flex-direction:column;border:none;border-radius:0;}' +
-        '.fh-coach-sheet #freedom-coach .fc-help{flex:0 1 auto;min-height:0;overflow-y:auto;}' +
-        '.fh-coach-sheet #freedom-coach .fc-transcript{flex:1 1 140px;min-height:140px;max-height:none;}' +
+        '.fh-coach-sheet #freedom-coach .fc-head{flex:none;}' +
+        '.fh-coach-sheet #freedom-coach .fc-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}' +
+        '.fh-coach-sheet #freedom-coach .fc-transcript{max-height:none;overflow:visible;}' +
         '.fh-coach-sheet #freedom-coach .fc-inputrow{flex:none;}';
       var style = document.createElement('style');
       style.id = 'fc-styles';
