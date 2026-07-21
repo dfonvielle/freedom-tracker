@@ -90,74 +90,102 @@
    * ============================================================ */
   var COPY = {
     LOADING: 'Loading your Freedom Accelerator…',
+    LOADING_PROJECT: 'Loading your Freedom Accelerator project…',
     HEADER_DAY: 'Day {DAY}',
-    HEADER_HI: 'Hi{NAME} — here’s your next step.',
+    // Round 17: before the student starts their Power Hour, the day chip
+    // tells the truth instead of counting calendar days ("Day 0" meant
+    // nothing to grandpa). The Power Hour walk itself shows "Day 1".
+    HEADER_READY: 'Getting ready',
+    HEADER_HI: 'Hi{NAME}, here’s your next step.',
     REFRESH_BTN: '↻ Refresh',
     FOOTER_FULL_TRACKER: 'Open your full Freedom Tracker →',
-    NOT_CONFIGURED: 'This page is missing its tool settings (data-engine / data-key). The daily steps still work — but the AI tools can’t load. If you’re the site owner, re-paste the lesson snippet.',
+    NOT_CONFIGURED: 'This page is missing its tool settings (data-engine / data-key). The daily steps still work, but the AI tools can’t load. If you’re the site owner, re-paste the lesson snippet.',
 
-    // Wizard (mirrors loader.v7 wording)
+    // Wizard (round 17 rebuild: context box on every step after the first,
+    // change-my-answer edits, tap-to-fill moment chips)
     WIZ1_TITLE: 'Welcome{NAME}! Let’s set up your project.',
     WIZ1_LABEL: 'I want to make it easier and more enjoyable to be free from the following Unwanted Behavior (UB):',
-    WIZ1_PLACEHOLDER: 'Your behavior — or just write "my UB" to keep it private',
+    WIZ1_PLACEHOLDER: 'Your behavior, or just write "my UB" to keep it private',
     WIZ1_BUTTON: 'Continue →',
-    WIZ1_ERROR: 'Name the behavior — "my UB" is fine if you’d rather keep it private.',
+    WIZ1_ERROR: 'Name the behavior. "My UB" is fine if you’d rather keep it private.',
+    WIZ_CTX_HEAD: 'My Unwanted Behavior (UB)',
+    WIZ_CTX_PREFIX: 'I want to make it easier and more enjoyable to be free from: ',
+    WIZ_EDIT_SAVE: 'Save my change →',
     WIZ2_TITLE: 'Your baseline Freedom Scores before any rewiring',
-    WIZ2_SUB: 'In 7 days, you’ll look back at these numbers to see proof of change. There are no bad scores (all zeros are fine)! Low initial scores only make the improvement more satisfying.',
+    WIZ2_SUB: 'You’ll look back at these numbers to see proof of change. There are no bad scores (all zeros are fine)! Low initial scores only make the improvement more satisfying.',
     WIZ2_BUTTON: 'Save my baseline →',
     SCORE_ERROR: 'Scores must be whole numbers from 0 to 10.',
+    WIZ_BASELINE_SAVED: 'Your baseline scores are saved ✓',
     WIZ3_TITLE: 'Pick your daily rewiring moment',
-    WIZ3_SUB: 'Each morning you’ll do 30 seconds to 2 minutes of rewiring (the Happiness & Success Jumpstart). Anchor it to something you already do every morning — while brushing your teeth, while the coffee brews, in the shower.',
+    WIZ3_SUB: 'Each morning you’ll do 30 seconds to 2 minutes of rewiring (the Happiness & Success Jumpstart). It makes it easier and more enjoyable to not do your UB.',
+    WIZ3_ANCHOR: 'Anchor this rewiring moment to something you already do every morning:',
     WIZ3_LABEL: 'I’ll do my morning rewiring (the H&S Jumpstart) at this time and place:',
     WIZ3_PLACEHOLDER: 'e.g. 7am, while my coffee brews',
     WIZ3_BUTTON: 'Continue →',
-    WIZ3_ERROR: 'Pick a real time and place — e.g. "7am, while my coffee brews".',
+    WIZ3_ERROR: 'Pick a real time and place, like "7am, while my coffee brews".',
+    WIZ3_CHIPS: ['While brushing my teeth', 'While the coffee brews', 'In the shower'],
     WIZ4_TITLE: 'You’re set. Here’s your goal & plan:',
     WIZ4_UB_PREFIX: 'I want to make it easier and more enjoyable to be free from: ',
-    WIZ4_JS_PREFIX: 'Every morning, 30 seconds–2 minutes of rewiring at: ',
+    WIZ4_JS_PREFIX: 'Every morning, 30 seconds to 2 minutes of rewiring at: ',
+    WIZ4_EDIT_HINT: 'Tap either line to change it.',
     WIZ4_BUTTON: 'Let’s Get Started →',
+    WIZ4_WORKING: 'Getting you started…',
     SAVING: 'Saving…',
 
-    // Day 0
-    D0_TITLE: 'Day 0 — Get ready',
-    D0_CHECK: 'I understand how I’ll make it easier and more enjoyable to not do my UB, and I’m looking forward to the rewiring!',
-    D0_PLAN_LABEL: 'My Day 1 Freedom Power Hour time and place:',
-    D0_PLAN_PLACEHOLDER: 'e.g. tomorrow 8am, at my desk',
-    D0_SAVE: 'Save',
-    D0_START_NOW: 'Start my Freedom Power Hour now →',
-    D0_NOTE: 'Your Power Hour is about an hour with four AI tools, one after another. You can do it now, or at the time you picked.',
+    // Day 0 (round 17 rebuild: the get-ready card explains the Power Hour
+    // and Day 1 starts when the student starts it. The old "I understand"
+    // checkbox is gone. Time-and-place is a receded option, not a step.)
+    D0_TITLE: 'Get ready for your Freedom Power Hour',
+    D0_INTRO: 'Your Freedom Power Hour is about an hour with four AI tools, one after another. Your Day 1 starts the moment you begin it. Today, tomorrow, or whenever you choose.',
+    D0_FOCUS: 'Do it when you’re clear-headed and can focus. The better you can focus, the more powerful the rewiring.',
+    D0_TEACH: 'The four tools teach you everything as you go. There’s nothing to study first.',
+    D0_START_NOW: 'Start my Freedom Power Hour and Day 1 now →',
+    D0_PLAN_TOGGLE: 'I’ll do it later. Save a time and place →',
+    D0_PLAN_CLOSE: 'Close',
+    D0_PLAN_LABEL: 'My Freedom Power Hour time and place:',
+    D0_PLAN_PLACEHOLDER: 'e.g. Saturday morning, at the kitchen table',
+    D0_SAVE: 'Save my plan',
+    D0_PLAN_NOTE: 'This page will be right here waiting. It remembers everything.',
 
     // Power Hour
-    PH_STRIP_TITLE: 'Day 1 — Freedom Power Hour',
+    PH_STRIP_TITLE: 'Day 1: Freedom Power Hour',
     PH_TOOL_OF: 'Tool {I} of 4: {NAME}',
-    PH_INTRO: 'Four one-time power moves, each rewiring from a different angle — you do this once, today. Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
-    PH_CJC_TIP: 'Pro tip: push Create Joyous Chaos as far as you can — that’s where the powerful rewiring is.',
-    PH_INTRO_POPUP: 'Four one-time power moves, each rewiring from a different angle — you do this once, today. Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below — the next tool opens right away.',
+    PH_INTRO: 'Four one-time power moves, each rewiring from a different angle. You do this once, today. Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
+    PH_CJC_TIP: 'Pro tip: push Create Joyous Chaos as far as you can. That’s where the powerful rewiring is.',
+    PH_INTRO_POPUP: 'Four one-time power moves, each rewiring from a different angle. You do this once, today. Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below and the next tool opens right away.',
     PH_DONE_BTN: 'I finished this tool → Continue',
     PH_DONE_SAVING: 'Saving…',
     PH_SCORES_TITLE: 'One last thing: your Freedom Scores after the Power Hour',
     PH_SCORES_SUB: 'Compare these to your baseline any time in your full tracker.',
     PH_SCORES_BTN: 'Save my scores →',
-    PH_RESUME_NOTE: 'Stop anytime — this page remembers exactly where you left off.',
-    PH_CELEBRATE_TITLE: '🎉 Day 1 complete — massive rewiring head start!',
-    PH_CELEBRATE_TEXT: 'You just did the single biggest day of this whole process. From tomorrow, each day takes just 7–22 minutes. Come back to this same page — it will show you exactly what to do.',
+    PH_RESUME_NOTE: 'Stop anytime. This page remembers exactly where you left off.',
+    PH_CELEBRATE_TITLE: '🎉 Day 1 complete. Massive rewiring head start!',
+    PH_CELEBRATE_TEXT: 'You just did the single biggest day of this whole process. From tomorrow, each day takes just 7 to 22 minutes. Come back to this same page and it will show you exactly what to do.',
     PH_REVIEW_LINK: 'Revisit a Power Hour tool',
     WITHDRAWAL_LINK: 'Worried about withdrawal or cravings? Try the optional Withdrawal Helper →',
     WITHDRAWAL_TITLE: 'Optional: Withdrawal Helper',
-    WITHDRAWAL_SUB: 'A focused tool for handling withdrawal worries. Totally optional — use it if it speaks to you.',
+    WITHDRAWAL_SUB: 'A focused tool for handling withdrawal worries. Totally optional. Use it if it speaks to you.',
     WITHDRAWAL_DONE: 'Done with this tool → back',
     COACH_LOGGED: 'Your coach logged this for you ✓',
-    SETUP_POLLING: 'Checking automatically — this usually takes under a minute…',
+    SETUP_POLLING: 'Checking automatically. This usually takes under a minute…',
     PROJ_NEW: '+ Start a new project',
+    // Round 17: picking "+ Start a new project" lands here first. A select
+    // option can’t carry consequence copy, so the card is the honest button
+    // (doctrine rule 15): what happens, what it costs, one primary action.
+    CREATE_TITLE: 'Start a new Freedom Accelerator project?',
+    CREATE_SUB: 'This takes about 30 seconds to set up. Your current project stays exactly as it is, and you can switch between projects anytime.',
+    CREATE_GO: 'Create my new project →',
+    CREATE_WORKING: 'Creating your new project…',
+    CREATE_CANCEL: 'Never mind, take me back',
 
     // Daily rail
-    DAILY_STRIP_TITLE: 'Today’s rhythm — three small steps',
-    STEP1_TITLE: '1 · Morning rewiring (30 sec–2 min)',
+    DAILY_STRIP_TITLE: 'Today’s rhythm: three small steps',
+    STEP1_TITLE: '1 · Morning rewiring (30 sec to 2 min)',
     STEP1_CHECK: 'I did my Happiness & Success Jumpstart',
     STEP1_ANCHOR: 'My moment: {ANCHOR}',
     STEP2_TITLE: '2 · Talk it out, then rewire',
-    STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). Share your experiments, wins, and concerns — your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',
-    STEP2_SUB_POPUP: 'Tell your coach what’s going on (or tap “Recommend my next move”). Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',   // unused since round 5 (card diet — the coach's own greeting teaches)
+    STEP2_SUB: 'Tell your coach what’s going on. Share your experiments, wins, and concerns, and your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',   // unused since round 5 (card diet)
+    STEP2_SUB_POPUP: 'Tell your coach what’s going on. Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',   // unused since round 5 (card diet — the coach's own greeting teaches)
     STEP2_COACH_OPEN: 'Talk to your coach →',
     COACH_SHEET_TITLE: 'Your Freedom AI Coach',
     // Round 10: the fullscreen rail gets the SAME solid-bar chrome as the
@@ -176,16 +204,16 @@
     GOAL_UB_LABEL: 'I want to make it easier and more enjoyable to be free from:',
     GOAL_JS_LABEL: 'My morning rewiring moment (the H&S Jumpstart):',
     GOAL_SAVE: 'Save changes',
-    GOAL_SAVED: 'Saved ✓ — your coach and tools use the new wording from now on.',
+    GOAL_SAVED: 'Saved ✓ Your coach and tools use the new wording from now on.',
     GOAL_BACK: '← Back to my next step',
     STEP1_HELP: 'Get help with this →',
     STEP3_OPEN: 'Log my progress →',
     STEP3_CLOSE: 'Close',
-    STEP3_UPDATE: 'Saved ✓ — update my progress',
-    STEP2_TOOL_WAITING: 'Your rewiring tool will open here — talk to your coach first, or start it directly:',
+    STEP3_UPDATE: 'Saved ✓. Update my progress',
+    STEP2_TOOL_WAITING: 'Your rewiring tool will open here. Talk to your coach first, or start it directly:',
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
-    STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out — continue below.',
+    STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out. Continue below.',
     // Round 16: the model round trip becomes a planted seed — one muted
     // line under the first typing dots of a daily session, gone when the
     // reply lands. Daily mounts only (Day-1 tools predate experiments).
@@ -195,8 +223,8 @@
     STEP3_TITLE: '3 · Log your progress (30 seconds)',
     STEP3_MINUTES: 'Minutes with the rewiring tool(s) today (0 if none):',
     STEP3_SAVE: 'Save my progress →',
-    STEP3_SAVED: 'Saved ✓ — see you tomorrow!',
-    CONF_FOREVER: 'I’m 100% confident I can rewire my brain — never ask me about confidence again.',
+    STEP3_SAVED: 'Saved ✓ See you tomorrow!',
+    CONF_FOREVER: 'I’m 100% confident I can rewire my brain. Never ask me about confidence again.',
 
     // Progress
     PROGRESS_BTN: 'See my progress',
@@ -204,10 +232,10 @@
     PROGRESS_TITLE: 'Your movement so far',
     PROGRESS_BASELINE: 'Baseline',
     PROGRESS_EMPTY: 'Log a day’s scores and your movement shows up here.',
-    PROGRESS_NUDGE: 'These numbers are from {DAY} — log today’s progress (30 seconds) and this updates to today.',
+    PROGRESS_NUDGE: 'These numbers are from {DAY}. Log today’s progress (30 seconds) and this updates to today.',
     // Round 15: the week-one proof moment (Days 7–9, any movement) — the
     // system names the proof; grandpa never computes it. Rule 16.
-    PROGRESS_PROOF: 'That is your Freedom Proof: you rewired your own brain, on purpose. You are not powerless — and you can never unsee this.',
+    PROGRESS_PROOF: 'That is your Freedom Proof: you rewired your own brain, on purpose. You are not powerless, and you can never unsee this.',
     PROGRESS_UP: 'Real movement since your baseline. That is your rewiring working.',
     PROGRESS_FLAT: 'Steady is fine. Every session stacks quiet groundwork, and the wins below are proof.',
     PROGRESS_DOWN: 'Scores dip sometimes, and nothing is lost. Every concern is an opportunity for rewiring, and your wins below are still yours.',
@@ -220,11 +248,11 @@
     // Round 15: the empty state TEACHES at the moment of relevance —
     // grandpa learns what a Freedom Experiment is exactly when he notices
     // he has none, with the 2-second version that's impossible to fail.
-    EXPS_EMPTY: 'Your Freedom Experiments will land here — try delaying your behavior even 2 seconds today, and tell your coach.',
+    EXPS_EMPTY: 'Your Freedom Experiments will land here. Try delaying your behavior even 2 seconds today, and tell your coach.',
     EXPS_EARLIER: '…plus {N} earlier Freedom Experiments in your full tracker.',
     TELL_COACH_PRE: 'Got a win or Freedom Experiment to add? ',
     TELL_COACH_LINK: 'Tell your coach',
-    TELL_COACH_POST: ' — it lands here.',
+    TELL_COACH_POST: ' and it lands here.',
 
     // MORE HELP & TOOLS (round 13) — one closed door for everything that
     // isn't the daily rhythm. Ships collapsed; the rhythm stays the plan.
@@ -232,7 +260,7 @@
     MOREHELP_CLOSE: 'Close extra help',
     MOREHELP_HOW_LINK: 'How this rewiring works (2 minutes) →',
     MOREHELP_PH_TITLE: 'Revisit the Freedom Power Hour',
-    MOREHELP_PH_SUB: 'You did this once on Day 1 — that’s all it takes. Revisit any tool whenever you like; your daily rhythm above stays the plan.',
+    MOREHELP_PH_SUB: 'You did this once on Day 1, and that’s all it takes. Revisit any tool whenever you like. Your daily rhythm above stays the plan.',
     MOREHELP_DIRECT_TITLE: 'Open a tool directly',
     // Round 15 (Dave's catch): the Withdrawal Helper only existed inside
     // Day 1 — someone whose cravings spike on Day 9 had no path to it.
@@ -244,43 +272,43 @@
     // named ingredients, the kiss proof, real-vs-imagined, bar-not-lake)
     // at the round-13 card's length discipline. Label stays time-honest.
     HOW_TITLE: 'How this rewiring works',
-    HOW_P1: 'Your brain is a prediction machine. It expects you to see the donut, want the donut, eat the donut. And when something genuinely contradicts one of its predictions, your brain doesn’t shrug — it rewires itself to make better predictions next time. Neuroscientists call these prediction errors. Everything on this page is built on them.',
+    HOW_P1: 'Your brain is a prediction machine. It expects you to see the donut, want the donut, eat the donut. And when something genuinely contradicts one of its predictions, your brain doesn’t shrug. It rewires itself to make better predictions next time. Neuroscientists call these prediction errors. Everything on this page is built on them.',
     HOW_ING_H: 'The three ingredients',
     HOW_ING_INTRO: 'To remember them, picture a Smiley Face looking at a Picture with a Magnifying Glass:',
-    HOW_ING_1: 'Smiley Face — real positive emotion, generated right now. Not imagined, not hoped-for. Real.',
-    HOW_ING_2: 'Picture — the specific thing you’re rewiring: the donut, the drink, the 5pm moment where it actually gets hard.',
-    HOW_ING_3: 'Magnifying Glass — noticing the unexpected: “I feel genuinely good right now, looking straight at this.” The noticing is what aims the rewiring.',
-    HOW_KISS: 'How fast can this work? Think of a moment someone kissed you and sparks flew. Did your brain need weeks to change how you thought and felt? Real positive emotion rewires the brain practically instantly — which is why it’s the engine here.',
-    HOW_REAL: 'And it has to be real. If you just imagine feeling good about skipping the behavior, your brain dismisses it — it knows you’re pretending. Here you generate the feeling first, then look. Your brain can’t dismiss what’s actually happening: feeling good where it predicted struggle is a prediction error, and the wiring updates on the spot.',
-    HOW_HARD: 'That’s also why this beats picturing yourself happy and free by some lake. The lake was never the problem — 5pm in your kitchen is, or the buffet line, or the bar with your friends. This method aims the rewiring at the exact moments that are actually hard. It works on fear the same way: feel genuinely good while looking straight at your worst-case scenario, and the fear starts losing its grip.',
-    HOW_SYS: 'This is the SYBR method — Systematic Brain Rewiring. “Systematic” is what this page is for: the tools generate the emotion with you (the Calm Happy Focus Technique), pick the right pictures, and point the magnifying glass — every time, in the right order. You don’t have to remember any of this. You just have to show up.',
+    HOW_ING_1: 'Smiley Face: real positive emotion, generated right now. Not imagined, not hoped-for. Real.',
+    HOW_ING_2: 'Picture: the specific thing you’re rewiring. The donut, the drink, the 5pm moment where it actually gets hard.',
+    HOW_ING_3: 'Magnifying Glass: noticing the unexpected. “I feel genuinely good right now, looking straight at this.” The noticing is what aims the rewiring.',
+    HOW_KISS: 'How fast can this work? Think of a moment someone kissed you and sparks flew. Did your brain need weeks to change how you thought and felt? Real positive emotion rewires the brain practically instantly. That’s why it’s the engine here.',
+    HOW_REAL: 'And it has to be real. If you just imagine feeling good about skipping the behavior, your brain dismisses it. It knows you’re pretending. Here you generate the feeling first, then look. Your brain can’t dismiss what’s actually happening: feeling good where it predicted struggle is a prediction error, and the wiring updates on the spot.',
+    HOW_HARD: 'That’s also why this beats picturing yourself happy and free by some lake. The lake was never the problem. 5pm in your kitchen is, or the buffet line, or the bar with your friends. This method aims the rewiring at the exact moments that are actually hard. It works on fear the same way: feel genuinely good while looking straight at your worst-case scenario, and the fear starts losing its grip.',
+    HOW_SYS: 'This is the SYBR method, Systematic Brain Rewiring. “Systematic” is what this page is for: the tools generate the emotion with you (the Calm Happy Focus Technique), pick the right pictures, and point the magnifying glass, every time, in the right order. You don’t have to remember any of this. You just have to show up.',
     HOW_QUIT_H: 'So… when do I quit?',
-    HOW_QUIT_P: 'You don’t “quit.” There are no quit dates, streaks, or white-knuckling here — you can even keep doing the behavior while you rewire. Instead, from Day 2 on, you run Freedom Experiments: skip or delay the behavior — even 2 seconds counts — and see what happens. Every experiment is a success, however it goes, because every one teaches your brain something. You rewire until not doing it is easy and enjoyable. That is freedom: not a fight you’re winning — a fight that stopped existing.',
+    HOW_QUIT_P: 'You don’t “quit.” There are no quit dates, streaks, or white-knuckling here. You can even keep doing the behavior while you rewire. Instead, from Day 2 on, you run Freedom Experiments: skip or delay the behavior (even 2 seconds counts) and see what happens. Every experiment is a success, however it goes, because every one teaches your brain something. You rewire until not doing it is easy and enjoyable. That is freedom: not a fight you’re winning, but a fight that stopped existing.',
     HOW_ROAD_H: 'The whole road (so you know where this ends)',
-    HOW_ROAD_P: 'Day 1 is the Freedom Power Hour — about an hour, once. Every day after takes 7–22 minutes. Your first 7 days are a Freedom Proof Sprint: the goal isn’t to be finished — it’s proof that YOU can rewire your own brain. Any change counts, and once you’ve seen it, you can never unsee it. You are not powerless. Then the rhythm compounds until Easy and Enjoyable are high and being done feels like a no-brainer — you decide you’re done, from ease, never force. After that, staying free takes about two seconds a day. This page is designed to make itself unnecessary.',
+    HOW_ROAD_P: 'Day 1 is the Freedom Power Hour. About an hour, once. Every day after takes 7 to 22 minutes. Your first 7 days are a Freedom Proof Sprint: the goal isn’t to be finished, it’s proof that YOU can rewire your own brain. Any change counts, and once you’ve seen it, you can never unsee it. You are not powerless. Then the rhythm compounds until Easy and Enjoyable are high and being done feels like a no-brainer. You decide you’re done, from ease, never force. After that, staying free takes about two seconds a day. This page is designed to make itself unnecessary.',
     HOW_ASK_BTN: 'Ask your coach how this applies to your situation →',
     HOW_ASK_MSG: 'How does this rewiring method apply to my situation right now?',
-    HOW_MINPLAN_LINK: 'Or revisit your Minimalist Plan — it walks this method through with your own behavior →',
+    HOW_MINPLAN_LINK: 'Or revisit your Minimalist Plan. It walks this method through with your own behavior →',
     HOW_BACK: '← Back to my next step',
 
     // THE MILESTONE (round 14) — the system notices freedom; grandpa never
     // self-assesses. The card celebrates, offers the concept, never gates.
     MILE_TITLE: 'Something worth seeing',
-    MILE_TEXT: 'Look at your numbers — not doing this is now easy ({EASY}) and enjoyable ({ENJOY}) for you, and it has stayed that way. That is what freedom feels like.',
+    MILE_TEXT: 'Look at your numbers. Not doing this is now easy ({EASY}) and enjoyable ({ENJOY}) for you, and it has stayed that way. That is what freedom feels like.',
     MILE_OPEN: 'Tell me about the No-Brainer Decision →',
-    MILE_SNOOZE: 'Not yet — keep rewiring',
+    MILE_SNOOZE: 'Not yet. Keep rewiring',
     NBLCD_TITLE: 'The No-Brainer Life-Changing Decision',
-    NBLCD_P1: 'There is no quit date in this method — but there is a milestone. You reach it when not doing the behavior has become so easy and enjoyable that being done is simply obvious. At that point you can decide: I’m done with this — for a month, a year, or for good. Not by forcing yourself. Because it’s a no-brainer.',
-    NBLCD_P2: 'What the decision buys you: the question disappears. No more “will I or won’t I?” every time the moment shows up — that question simply stops being asked, and your life gets lighter by exactly that much.',
-    NBLCD_P3: 'It only counts if it’s easy. If deciding feels like gritting your teeth, you’re not there yet — and that’s completely fine. Keep rewiring; the numbers keep climbing. Deciding from ease is the whole point.',
-    NBLCD_P4: 'And if the behavior ever shows up again someday? Nothing breaks and nothing resets — there are no streaks here. It just means the world rewired something back, and you know exactly what to do: come back, target it, rewire it. Your decision stays part of your story either way.',
-    NBLCD_P5: 'After your decision, staying free takes about two seconds a day: during your morning rewiring, feel good and enjoy your freedom. For behaviors the world keeps advertising at you — alcohol especially — those two seconds are your maintenance plan.',
-    NBLCD_DECIDE: 'I’ve made my decision — I’m done with this →',
+    NBLCD_P1: 'There is no quit date in this method, but there is a milestone. You reach it when not doing the behavior has become so easy and enjoyable that being done is simply obvious. At that point you can decide: I’m done with this. For a month, a year, or for good. Not by forcing yourself. Because it’s a no-brainer.',
+    NBLCD_P2: 'What the decision buys you: the question disappears. No more “will I or won’t I?” every time the moment shows up. That question simply stops being asked, and your life gets lighter by exactly that much.',
+    NBLCD_P3: 'It only counts if it’s easy. If deciding feels like gritting your teeth, you’re not there yet, and that’s completely fine. Keep rewiring and the numbers keep climbing. Deciding from ease is the whole point.',
+    NBLCD_P4: 'And if the behavior ever shows up again someday? Nothing breaks and nothing resets. There are no streaks here. It just means the world rewired something back, and you know exactly what to do: come back, target it, rewire it. Your decision stays part of your story either way.',
+    NBLCD_P5: 'After your decision, staying free takes about two seconds a day: during your morning rewiring, feel good and enjoy your freedom. For behaviors the world keeps advertising at you (alcohol especially), those two seconds are your maintenance plan.',
+    NBLCD_DECIDE: 'I’ve made my decision. I’m done with this →',
     NBLCD_SAVING: 'Saving your decision…',
-    NBLCD_DONE_TITLE: '⭐ Day {DAY} — your No-Brainer Decision',
-    NBLCD_DONE_TEXT: 'Made from ease, the way it should be. It’s part of your progress story now — and your daily rhythm is right here whenever you want it.',
+    NBLCD_DONE_TITLE: '⭐ Day {DAY}: your No-Brainer Decision',
+    NBLCD_DONE_TEXT: 'Made from ease, the way it should be. It’s part of your progress story now, and your daily rhythm is right here whenever you want it.',
     NBLCD_DONE_BACK: 'Back to my rhythm →',
-    PROGRESS_DECISION: 'Your No-Brainer Decision — made on Day {DAY}.',
+    PROGRESS_DECISION: 'Your No-Brainer Decision, made on Day {DAY}.',
 
     // Activation (mirrors loader.v7)
     ACTIVATE_TITLE: 'Activate your Freedom Accelerator',
@@ -289,11 +317,11 @@
     ACTIVATE_NO_EMAIL: 'Enter the email you bought with.',
     ACTIVATE_BUTTON: 'Activate →',
     ACTIVATE_NEED_CODE: 'Enter your activation code.',
-    SETUP_TITLE: 'Setting up your tracker…',
-    SETUP_TEXT: 'If you just purchased, your tracker is being created — give it a moment, then tap Retry. You’ll also get an activation link by email.',
+    SETUP_TITLE: 'Setting up your Freedom Accelerator…',
+    SETUP_TEXT: 'If you just purchased, your Freedom Accelerator is being created. Give it a moment, then tap Retry. You’ll also get an activation link by email.',
     SETUP_RETRY: 'Retry',
     SETUP_MANUAL: 'Have an activation code? Enter it instead.',
-    STALE_TOKEN: 'Please activate again — your saved access looked stale.'
+    STALE_TOKEN: 'Please activate again. Your saved access looked stale.'
   };
 
   // The Power Hour sequence (order is the method — do not reorder) and
@@ -819,10 +847,36 @@
   /* ============================================================
    * Shell + routing
    * ============================================================ */
-  function shellLoading() { return '<div class="fh-card fh-center">' + esc(COPY.LOADING) + '</div>'; }
+  function shellLoading(msg) { return '<div class="fh-card fh-center">' + esc(msg || COPY.LOADING) + '</div>'; }
+
+  // Round 17: mirror of the Gateway's projectLabelFromUb_ so the picker shows
+  // the student's own words the moment wizard step 1 saves (no hard refresh).
+  function labelFromUb_(ub) {
+    var s = String(ub || '').replace(/\s+/g, ' ').trim();
+    if (s.length > 40) s = s.substring(0, 39).replace(/\s+\S*$/, '') + '…';
+    return s;
+  }
+  function patchLocalProjectLabel_(ub) {
+    var list = state.projects || [];
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].projectId) === String(state.activeProjectId)) {
+        list[i].label = labelFromUb_(ub);
+        break;
+      }
+    }
+  }
 
   function renderShell(bodyHtml) {
-    var dayLabel = COPY.HEADER_DAY.replace('{DAY}', String(state.currentDay));
+    // Round 17: with the day1Date anchor, currentDay 0 means "hasn't started
+    // the Power Hour yet" — the chip says so honestly instead of "Day 0".
+    // During the Power Hour walk itself (state._phWalk) the student IS in
+    // Day 1, even before the first tick lands the server's stamp.
+    var dayLabel;
+    if (state.currentDay >= 1) {
+      dayLabel = COPY.HEADER_DAY.replace('{DAY}', String(state.currentDay));
+    } else {
+      dayLabel = state._phWalk ? COPY.HEADER_DAY.replace('{DAY}', '1') : COPY.HEADER_READY;
+    }
 
     // Project picker — hidden for the normal one-project student; appears
     // only with multiple projects or the unlimited entitlement (the Gateway
@@ -877,22 +931,28 @@
     if (ps) ps.addEventListener('change', function () {
       var v = this.value;
       clearSetupPoll_();
+      if (v === '__new') {
+        // Round 17: creating a project is consequential (a new tracker gets
+        // provisioned), and a select option can't carry consequence copy —
+        // so the pick lands on a consent CARD first (doctrine rule 15).
+        // The select snaps back to the active project on re-render.
+        state.forcedPhase = 'createconfirm';
+        route();
+        return;
+      }
       // Round 11: an explicit pick may legitimately land in a wizard
       // (new or unfinished project) — tell the guard to stand down.
       state._explicitProjectPick = true;
       state.progressCache = null;   // per-project — never show another project's numbers
       state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
-      rootEl.innerHTML = shellLoading();
-      if (v === '__new') {
-        // Same flow as loader.v7's "+ Start a new project": create in place,
-        // then reload state — the fresh project lands in the setup wizard.
-        callGateway({ action: 'createProject' }).then(function (data) {
-          state.activeProjectId = (data && data.ok && data.projectId != null) ? String(data.projectId) : null;
-          clearStateCache();
-          loadState(false);
-        }).catch(function () { loadState(false); });
-        return;
-      }
+      state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+      // Round 17 (Dave's haunted-bubble find): unmount BEFORE blanking.
+      // unmountTool() looks the stub up in the DOM — blanking first orphaned
+      // the widget instance, and its parent-document launcher followed the
+      // student into the next project's wizard, reopening the OLD project's
+      // conversation.
+      unmountTool();
+      rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
       state.activeProjectId = v;
       loadState(false);
     });
@@ -935,7 +995,58 @@
     if (step.phase === 'goalplan') return renderGoalPlan();
     if (step.phase === 'howworks') return renderHowItWorks();
     if (step.phase === 'nblcd') return renderNblcd();
+    if (step.phase === 'createconfirm') return renderCreateConfirm();
     return renderDaily();
+  }
+
+  /* ============================================================
+   * CREATE-PROJECT CONSENT CARD (round 17) — the pick lands here, the
+   * button carries the consequence, and success lands IN the new wizard.
+   * ============================================================ */
+  function renderCreateConfirm() {
+    state._phWalk = false;
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.CREATE_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.CREATE_SUB) + '</p>' +
+        '<button class="fh-btn" id="fh-create-go">' + esc(COPY.CREATE_GO) + '</button>' +
+        '<button class="fh-btn fh-secondary" id="fh-create-cancel">' + esc(COPY.CREATE_CANCEL) + '</button>' +
+        '<div class="fh-msg" id="fh-create-msg"></div>' +
+      '</div>');
+    document.getElementById('fh-create-cancel').addEventListener('click', function () {
+      state.forcedPhase = null;
+      route();
+    });
+    document.getElementById('fh-create-go').addEventListener('click', function () {
+      var btn = document.getElementById('fh-create-go');
+      btn.disabled = true;
+      btn.textContent = COPY.CREATE_WORKING;
+      callGateway({ action: 'createProject' }).then(function (data) {
+        if (!data || !data.ok) {
+          btn.disabled = false;
+          btn.textContent = COPY.CREATE_GO;
+          return setMsg('fh-create-msg', (data && data.error) || 'Something went wrong. Please try again.', false);
+        }
+        // The Gateway names the NEW project explicitly (activeProjectId;
+        // projectId kept as a legacy alias). Reading a field the server
+        // never sent was how creation dumped Dave back on his Day-14
+        // project — and the mock had hidden it by returning the wrong
+        // shape (doctrine §4.5).
+        var pid = (data.activeProjectId != null && data.activeProjectId !== '') ? data.activeProjectId : data.projectId;
+        state.activeProjectId = (pid != null && pid !== '') ? String(pid) : null;
+        state._explicitProjectPick = true;
+        state.progressCache = null;
+        state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+        state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+        clearStateCache();
+        rootEl.innerHTML = shellLoading(COPY.CREATE_WORKING);
+        loadState(false);
+      }).catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = COPY.CREATE_GO;
+        setMsg('fh-create-msg', String(err), false);
+      });
+    });
   }
 
   /* ============================================================
@@ -1063,7 +1174,7 @@
         .then(function (data) {
           if (!data.ok) {
             btn.disabled = false;
-            return setMsg('fh-nblcd-msg', data.error || 'Could not save — try again.', false);
+            return setMsg('fh-nblcd-msg', data.error || 'Could not save. Try again.', false);
           }
           state.milestoneDecision = data.decision;
           writeStateCache();
@@ -1125,6 +1236,7 @@
    * (same contract the full tracker uses).
    * ============================================================ */
   function renderGoalPlan() {
+    state._phWalk = false;
     renderShell(
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.GOAL_TITLE) + '</h3>' +
@@ -1167,7 +1279,14 @@
    * WIZARD (same 4 setupSave steps as loader.v7)
    * ============================================================ */
   function renderWizard() {
+    state._phWalk = false;
     var stage = state.setup.stage;
+    // Round 17: change-my-answer. The context box (steps 2-4) and the step-4
+    // recap rows re-open the matching step prefilled; the Gateway never
+    // regresses the stage on a re-save, so saving drops the student right
+    // back where they were.
+    if (state._wizEdit === 'ub') return wizardStepUb();
+    if (state._wizEdit === 'jumpstart') return wizardStepJumpstart();
     if (stage === 0) return wizardStepUb();
     if (stage === 1) return wizardStepBaseline();
     if (stage === 2) return wizardStepJumpstart();
@@ -1178,14 +1297,34 @@
     for (var i = 1; i <= 4; i++) html += '<span class="fh-dot' + (i <= step ? ' fh-dot-on' : '') + '"></span>';
     return html + '<span class="fh-dots-label">Step ' + step + ' of 4</span></div>';
   }
+  // Round 17: proof-we-heard-you. From step 2 on, the student's own words sit
+  // at the top of every card, headed by the one abbreviation the wizard uses
+  // ("UB") spelled out. Tapping it re-opens step 1 to change the answer —
+  // same tap-the-box affordance as the daily goal line.
+  function wizardContextHtml_() {
+    if (!state.setup || !state.setup.ub) return '';
+    return '<button class="fh-goal-line fh-wiz-ctx" id="fh-wiz-ctx">' +
+        '<span class="fh-goal-caret">›</span>' +
+        '<div><span class="fh-wiz-ctx-hd">' + esc(COPY.WIZ_CTX_HEAD) + '</span>' +
+        esc(COPY.WIZ_CTX_PREFIX) + '<strong>' + esc(state.setup.ub) + '</strong></div>' +
+      '</button>';
+  }
+  function wireWizardContext_() {
+    var box = document.getElementById('fh-wiz-ctx');
+    if (box) box.addEventListener('click', function () {
+      state._wizEdit = 'ub';
+      renderWizard();
+    });
+  }
   function wizardStepUb() {
+    var editing = (state._wizEdit === 'ub');
     var name = (state.identity && state.identity.firstName) ? ', ' + state.identity.firstName : '';
     renderShell(
-      '<div class="fh-card">' + wizardDots(1) +
-        '<h3>' + esc(COPY.WIZ1_TITLE.replace('{NAME}', name)) + '</h3>' +
+      '<div class="fh-card">' + (editing ? '' : wizardDots(1)) +
+        '<h3>' + esc(editing ? COPY.WIZ_CTX_HEAD : COPY.WIZ1_TITLE.replace('{NAME}', name)) + '</h3>' +
         '<label class="fh-label">' + esc(COPY.WIZ1_LABEL) + '</label>' +
         '<textarea id="fh-ub" rows="3" placeholder="' + esc(COPY.WIZ1_PLACEHOLDER) + '">' + esc(state.setup.ub) + '</textarea>' +
-        '<button class="fh-btn" id="fh-next">' + esc(COPY.WIZ1_BUTTON) + '</button>' +
+        '<button class="fh-btn" id="fh-next">' + esc(editing ? COPY.WIZ_EDIT_SAVE : COPY.WIZ1_BUTTON) + '</button>' +
         '<div class="fh-msg" id="fh-wiz-msg"></div>' +
       '</div>');
     document.getElementById('fh-next').addEventListener('click', function () {
@@ -1197,6 +1336,10 @@
           if (!data.ok) return setMsg('fh-wiz-msg', data.error, false);
           state.setup.stage = data.stage;
           state.setup.ub = data.ub;
+          // The picker shows their words immediately (server writes the same
+          // label; this just skips the wait for the next state pull).
+          patchLocalProjectLabel_(data.ub);
+          state._wizEdit = null;
           writeStateCache();
           renderWizard();
         })
@@ -1214,6 +1357,7 @@
   }
   function wizardStepBaseline() {
     renderShell(
+      wizardContextHtml_() +
       '<div class="fh-card">' + wizardDots(2) +
         '<h3>' + esc(COPY.WIZ2_TITLE) + '</h3>' +
         '<p class="fh-sub">' + esc(COPY.WIZ2_SUB) + '</p>' +
@@ -1223,6 +1367,7 @@
         '<button class="fh-btn" id="fh-next">' + esc(COPY.WIZ2_BUTTON) + '</button>' +
         '<div class="fh-msg" id="fh-wiz-msg"></div>' +
       '</div>');
+    wireWizardContext_();
     document.getElementById('fh-next').addEventListener('click', function () {
       var scores = {};
       var keys = ['easy', 'enjoy', 'conf'];
@@ -1243,15 +1388,34 @@
     });
   }
   function wizardStepJumpstart() {
+    var editing = (state._wizEdit === 'jumpstart');
+    // The chips fill the (still editable) field — the examples used to be
+    // dead text; now they're grandpa's native input method, a tap.
+    var chips = '<div class="fh-chips">';
+    for (var c = 0; c < COPY.WIZ3_CHIPS.length; c++) {
+      chips += '<button type="button" class="fh-chip" data-chip="' + esc(COPY.WIZ3_CHIPS[c]) + '">' + esc(COPY.WIZ3_CHIPS[c]) + '</button>';
+    }
+    chips += '</div>';
     renderShell(
-      '<div class="fh-card">' + wizardDots(3) +
+      wizardContextHtml_() +
+      '<div class="fh-card">' + (editing ? '' : wizardDots(3)) +
+        (editing ? '' : '<div class="fh-note">' + esc(COPY.WIZ_BASELINE_SAVED) + '</div>') +
         '<h3>' + esc(COPY.WIZ3_TITLE) + '</h3>' +
         '<p class="fh-sub">' + esc(COPY.WIZ3_SUB) + '</p>' +
+        '<label class="fh-label">' + esc(COPY.WIZ3_ANCHOR) + '</label>' +
+        chips +
         '<label class="fh-label">' + esc(COPY.WIZ3_LABEL) + '</label>' +
         '<input type="text" id="fh-js" placeholder="' + esc(COPY.WIZ3_PLACEHOLDER) + '" value="' + esc(state.setup.jumpstart) + '" />' +
-        '<button class="fh-btn" id="fh-next">' + esc(COPY.WIZ3_BUTTON) + '</button>' +
+        '<button class="fh-btn" id="fh-next">' + esc(editing ? COPY.WIZ_EDIT_SAVE : COPY.WIZ3_BUTTON) + '</button>' +
         '<div class="fh-msg" id="fh-wiz-msg"></div>' +
       '</div>');
+    wireWizardContext_();
+    var chipBtns = document.querySelectorAll('#freedom-home .fh-chip');
+    for (var b = 0; b < chipBtns.length; b++) {
+      chipBtns[b].addEventListener('click', function () {
+        document.getElementById('fh-js').value = this.getAttribute('data-chip');
+      });
+    }
     document.getElementById('fh-next').addEventListener('click', function () {
       var js = document.getElementById('fh-js').value.trim();
       if (!validText(js)) return setMsg('fh-wiz-msg', COPY.WIZ3_ERROR, false);
@@ -1261,6 +1425,7 @@
           if (!data.ok) return setMsg('fh-wiz-msg', data.error, false);
           state.setup.stage = data.stage;
           state.setup.jumpstart = data.jumpstart;
+          state._wizEdit = null;
           writeStateCache();
           renderWizard();
         })
@@ -1268,16 +1433,33 @@
     });
   }
   function wizardStepGoalPlan() {
+    // Round 17: the recap rows are tappable — a typo or a joke entry is not
+    // a life sentence. Each row re-opens its wizard step prefilled.
     renderShell(
       '<div class="fh-card">' + wizardDots(4) +
         '<h3>' + esc(COPY.WIZ4_TITLE) + '</h3>' +
-        '<p class="fh-goal">' + esc(COPY.WIZ4_UB_PREFIX) + '<strong>' + esc(state.setup.ub) + '</strong></p>' +
-        '<p class="fh-goal">' + esc(COPY.WIZ4_JS_PREFIX) + '<strong>' + esc(state.setup.jumpstart) + '</strong></p>' +
+        '<button class="fh-goal-line fh-wiz-recap" id="fh-wiz-edit-ub">' +
+          '<span class="fh-goal-caret">›</span>' +
+          '<div>' + esc(COPY.WIZ4_UB_PREFIX) + '<strong>' + esc(state.setup.ub) + '</strong></div>' +
+        '</button>' +
+        '<button class="fh-goal-line fh-wiz-recap" id="fh-wiz-edit-js">' +
+          '<span class="fh-goal-caret">›</span>' +
+          '<div>' + esc(COPY.WIZ4_JS_PREFIX) + '<strong>' + esc(state.setup.jumpstart) + '</strong></div>' +
+        '</button>' +
+        '<p class="fh-sub fh-wiz-edit-hint">' + esc(COPY.WIZ4_EDIT_HINT) + '</p>' +
         '<button class="fh-btn" id="fh-unlock">' + esc(COPY.WIZ4_BUTTON) + '</button>' +
         '<div class="fh-msg" id="fh-wiz-msg"></div>' +
       '</div>');
+    document.getElementById('fh-wiz-edit-ub').addEventListener('click', function () {
+      state._wizEdit = 'ub';
+      renderWizard();
+    });
+    document.getElementById('fh-wiz-edit-js').addEventListener('click', function () {
+      state._wizEdit = 'jumpstart';
+      renderWizard();
+    });
     document.getElementById('fh-unlock').addEventListener('click', function () {
-      setMsg('fh-wiz-msg', 'Unlocking…', true);
+      setMsg('fh-wiz-msg', COPY.WIZ4_WORKING, true);
       callGateway({ action: 'setupSave', projectId: state.activeProjectId, step: 'complete' })
         .then(function (data) {
           if (!data.ok) return setMsg('fh-wiz-msg', data.error, false);
@@ -1296,38 +1478,42 @@
    * DAY 0 — get ready card + "start now" door into the Power Hour
    * ============================================================ */
   function renderDay0() {
+    // Round 17 rebuild (Dave's grandpa walk): the "I understand" checkbox is
+    // gone (self-assessment theater nobody could honestly perform), the
+    // card explains the Power Hour instead of presuming it, Day 1 starts
+    // when the student starts, and the time-and-place planner recedes to a
+    // collapsed optional (its old label implied Day 1 = tomorrow).
+    state._phWalk = false;
     var d0 = (state.currentDay === 0) ? state.day : null;
-    var checked = d0 ? !!fieldVal(d0, 'd0_all') : false;
     var plan = d0 ? (fieldVal(d0, 'd0_ph_plan') || '') : '';
+    var planOpen = !!state._d0PlanOpen;
     renderShell(
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.D0_TITLE) + '</h3>' +
-        '<label class="fh-check"><input type="checkbox" id="fh-d0-all"' + (checked ? ' checked' : '') + '/> ' + esc(COPY.D0_CHECK) + '</label>' +
-        '<label class="fh-label">' + esc(COPY.D0_PLAN_LABEL) + '</label>' +
-        '<input type="text" id="fh-d0-plan" placeholder="' + esc(COPY.D0_PLAN_PLACEHOLDER) + '" value="' + esc(plan) + '" />' +
-        '<button class="fh-btn fh-secondary" id="fh-d0-save">' + esc(COPY.D0_SAVE) + '</button>' +
-        '<div class="fh-msg" id="fh-d0-msg"></div>' +
-        '<div class="fh-divider"></div>' +
-        '<p class="fh-sub">' + esc(COPY.D0_NOTE) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.D0_INTRO) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.D0_FOCUS) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.D0_TEACH) + '</p>' +
         '<button class="fh-btn" id="fh-d0-start">' + esc(COPY.D0_START_NOW) + '</button>' +
-        // Round 15: the Day-0 checkbox says "I understand how I'll do this"
-        // — this link is what there is to understand.
-        '<div class="fh-linkline"><a href="#" id="fh-d0-how">' + esc(COPY.MOREHELP_HOW_LINK) + '</a></div>' +
+        '<button class="fh-btn fh-secondary" id="fh-d0-plan-toggle">' + esc(planOpen ? COPY.D0_PLAN_CLOSE : COPY.D0_PLAN_TOGGLE) + '</button>' +
+        '<div id="fh-d0-planbox"' + (planOpen ? '' : ' style="display:none"') + '>' +
+          '<label class="fh-label">' + esc(COPY.D0_PLAN_LABEL) + '</label>' +
+          '<input type="text" id="fh-d0-plan" placeholder="' + esc(COPY.D0_PLAN_PLACEHOLDER) + '" value="' + esc(plan) + '" />' +
+          '<button class="fh-btn fh-secondary" id="fh-d0-save">' + esc(COPY.D0_SAVE) + '</button>' +
+          '<p class="fh-sub">' + esc(COPY.D0_PLAN_NOTE) + '</p>' +
+          '<div class="fh-msg" id="fh-d0-msg"></div>' +
+        '</div>' +
       '</div>');
-    var d0How = document.getElementById('fh-d0-how');
-    if (d0How) d0How.addEventListener('click', function (e) {
-      e.preventDefault();
-      state.forcedPhase = 'howworks';
-      route();
+    document.getElementById('fh-d0-plan-toggle').addEventListener('click', function () {
+      state._d0PlanOpen = !state._d0PlanOpen;
+      var box = document.getElementById('fh-d0-planbox');
+      box.style.display = state._d0PlanOpen ? '' : 'none';
+      this.textContent = state._d0PlanOpen ? COPY.D0_PLAN_CLOSE : COPY.D0_PLAN_TOGGLE;
     });
     document.getElementById('fh-d0-save').addEventListener('click', function () {
       setMsg('fh-d0-msg', COPY.SAVING, true);
       callGateway({
         action: 'save', projectId: state.activeProjectId, day: 0,
-        fields: {
-          d0_all: document.getElementById('fh-d0-all').checked,
-          d0_ph_plan: document.getElementById('fh-d0-plan').value.trim()
-        }
+        fields: { d0_ph_plan: document.getElementById('fh-d0-plan').value.trim() }
       }).then(function (data) {
         if (!data.ok) return setMsg('fh-d0-msg', data.error, false);
         if (data.day) state.day = data.day;
@@ -1365,6 +1551,7 @@
 
   function renderPowerHour(idx) {
     if (idx < 0 || idx >= TOOLS.powerHour.length) return renderAfterScores();
+    state._phWalk = true;   // the walk IS Day 1, even before the first tick stamps it
     var tool = TOOLS.powerHour[idx];
     renderShell(
       phStripHtml(idx) +
@@ -1389,6 +1576,9 @@
             btn.disabled = false; btn.textContent = COPY.PH_DONE_BTN;
             return setMsg('fh-ph-msg', data.error, false);
           }
+          // Round 17: the first tick stamps day1Date server-side and the
+          // response says so — adopt it and the chip flips to Day 1.
+          if (typeof data.currentDay === 'number') state.currentDay = data.currentDay;
           if (state.currentDay === 1) { state.day = data.day || state.day; }
           else { state.phDay = data.day || state.phDay; }
           if (data.completion) state.completion = data.completion;
@@ -1403,6 +1593,7 @@
   }
 
   function renderAfterScores() {
+    state._phWalk = true;
     var hideConf = !!(state.confidence && state.confidence.optedOut);
     renderShell(
       phStripHtml(-1) +
@@ -1427,6 +1618,7 @@
       callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: {}, dayScores: dayScores })
         .then(function (data) {
           if (!data.ok) return setMsg('fh-aps-msg', data.error, false);
+          if (typeof data.currentDay === 'number') state.currentDay = data.currentDay;
           if (state.currentDay === 1) { state.day = data.day || state.day; }
           else { state.phDay = data.day || state.phDay; }
           if (data.completion) state.completion = data.completion;
@@ -1438,6 +1630,7 @@
   }
 
   function renderDay1Done() {
+    state._phWalk = true;
     renderShell(
       phStripHtml(-1) +
       '<div class="fh-card fh-center">' +
@@ -1461,6 +1654,7 @@
   // celebrate card and the tool picker; "done" marks the optional d1_withdrawal
   // tick (a usage marker — nothing requires it) and routes back.
   function renderWithdrawal() {
+    state._phWalk = true;
     renderShell(
       phStripHtml(-1) +
       '<div class="fh-card">' +
@@ -1486,6 +1680,7 @@
     });
   }
   function renderPowerHourPicker() {
+    state._phWalk = true;
     var html = phStripHtml(-1) + '<div class="fh-card"><h3>' + esc(COPY.PH_REVIEW_LINK) + '</h3>';
     for (var i = 0; i < TOOLS.powerHour.length; i++) {
       html += '<button class="fh-btn fh-secondary fh-toolpick" data-idx="' + i + '">' + esc(TOOLS.powerHour[i].name) + '</button>';
@@ -1508,6 +1703,7 @@
    * DAILY — jumpstart → coach → tool → daily log (+ progress)
    * ============================================================ */
   function renderDaily() {
+    state._phWalk = false;
     var day = state.day || { fields: [] };
     var jumpDone = !!fieldVal(day, 'jumpstart');
     var scoresVals = (day.scores && day.scores.values) || {};
@@ -2468,7 +2664,7 @@
       '.fh-sheet-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
       '.fh-sheet-body{flex:1;min-height:0;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}' +
       '#freedom-home.fh-fs-hint > *{display:none !important;}' +
-      '#freedom-home.fh-fs-hint::before{content:"Your Freedom Accelerator is open — tap the blue chat bubble at the lower left to bring it back.";' +
+      '#freedom-home.fh-fs-hint::before{content:"Your Freedom Accelerator is open. Tap the blue chat bubble at the lower left to bring it back.";' +
       'display:block;background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:14px;' +
       'font-size:14px;line-height:1.5;color:#5a6875;text-align:left;}' +
       // The rail's solid bar (round 10): rail-blue, title left, – right —
@@ -2513,8 +2709,18 @@
       '#freedom-home .fh-btn{display:inline-block;margin-top:12px;background:#2f6df6;color:#fff;border:none;border-radius:10px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer;width:100%;}' +
       '#freedom-home .fh-btn:disabled{opacity:.55;cursor:default;}' +
       '#freedom-home .fh-btn.fh-secondary{background:#eef3f9;color:#2f4a68;}' +
-      '#freedom-home .fh-check{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;margin:10px 0;}' +
-      '#freedom-home .fh-check input{width:auto;margin-top:3px;}' +
+      // Round 17 (Dave's phone screenshot): checkboxes were near-invisible
+      // at phone sizes. Bigger box, brand accent, whole row tappable.
+      '#freedom-home .fh-check{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;margin:10px 0;padding:6px 0;cursor:pointer;}' +
+      '#freedom-home .fh-check input{width:20px;height:20px;min-width:20px;margin-top:1px;accent-color:#2f6df6;cursor:pointer;}' +
+      // Round 17: the wizard context box + tappable recap rows (reuse the
+      // goal-line look) and the tap-to-fill moment chips.
+      '#freedom-home .fh-wiz-ctx-hd{display:block;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;color:#5b7797;margin-bottom:3px;}' +
+      '#freedom-home .fh-wiz-recap{margin:0 0 8px;}' +
+      '#freedom-home .fh-wiz-edit-hint{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
+      '#freedom-home .fh-chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px;}' +
+      '#freedom-home .fh-chip{background:#eef3f9;border:1px solid #c9d9ec;border-radius:16px;padding:7px 13px;font:inherit;font-size:13.5px;color:#2f4a68;cursor:pointer;}' +
+      '#freedom-home .fh-chip:active{background:#dbe7f5;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;white-space:nowrap;}' +
       // min-width:0 is what actually lets the SELECT shrink below its
       // content (flex items default to min-width:auto) — without it the

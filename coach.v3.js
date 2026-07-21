@@ -73,7 +73,7 @@
       // Appended to every Home handoff prompt (visible in See-or-edit): the
       // rewiring tools already treat "no questions" as "skip the digging,
       // set up and start rewiring" \u2014 the coach conversation IS the digging.
-      PROMPT_TAIL: 'Let\u2019s start rewiring immediately \u2014 no questions.',
+      PROMPT_TAIL: 'Let\u2019s start rewiring immediately. No questions.',
       THINKING: 'Thinking\u2026',
       COPY_BUTTON: 'Copy prompt',
       COPIED: 'Copied \u2713',
@@ -85,7 +85,7 @@
       // session already exists, the label says a fresh one starts, and the
       // tap is the consent. After opening, the card stays a live door back.
       SEND_TO_TOOL_FRESH: 'Start a fresh rewiring session \u2192',
-      FRESH_NOTE: 'Your current session wraps up \u2014 this starts clean with what you and I just worked out.',
+      FRESH_NOTE: 'Your current session wraps up. This starts clean with what you and I just worked out.',
       BACK_TO_TOOL: 'Back to my rewiring session \u2192',
       // Freedom Home prompt card (round 5): one line, one button; the raw
       // prompt is OUR plumbing, tucked behind a small peek link.
@@ -114,7 +114,7 @@
       LOGGED_EXP: 'Saved as a Freedom Experiment \u2713',
       LOGGED_GENERIC: 'Saved for you \u2713',
       PAYOFF_WIN: 'You\u2019ll see it in your progress.',
-      PAYOFF_EXP: 'Every experiment counts, however it went \u2014 you\u2019ll see it in your progress.',
+      PAYOFF_EXP: 'Every experiment counts, however it went. You\u2019ll see it in your progress.',
       PAYOFF_OPP: 'Ask me anytime what\u2019s been challenging, and we\u2019ll pick a moment to rewire.',
       LOGGED_SAVING: 'Saving this for you\u2026',   // generic fallback
       // Round 16 (Dave): the transient verb NAMES the category — the wait
@@ -1208,7 +1208,7 @@
           var added = String(updates[i].addedText || updates[i].finalText || '').replace(/\s+/g, ' ').trim();
           if (added.length > 64) { added = added.slice(0, 64) + '…'; }
           html += '<div class="fc-review-donerow">' + esc(autoLogLabel(updates[i].field))
-            + (added ? ' — “' + esc(added) + '”' : '') + '</div>';
+            + (added ? ' “' + esc(added) + '”' : '') + '</div>';
           var payoff = autoLogPayoff(updates[i].field);
           if (payoff) { html += '<div class="fc-review-payoff">' + esc(payoff) + '</div>'; }
         }
