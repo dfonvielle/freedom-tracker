@@ -40,7 +40,7 @@ flowchart LR
 
 ## ✍️ Waiting on Dave
 
-1. **Walk rounds 13–14 live** (Pages ~10 min; hard-refresh): progress toggle, **More help & tools** (read the explainer as YOUR method voice — flag any wording), and the milestone journey via `fh preview` → **milestone** scenario (the gold card → decision room → decide → ⭐ in progress; also the **decided** scenario). Author-review the milestone/decision copy especially — it's the method's biggest moment.
+1. **Walk rounds 13–16 live** (Pages ~10 min; hard-refresh): progress toggle, **More help & tools** (read the explainer as YOUR method voice — flag any wording), and the milestone journey via `fh preview` → **milestone** scenario (the gold card → decision room → decide → ⭐ in progress; also the **decided** scenario). Author-review the milestone/decision copy especially — it's the method's biggest moment.
 2. Your REAL account will show the gold card once your own scores hold 7+/7+ for three logged days — that's the lived walk that will teach us maintenance mode (tier 3, deliberately unbuilt).
 3. If any wording looks old, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
 
@@ -59,6 +59,8 @@ flowchart LR
 | **Fresh-start ready card** | ready card while a live session exists | "Start a fresh rewiring session →" + wrap-up note; opening rotates the session key | use a tool, then run the guided flow |
 | Back-to-session | any ready card after opening | live "Back to my rewiring session →" (never re-sends) | open any ready card |
 | Conversation mode | student sent anything, no ready card | doors stand down, "Send a message…", Start-over shows | type to the coach |
+| **Typed saving chips** | coach reply carries a save proposal | "Saving a rewiring opportunity…" → "Saved as a rewiring opportunity ✓ — 'their words'" + payoff + Undo (when restorable) | `?s=day5`, send a message containing "challenge" (700ms slowed save makes the verb visible) |
+| **Wait-tip** | first model reply of a freshly mounted daily tool | muted line inside the typing bubble: "…two-second Freedom Experiment…"; gone on reply, never repeats | `?s=day5` → Simulate coach handoff (RBF) |
 | Guided flow | "Target what's challenging today →" | composer hides, instant feelings panel (prefetched) | tap it |
 | Ready-card end state | prompt built (either door) | card + See-or-edit + Start-over ONLY | finish the guided flow |
 | Progress nudge | today not logged | "These numbers are from Day N — log today's…" | `?s=day9` → See my progress |
