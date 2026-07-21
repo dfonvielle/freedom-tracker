@@ -40,8 +40,8 @@ flowchart LR
 
 ## ✍️ Waiting on Dave
 
-1. **Fix the Gateway diag key (2 minutes; the Accelerator one works, this one refused):** Terminal → `cd ~/Desktop/coding_projects/freedom_tracker_gateway && node tools/diag.js keys` → copy the GATEWAY key. [Gateway sheet](https://docs.google.com/spreadsheets/d/1QkjvMI3_HfrKBEJDGWrt8XI2iqX_DUTtfHPWZHv0eZI/edit) → Extensions → Apps Script → Files list → **V6.3 of Gateway.gs** → toolbar dropdown → **gateway_setAdminKey** → Run → paste that exact key.
-2. **Your 5:46 create actually worked** — the dropdown should show a "New project (setting up)" now. Use it for your next from-scratch walk, or archive it. New creates go straight to the wizard from here on.
+1. ~~Gateway diag key~~ DONE — both diag channels verified live (the "Unauthorized." was diag.js missing the appKey, not Dave's paste; fixed). Claude reads registry + logs autonomously now.
+2. **Your 5:46 create actually worked** — registry-confirmed: P6-W1 is active as "New project (setting up)". Use it for your next from-scratch walk, or archive it. New creates go straight to the wizard from here on. Bonus: old P1 is already archived in real data, so your live picker shows "Archived projects… (1)" today.
 3. **Try archive:** goal & plan room (tap the goal line) → "Archive this project" on any junk project; picker → "Archived projects…" to bring one back.
 4. Round-17 walk items still open: wizard context-box edit + chips, Day-0 get-ready card, chip flip to Day 1 on the first tick. Your OLD projects keep legacy day counting (drinking-alcohol will read Day 1 tomorrow even unstarted — expected).
 5. New-project email stays OFF (`NEW_PROJECT_EMAIL` = `on` in AI Settings re-enables). Email-coaching day-anchor requirement recorded in the plan doc.
