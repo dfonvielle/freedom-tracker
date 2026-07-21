@@ -104,7 +104,13 @@
         { day: 8, text: 'Read a whole chapter in bed, phone stayed in the kitchen' },
         { day: 6, text: 'Evening felt lighter, no pull after dinner' },
         { day: 4, text: 'Noticed the urge, watched it pass without acting' }
-      ], total: 7 } };
+      ], total: 7 },
+      // Round 12: exps mirrors the REAL reflectRecentEntries_ shape exactly
+      // (same {items:[{day,text}],total} as wins — additive field).
+      exps: { items: [
+        { day: 7, text: 'Left the phone charging in the kitchen at 9pm' },
+        { day: 5, text: 'Delayed opening the feed by two breaths, then skipped it' }
+      ], total: 4 } };
   }
   if (scenario === 'multi') {
     M.currentDay = 5;

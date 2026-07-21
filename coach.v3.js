@@ -76,7 +76,13 @@
       COPY_FALLBACK: 'Press and hold the text above to copy it.',
       TOOL_PREFIX: 'Paste into: ',
       SEND_TO_TOOL: 'Open my rewiring session \u2192',
-      SENT_TO_TOOL: 'Opened \u2713',
+      SENT_TO_TOOL: 'Opened \u2713',   // unused since round 12 (button becomes BACK_TO_TOOL); kept for UI-Copy compat
+      // Round 12: honesty lives in the BUTTON, not a dialog — when a real
+      // session already exists, the label says a fresh one starts, and the
+      // tap is the consent. After opening, the card stays a live door back.
+      SEND_TO_TOOL_FRESH: 'Start a fresh rewiring session \u2192',
+      FRESH_NOTE: 'Your current session wraps up \u2014 this starts clean with what you and I just worked out.',
+      BACK_TO_TOOL: 'Back to my rewiring session \u2192',
       // Freedom Home prompt card (round 5): one line, one button; the raw
       // prompt is OUR plumbing, tucked behind a small peek link.
       PROMPT_READY: 'Your {TOOL} rewiring session is ready.',
@@ -96,10 +102,16 @@
       DISMISSED: 'No problem. It is still your call.',
       // Freedom Home auto-log chips (log-then-tell; Undo appears only when
       // there is a previous value to restore \u2014 the Gateway refuses empty writes).
-      LOGGED_WIN: 'Saved as a win \u2713 \u2014 you\u2019ll see it in your progress',
-      LOGGED_OPP: 'Saved \u2713 \u2014 ask me anytime what\u2019s been hardest and we\u2019ll pick one to rewire',
-      LOGGED_EXP: 'Saved your experiment \u2713 \u2014 ask me anytime what you\u2019ve tried',
+      // Round 12: chips quote the student's OWN words (grandpa can't wonder
+      // what 'experiment' means when it's his sentence) + a payoff line.
+      // Freedom Experiment is the method's proper noun.
+      LOGGED_WIN: 'Saved as a win \u2713',
+      LOGGED_OPP: 'Saved \u2713',
+      LOGGED_EXP: 'Saved as a Freedom Experiment \u2713',
       LOGGED_GENERIC: 'Saved for you \u2713',
+      PAYOFF_WIN: 'You\u2019ll see it in your progress.',
+      PAYOFF_EXP: 'Every experiment counts, however it went \u2014 you\u2019ll see it in your progress.',
+      PAYOFF_OPP: 'Ask me anytime what\u2019s been hardest and we\u2019ll pick one to rewire.',
       LOGGED_SAVING: 'Logging\u2026',
       LOGGED_UNDO: 'Undo',
       LOGGED_UNDOING: 'Removing\u2026',
@@ -912,7 +924,7 @@
       if (!promptOnly) { bubble.appendChild(textNode(msg.text)); }
 
       if (msg.prompt) {
-        bubble.appendChild(promptBoxNode(msg.prompt, msg.tool));
+        bubble.appendChild(promptBoxNode(msg.prompt, msg.tool, msg));
         // Freedom Home handoff: announce the prompt to the host page.
         // Replayed history stays silent so a reload never re-arms tools.
         if (!replaying) { fcDispatch('fc:prompt', { prompt: msg.prompt, tool: msg.tool || '' }); }
@@ -986,7 +998,7 @@
     // ============================================================
     var lastPromptBox = null;   // newest-wins: older suggestions grey out
 
-    function promptBoxNode(text, tool) {
+    function promptBoxNode(text, tool, msg) {
       var box = document.createElement('div');
       box.className = 'fc-promptbox';
       // Freedom Home (round 5): ONE line, ONE button. The raw prompt is our
@@ -1035,15 +1047,41 @@
         peekTa.value = tailText;
         peekTa.style.display = 'none';
 
+        // Round 12: honest button — a live session means the label says
+        // "fresh" up front (the host page knows; standalone coaches don't
+        // and fall back to the plain label). After opening, the button
+        // becomes a way BACK (reopen, never re-send) — msg._opened keeps
+        // that across re-renders.
+        var hasLive = false;
+        try {
+          hasLive = !!(window.FreedomHome && window.FreedomHome.toolSessionLive
+            && window.FreedomHome.toolSessionLive(tool || ''));
+        } catch (eL) {}
         var sendBtn = document.createElement('button');
         sendBtn.className = 'fc-copybtn fc-sendtool';
-        sendBtn.textContent = COPY.SEND_TO_TOOL;
+        var freshNote = null;
+        if (msg && msg._opened) {
+          sendBtn.textContent = COPY.BACK_TO_TOOL;
+        } else {
+          sendBtn.textContent = hasLive ? COPY.SEND_TO_TOOL_FRESH : COPY.SEND_TO_TOOL;
+          if (hasLive) {
+            freshNote = document.createElement('div');
+            freshNote.className = 'fc-fresh-note';
+            freshNote.textContent = COPY.FRESH_NOTE;
+          }
+        }
         sendBtn.addEventListener('click', function () {
+          if (msg && msg._opened) {
+            fcDispatch('fc:tool-open', { tool: tool || '' });
+            return;
+          }
+          if (msg) { msg._opened = true; }
           fcDispatch('fc:prompt-send', { prompt: peekTa.value, tool: tool || '' });
-          sendBtn.textContent = COPY.SENT_TO_TOOL;
-          sendBtn.disabled = true;
+          sendBtn.textContent = COPY.BACK_TO_TOOL;
+          if (freshNote && freshNote.parentNode) { freshNote.parentNode.removeChild(freshNote); }
         });
         box.appendChild(sendBtn);
+        if (freshNote) { box.appendChild(freshNote); }
         var peek = document.createElement('button');
         peek.type = 'button';
         peek.className = 'fc-peek';
@@ -1113,6 +1151,12 @@
       if (field === 'experiments') { return COPY.LOGGED_EXP; }
       return COPY.LOGGED_GENERIC;
     }
+    function autoLogPayoff(field) {
+      if (field === 'wins') { return COPY.PAYOFF_WIN; }
+      if (field === 'experiments') { return COPY.PAYOFF_EXP; }
+      if (field === 'opportunities') { return COPY.PAYOFF_OPP; }
+      return '';
+    }
     function autoLogChipNode(msg) {
       var chip = document.createElement('div');
       chip.className = 'fc-review fc-review-done';
@@ -1136,7 +1180,12 @@
         var undoable = updates.length > 0;
         for (var i = 0; i < updates.length; i++) {
           if (!updates[i].current) { undoable = false; }
-          html += '<div class="fc-review-donerow">' + esc(autoLogLabel(updates[i].field)) + '</div>';
+          var added = String(updates[i].addedText || updates[i].finalText || '').replace(/\s+/g, ' ').trim();
+          if (added.length > 64) { added = added.slice(0, 64) + '…'; }
+          html += '<div class="fc-review-donerow">' + esc(autoLogLabel(updates[i].field))
+            + (added ? ' — “' + esc(added) + '”' : '') + '</div>';
+          var payoff = autoLogPayoff(updates[i].field);
+          if (payoff) { html += '<div class="fc-review-payoff">' + esc(payoff) + '</div>'; }
         }
         if (undoable) {
           html += '<div class="fc-review-donerow"><a href="#" class="fc-undo-link">' + esc(COPY.LOGGED_UNDO) + '</a></div>';
@@ -1334,6 +1383,8 @@
         '#freedom-coach .fc-sendtool{display:block;width:100%;margin-bottom:2px;}' +
         '#freedom-coach .fc-peek{display:inline-block;background:none;border:none;color:#5b6b7a;font-size:12.5px;font-weight:600;padding:6px 0 0;text-decoration:underline;min-height:0;}' +
         '#freedom-coach .fc-prompt-old{opacity:.55;}' +
+        '#freedom-coach .fc-review-payoff{font-size:12.5px;font-weight:400;color:#5b6b7a;margin:1px 0 7px;}' +
+        '#freedom-coach .fc-fresh-note{font-size:12.5px;font-weight:400;color:#5b6b7a;margin:6px 0 2px;}' +
         // help panel
         '#freedom-coach .fc-help{}' +
         '#freedom-coach .fc-help-loading{color:#5b6b7a;font-size:14px;padding:8px 2px;}' +

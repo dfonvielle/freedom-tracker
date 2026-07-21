@@ -185,7 +185,8 @@
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
     STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out — continue below.',
-    STEP2_TOOL_LOADED_POPUP: 'Your tool just opened with what you and your coach worked out. If you close it, tap the blue chat bubble to bring it back.',
+    // (STEP2_TOOL_LOADED_POPUP deleted round 12 — the widget's inline note
+    // names the open tool itself now; the rail adds only the Continue button.)
     STEP3_TITLE: '3 · Log your progress (30 seconds)',
     STEP3_MINUTES: 'Minutes with the rewiring tool(s) today (0 if none):',
     STEP3_SAVE: 'Save my progress →',
@@ -203,6 +204,14 @@
     PROGRESS_DOWN: 'Scores dip sometimes, and nothing is lost. Every concern is an opportunity for rewiring, and your wins below are still yours.',
     WINS_TITLE: 'Your wins so far',
     WINS_EARLIER: '…plus {N} earlier wins in your full tracker.',
+    // Round 12: Freedom Experiments are the method's proper noun (no quit
+    // dates — experiments instead), and every one counts by definition.
+    EXPS_TITLE: 'Your Freedom Experiments',
+    EXPS_SUB: 'Every experiment counts, however it went.',
+    EXPS_EARLIER: '…plus {N} earlier Freedom Experiments in your full tracker.',
+    TELL_COACH_PRE: 'Got a win or Freedom Experiment to add? ',
+    TELL_COACH_LINK: 'Tell your coach',
+    TELL_COACH_POST: ' — it lands here.',
 
     // Activation (mirrors loader.v7)
     ACTIVATE_TITLE: 'Activate your Freedom Accelerator',
@@ -1376,7 +1385,9 @@
     }
     if (directBtn) {
       directBtn.addEventListener('click', function () {
-        mountDailyTool(resumeBot || TOOLS.dailyDefault, '');
+        // Recompute at CLICK time (round 12): after a handoff the newest
+        // session is the one to resume, not whatever existed at render.
+        mountDailyTool(todaysToolSession_() || TOOLS.dailyDefault, '');
       });
     }
 
@@ -1423,7 +1434,16 @@
     document.getElementById('fh-progress-btn').addEventListener('click', function () {
       var btn = this;
       var box = document.getElementById('fh-progress');
-      function paint(data) { box.innerHTML = progressHtml(data); }
+      function paint(data) {
+        box.innerHTML = progressHtml(data);
+        var tc = document.getElementById('fh-progress-coach');
+        if (tc) tc.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (FS.mode) { fsCoachOpen_(true); return; }
+          var slot = document.getElementById('fh-coach-slot');
+          if (slot && slot.scrollIntoView) { try { slot.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
+        });
+      }
       if (state.progressCache) {
         paint(state.progressCache);
         callGateway({ action: 'progressReview', projectId: state.activeProjectId })
@@ -1468,8 +1488,30 @@
       return false;
     } catch (e) { return false; }
   }
+  // Round 12: today's ACTIVE session key per tool, rotatable. A coach
+  // handoff that finds real turns in the current session rotates to a
+  // FRESH key — the prompt lands on Screen 1 (where the no-questions
+  // fast-track lives) instead of confusing whatever screen the old
+  // conversation was on (Dave's raw-JSON break: a Screen-1-shaped prompt
+  // hit a Screen-5 menu and the model imploded). Old sessions stay in
+  // localStorage, just no longer offered; "resume" always means NEWEST.
+  function activeToolKey_(botId) {
+    var k = '';
+    try { k = localStorage.getItem('fh_tool_key_d' + state.currentDay + '_' + botId) || ''; } catch (e) {}
+    return k || ('d' + state.currentDay + '-' + botId);
+  }
+  function rotateToolKey_(botId) {
+    var cur = activeToolKey_(botId);
+    var base = 'd' + state.currentDay + '-' + botId;
+    var n = 2;
+    var m = cur.match(/-(\d+)$/);
+    if (cur !== base && m) { n = Number(m[1]) + 1; }
+    var next = base + '-' + n;
+    try { localStorage.setItem('fh_tool_key_d' + state.currentDay + '_' + botId, next); } catch (e) {}
+    return next;
+  }
   function toolSessionExists_(botId) {
-    return sessionHasUserTurn_(botId, 'd' + state.currentDay + '-' + botId);
+    return sessionHasUserTurn_(botId, activeToolKey_(botId));
   }
   function toolDisplayName_(botId) {
     if (botId === 'bh_fearanxiety') { return 'Fear & Anxiety Relief tool'; }
@@ -1542,6 +1584,27 @@
       var extra = data.wins.total - data.wins.items.length;
       if (extra > 0) { html += '<p class="fh-sub">' + esc(COPY.WINS_EARLIER.replace('{N}', String(extra))) + '</p>'; }
     }
+    // Round 12: the Freedom Experiments stack — actions tried, every one a
+    // success by definition (the sub-line says so out loud).
+    if (data.exps && data.exps.items && data.exps.items.length) {
+      html += '<h3 class="fh-wins-title">' + esc(COPY.EXPS_TITLE) + '</h3>';
+      html += '<p class="fh-sub fh-exps-sub">' + esc(COPY.EXPS_SUB) + '</p>';
+      html += '<ul class="fh-wins">';
+      for (var x = 0; x < data.exps.items.length; x++) {
+        var ex = data.exps.items[x];
+        var etxt = String(ex.text || '');
+        if (etxt.length > 200) { etxt = etxt.slice(0, 200) + '…'; }
+        html += '<li><span class="fh-exp-day">Day ' + esc(ex.day) + '</span> ' + esc(etxt) + '</li>';
+      }
+      html += '</ul>';
+      var moreExps = data.exps.total - data.exps.items.length;
+      if (moreExps > 0) { html += '<p class="fh-sub">' + esc(COPY.EXPS_EARLIER.replace('{N}', String(moreExps))) + '</p>'; }
+    }
+    // The intake pointer (round 12): no second input box — the coach IS the
+    // way in, and this line teaches the loop.
+    html += '<p class="fh-sub fh-tellcoach">' + esc(COPY.TELL_COACH_PRE) +
+      '<a href="#" id="fh-progress-coach">' + esc(COPY.TELL_COACH_LINK) + '</a>' +
+      esc(COPY.TELL_COACH_POST) + '</p>';
     return html;
   }
 
@@ -1606,11 +1669,31 @@
   function mountDailyTool(botId, promptText) {
     var hint = document.getElementById('fh-tool-hint');
     var direct = document.getElementById('fh-tool-direct');
-    if (hint) {
-      if (promptText) { hint.textContent = FS.mode ? COPY.STEP2_TOOL_LOADED_POPUP : COPY.STEP2_TOOL_LOADED; }
-      else { hint.style.display = 'none'; }   // no stale "will open here" above a live tool
+    // Round 12: a handoff into a session with real turns starts FRESH (the
+    // ready card's button already said so) — never inject mid-conversation.
+    var key = activeToolKey_(botId);
+    if (promptText && sessionHasUserTurn_(botId, key)) {
+      key = rotateToolKey_(botId);
     }
-    if (direct) { direct.style.display = 'none'; }
+    // Phones have no rail hint node — the WIDGET's inline note (which now
+    // names the tool, round 12) sits in the card and does that job.
+    if (hint) {
+      if (promptText) {
+        hint.textContent = COPY.STEP2_TOOL_LOADED;
+        hint.style.display = '';
+      } else { hint.style.display = 'none'; }   // no stale "will open here" above a live tool
+    }
+    if (direct) {
+      if (FS.mode) {
+        // Phones: the way back stays VISIBLE — resume-labeled; tapping
+        // remounts the popup (the bubble is no longer the only path).
+        direct.style.display = '';
+        direct.className = 'fh-btn';
+        direct.textContent = COPY.STEP2_TOOL_RESUME.replace('{TOOL}', toolDisplayName_(botId));
+      } else {
+        direct.style.display = 'none';
+      }
+    }
     // Remember which tool the student touched LAST today, so a re-render
     // resumes the right one when both tools hold sessions.
     try { localStorage.setItem('fh_last_tool_d' + state.currentDay, botId); } catch (e) {}
@@ -1618,7 +1701,7 @@
     // with its own greeting and the coach's prompt lands as the student's
     // visible first message (the prompt itself now ends with "No questions…",
     // which the tool honors by skipping its digging phase).
-    mountTool(botId, { sessionKey: 'd' + state.currentDay + '-' + botId });
+    mountTool(botId, { sessionKey: key });
     // The prompt rides AgtWidget.send: it lands in fresh AND restored
     // sessions alike (the old only-on-fresh injection silently swallowed
     // handoffs into an already-open tool).
@@ -1653,6 +1736,31 @@
       if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
     }
   });
+
+  // Round 12: reopen WITHOUT re-sending — the ready card's "Back to my
+  // rewiring session →" after a handoff already happened. Resumes the
+  // NEWEST session; never injects anything.
+  document.addEventListener('fc:tool-open', function (ev) {
+    var d = (ev && ev.detail) || {};
+    if (FS.mode) { fsCoachOpen_(false); }
+    mountDailyTool(TOOLS.routeBot(d.tool), '');
+    if (!FS.mode) {
+      var stub = document.getElementById('fh-tool-stub');
+      if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+    }
+  });
+
+  // Round 12: coach.v3 asks whether a real session already exists for the
+  // routed tool, so its ready-card button can be honest — "Start a fresh
+  // rewiring session →" (+ wrap-up note) instead of "Open my rewiring
+  // session →". The tap is the consent; no confirmation dialog.
+  window.FreedomHome = window.FreedomHome || {};
+  window.FreedomHome.toolSessionLive = function (toolName) {
+    try {
+      var bot = TOOLS.routeBot(toolName);
+      return !!sessionHasUserTurn_(bot, activeToolKey_(bot));
+    } catch (e) { return false; }
+  };
 
   // The coach just wrote the tracker (review card applied). The narrative
   // fields no longer live on this page, so just refetch the day (keeps
@@ -2086,6 +2194,9 @@
       '#freedom-home .fh-wins{margin:8px 0 4px;padding-left:20px;text-align:left;font-size:14px;}' +
       '#freedom-home .fh-wins li{margin:8px 0;}' +
       '#freedom-home .fh-win-day{display:inline-block;background:#e7f3ec;color:#2c9a4b;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;}' +
+      '#freedom-home .fh-exp-day{display:inline-block;background:#e8effc;color:#2f6df6;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;}' +
+      '#freedom-home .fh-exps-sub{margin:-2px 0 6px;font-size:13px;}' +
+      '#freedom-home .fh-tellcoach{margin-top:16px;}' +
       '#fh-tool{margin-top:12px;}';
     var style = document.createElement('style');
     style.id = 'fh-styles';
