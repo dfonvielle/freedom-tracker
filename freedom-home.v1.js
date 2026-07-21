@@ -239,6 +239,25 @@
     HOW_ASK_MSG: 'How does this rewiring method apply to my situation right now?',
     HOW_BACK: '← Back to my next step',
 
+    // THE MILESTONE (round 14) — the system notices freedom; grandpa never
+    // self-assesses. The card celebrates, offers the concept, never gates.
+    MILE_TITLE: 'Something worth seeing',
+    MILE_TEXT: 'Look at your numbers — not doing this is now easy ({EASY}) and enjoyable ({ENJOY}) for you, and it has stayed that way. That is what freedom feels like.',
+    MILE_OPEN: 'Tell me about the No-Brainer Decision →',
+    MILE_SNOOZE: 'Not yet — keep rewiring',
+    NBLCD_TITLE: 'The No-Brainer Life-Changing Decision',
+    NBLCD_P1: 'There is no quit date in this method — but there is a milestone. You reach it when not doing the behavior has become so easy and enjoyable that being done is simply obvious. At that point you can decide: I’m done with this — for a month, a year, or for good. Not by forcing yourself. Because it’s a no-brainer.',
+    NBLCD_P2: 'What the decision buys you: the question disappears. No more “will I or won’t I?” every time the moment shows up — that question simply stops being asked, and your life gets lighter by exactly that much.',
+    NBLCD_P3: 'It only counts if it’s easy. If deciding feels like gritting your teeth, you’re not there yet — and that’s completely fine. Keep rewiring; the numbers keep climbing. Deciding from ease is the whole point.',
+    NBLCD_P4: 'And if the behavior ever shows up again someday? Nothing breaks and nothing resets — there are no streaks here. It just means the world rewired something back, and you know exactly what to do: come back, target it, rewire it. Your decision stays part of your story either way.',
+    NBLCD_P5: 'After your decision, staying free takes about two seconds a day: during your morning rewiring, feel good and enjoy your freedom. For behaviors the world keeps advertising at you — alcohol especially — those two seconds are your maintenance plan.',
+    NBLCD_DECIDE: 'I’ve made my decision — I’m done with this →',
+    NBLCD_SAVING: 'Saving your decision…',
+    NBLCD_DONE_TITLE: '⭐ Day {DAY} — your No-Brainer Decision',
+    NBLCD_DONE_TEXT: 'Made from ease, the way it should be. It’s part of your progress story now — and your daily rhythm is right here whenever you want it.',
+    NBLCD_DONE_BACK: 'Back to my rhythm →',
+    PROGRESS_DECISION: 'Your No-Brainer Decision — made on Day {DAY}.',
+
     // Activation (mirrors loader.v7)
     ACTIVATE_TITLE: 'Activate your Freedom Accelerator',
     ACTIVATE_SIGNED_IN: 'You’re signed in as ',
@@ -457,6 +476,7 @@
           currentDay: state.currentDay, maxTrackedDay: state.maxTrackedDay,
           writable: state.writable, confidence: state.confidence,
           canCreateProject: state.canCreateProject === true,
+          milestoneDecision: state.milestoneDecision,
           setup: state.setup, scoreQuestions: state.scoreQuestions,
           completion: state.completion, day: state.day,
           firstName: (state.identity && state.identity.firstName) || ''
@@ -505,6 +525,7 @@
     state.confidence = snap.confidence || { optedOut: false, since: '' };
     state.canCreateProject = snap.canCreateProject === true;
     state.setup = snap.setup || state.setup;
+    state.milestoneDecision = snap.milestoneDecision || null;
     state.scoreQuestions = snap.scoreQuestions || null;
     state.completion = snap.completion || null;
     state.day = snap.day || null;
@@ -541,6 +562,7 @@
     state.confidence = data.confidence || { optedOut: false, since: '' };
     state.canCreateProject = data.canCreateProject === true;
     state.setup = data.setup || { stage: 0, ub: '', jumpstart: '' };
+    state.milestoneDecision = data.milestoneDecision || null;
     state.scoreQuestions = data.scoreQuestions || null;
     if (data.completion) state.completion = data.completion;
     if (data.day) state.day = data.day;
@@ -594,7 +616,18 @@
     callGateway({ action: 'progressReview', projectId: state.activeProjectId })
       .then(function (data) {
         state._progressFetching = false;
-        if (data && data.ok) { state.progressCache = data; }
+        if (data && data.ok) {
+          state.progressCache = data;
+          // Round 14: the prefetch may have just learned the milestone is
+          // live — surface the card without waiting for the next visit.
+          // Never tear down a working session to do it: no re-render while
+          // a tool is mounted, a form is dirty, or a side room is open.
+          if (milestoneEligible_() && !state.toolMountedBot && !state.forcedPhase
+              && safeToRerender() && document.getElementById('fh-morehelp-toggle')
+              && !document.getElementById('fh-mile-open')) {
+            route();
+          }
+        }
       })
       .catch(function () { state._progressFetching = false; });
   }
@@ -877,6 +910,7 @@
     if (step.phase === 'day1_done') return renderDay1Done();
     if (step.phase === 'goalplan') return renderGoalPlan();
     if (step.phase === 'howworks') return renderHowItWorks();
+    if (step.phase === 'nblcd') return renderNblcd();
     return renderDaily();
   }
 
@@ -918,6 +952,94 @@
       } catch (e) {}
     });
     document.getElementById('fh-how-back').addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = null;
+      route();
+    });
+  }
+
+  /* ============================================================
+   * THE MILESTONE + THE NO-BRAINER LIFE-CHANGING DECISION (round 14)
+   * Constitution (plan doc round 13): the system notices, the student
+   * decides; 7+ starts the conversation, never gates; slips are rewiring
+   * material; no streaks, resets, lockouts, or silent demotions, ever.
+   * ============================================================ */
+  function milestoneEligible_() {
+    var m = state.progressCache && state.progressCache.milestone;
+    if (!m || !m.eligible) return false;
+    if (state.milestoneDecision) return false;
+    try {
+      var snooze = localStorage.getItem('fh_nblcd_snooze_' + state.activeProjectId);
+      if (snooze && (Date.now() - Number(snooze)) < 7 * 86400000) return false;
+    } catch (e) {}
+    return true;
+  }
+  function milestoneCardHtml_() {
+    if (!milestoneEligible_()) return '';
+    var m = state.progressCache.milestone;
+    return '<div class="fh-card fh-milestone">' +
+      '<h3>⭐ ' + esc(COPY.MILE_TITLE) + '</h3>' +
+      '<p class="fh-sub fh-mile-text">' + esc(COPY.MILE_TEXT.replace('{EASY}', m.easy).replace('{ENJOY}', m.enjoy)) + '</p>' +
+      '<button class="fh-btn" id="fh-mile-open">' + esc(COPY.MILE_OPEN) + '</button>' +
+      '<div class="fh-linkline fh-center"><a href="#" id="fh-mile-snooze">' + esc(COPY.MILE_SNOOZE) + '</a></div>' +
+    '</div>';
+  }
+  function bindMilestoneCard_() {
+    var open = document.getElementById('fh-mile-open');
+    if (open) open.addEventListener('click', function () {
+      state.forcedPhase = 'nblcd';
+      route();
+    });
+    var snooze = document.getElementById('fh-mile-snooze');
+    if (snooze) snooze.addEventListener('click', function (e) {
+      e.preventDefault();
+      try { localStorage.setItem('fh_nblcd_snooze_' + state.activeProjectId, String(Date.now())); } catch (err) {}
+      route();
+    });
+  }
+  function renderNblcd() {
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.NBLCD_TITLE) + '</h3>' +
+        '<p class="fh-how-p">' + esc(COPY.NBLCD_P1) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.NBLCD_P2) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.NBLCD_P3) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.NBLCD_P4) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.NBLCD_P5) + '</p>' +
+        '<button class="fh-btn" id="fh-nblcd-decide">' + esc(COPY.NBLCD_DECIDE) + '</button>' +
+        '<div class="fh-msg" id="fh-nblcd-msg"></div>' +
+        '<div class="fh-linkline fh-center"><a href="#" id="fh-nblcd-back">' + esc(COPY.HOW_BACK) + '</a></div>' +
+      '</div>');
+    document.getElementById('fh-nblcd-decide').addEventListener('click', function () {
+      var btn = this;
+      btn.disabled = true;
+      setMsg('fh-nblcd-msg', COPY.NBLCD_SAVING, true);
+      callGateway({ action: 'nblcdSave', projectId: state.activeProjectId })
+        .then(function (data) {
+          if (!data.ok) {
+            btn.disabled = false;
+            return setMsg('fh-nblcd-msg', data.error || 'Could not save — try again.', false);
+          }
+          state.milestoneDecision = data.decision;
+          writeStateCache();
+          prefetchProgress_(true);
+          renderShell(
+            '<div class="fh-card fh-milestone">' +
+              '<h3>' + esc(COPY.NBLCD_DONE_TITLE.replace('{DAY}', data.decision.day)) + '</h3>' +
+              '<p class="fh-how-p">' + esc(COPY.NBLCD_DONE_TEXT) + '</p>' +
+              '<button class="fh-btn" id="fh-nblcd-done">' + esc(COPY.NBLCD_DONE_BACK) + '</button>' +
+            '</div>');
+          document.getElementById('fh-nblcd-done').addEventListener('click', function () {
+            state.forcedPhase = null;
+            route();
+          });
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          setMsg('fh-nblcd-msg', String(err), false);
+        });
+    });
+    document.getElementById('fh-nblcd-back').addEventListener('click', function (e) {
       e.preventDefault();
       state.forcedPhase = null;
       route();
@@ -1379,6 +1501,12 @@
         '</div>' +
       '</div>' +
 
+      // THE MILESTONE CARD (round 14) — renders only when the Gateway's
+      // watcher says freedom is holding (3 logged days ≥7/≥7), no decision
+      // exists yet, and it isn't snoozed. The system raises it; grandpa
+      // never self-assesses. "Not yet" = 7-day snooze, zero pressure.
+      milestoneCardHtml_() +
+
       // Progress (pull, never push)
       '<div class="fh-card fh-center">' +
         '<button class="fh-btn fh-secondary" id="fh-progress-btn">' + esc(COPY.PROGRESS_BTN) + '</button>' +
@@ -1578,6 +1706,8 @@
         .catch(function () { btn.disabled = false; });
     });
 
+    bindMilestoneCard_();
+
     // MORE HELP & TOOLS wiring (round 13).
     var mhToggle = document.getElementById('fh-morehelp-toggle');
     var mhBody = document.getElementById('fh-morehelp-body');
@@ -1684,6 +1814,11 @@
     var mks = ['easy', 'enjoy', 'conf'];
     var names = { easy: 'Easy', enjoy: 'Enjoyable', conf: 'Confidence' };
     var html = '<h3>' + esc(COPY.PROGRESS_TITLE) + '</h3>';
+    // Round 14: the decision is the biggest line in the story — it leads.
+    var dec = data.decision || state.milestoneDecision;
+    if (dec && dec.day != null) {
+      html += '<p class="fh-sub fh-mile-line">⭐ ' + esc(COPY.PROGRESS_DECISION.replace('{DAY}', dec.day)) + '</p>';
+    }
     html += '<p class="fh-sub fh-headline">' + esc(progressHeadline_(data)) + '</p>';
     html += '<table class="fh-table"><tr><th></th>' +
       '<th>' + esc(COPY.PROGRESS_BASELINE) + '</th><th>' + esc(data.currentLabel || 'Now') + '</th><th>Δ</th></tr>';
@@ -2349,6 +2484,10 @@
       '#freedom-home .fh-mh-btn{margin-top:8px;}' +
       '#freedom-home #fh-morehelp-body{text-align:left;}' +
       '#freedom-home .fh-how-p{font-size:14.5px;line-height:1.6;color:#2b3745;margin:0 0 12px;}' +
+      // Round 14: the milestone wears gold, gently.
+      '#freedom-home .fh-milestone{border-color:#e8d49a;background:#fffdf5;}' +
+      '#freedom-home .fh-mile-text{font-size:14.5px;color:#5a4d28;}' +
+      '#freedom-home .fh-mile-line{font-weight:700;color:#8a6d1d;margin:2px 0 10px;}' +
       '#fh-tool{margin-top:12px;}';
     var style = document.createElement('style');
     style.id = 'fh-styles';

@@ -27,6 +27,8 @@
   <a href="?s=day5">day5 daily</a>
   <a href="?s=day9">day9 progress</a>
   <a href="?s=multi">multi-project</a>
+  <a href="?s=milestone">milestone</a>
+  <a href="?s=decided">decided</a>
   <a href="?s=settingup">setting-up poll</a>
   <button id="sim-rbf">Simulate coach handoff (RBF)</button>
   <button id="sim-fna">…(Fear &amp; Anxiety)</button>
@@ -117,6 +119,21 @@
     M.projects = [{ projectId: '1', label: 'late-night doomscrolling' }, { projectId: '2', label: 'sugar after dinner' }];
     M.canCreate = true;
   }
+  // Round 14 forcing scenarios (State Map): the milestone watcher fires /
+  // a decision already exists. Shapes mirror the REAL Gateway exactly:
+  // progressReview.milestone {eligible,easy,enjoy} + .decision {day,date};
+  // state.milestoneDecision {day,date}|null.
+  if (scenario === 'milestone' || scenario === 'decided') {
+    M.currentDay = 16;
+    if (scenario === 'decided') { M.nblcd = { day: 15, date: '2026-07-20' }; }
+    M.progress = { ok: true, currentDay: 16, baseline: { easy: 2, enjoy: 1, conf: 3 }, baselineLabel: 'Baseline',
+      current: { easy: 8, enjoy: 7, conf: 9 }, currentLabel: 'Day 15', hasData: true,
+      fromBaseline: { easy: { from: 2, to: 8, change: 6 }, enjoy: { from: 1, to: 7, change: 6 }, conf: { from: 3, to: 9, change: 6 } },
+      wins: { items: [{ day: 15, text: 'Walked past the dessert bar without a second thought' }], total: 9 },
+      exps: { items: [{ day: 14, text: 'Sat with coffee instead of the pastry — easy' }], total: 6 },
+      milestone: { eligible: true, easy: 8, enjoy: 7 },
+      decision: M.nblcd || null };
+  }
   if (scenario === 'settingup') {
     // Fresh buyer beat the webhook: state fails, recover says notFound twice,
     // then the tracker "appears" and the poll grants a token -> wizard.
@@ -166,6 +183,7 @@
       projectType: 'ACCELERATOR', currentDay: M.currentDay, maxDay: 7, maxTrackedDay: 400,
       writable: true, unlimited: !!M.canCreate, canCreateProject: !!M.canCreate,
       confidence: { optedOut: false, since: '' },
+      milestoneDecision: M.nblcd || null,
       setup: { stage: M.stage, ub: M.ub, jumpstart: M.jumpstart },
       scoreQuestions: SCORE_QUESTIONS, prompts: {}, uiCopy: {},
       day: (M.stage >= 4 ? dayResp(M.currentDay) : null), completion: (M.stage >= 4 ? completionMap() : null) };
@@ -292,6 +310,11 @@
       return { ok: true, ub: p.ub, jumpstart: p.jumpstart };
     }
     if (p.action === 'progressReview') return M.progress || { ok: true, hasData: false };
+    if (p.action === 'nblcdSave') {
+      M.nblcd = { day: M.currentDay, date: '2026-07-21' };
+      if (M.progress) { M.progress.decision = M.nblcd; }
+      return { ok: true, decision: M.nblcd };
+    }
     if (p.action === 'activate') return { ok: true, token: 'mock-token' };
     return { ok: false, error: 'mock: unhandled action ' + p.action };
   };
