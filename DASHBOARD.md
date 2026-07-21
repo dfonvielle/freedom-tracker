@@ -1,12 +1,12 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-21 (round 11) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-07-21 (round 12) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
 **Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
 ## Headline
 
-**Round 11 shipped 2026-07-21** off Dave's live Day-14 walkthrough (round 10 held up: no-questions fast-track fired on the real page). Fixed: the **Day-14 wizard flash** (pinned project id `ag_fh_pin_v1` + a wizard guard — an established account never re-enters setup from a routine load; one forced-fresh retry, believe the server only if it insists twice), the **wobble + clipped Refresh** (conflicting hdr-right rules merged, select min-width:0, `overflow-x:hidden` — 375px verified zero sideways overflow with the full "↻ Refresh" label), **instant See-my-progress** (prefetch at boot, ~9ms paint, honest "numbers are from Day N" nudge when today isn't logged), coach **conversation mode** (mid-convo the doors stand down; "Send a message…"; Start-over exits), **payoff chips** ("Saved as a win ✓ — you'll see it in your progress"), widget **scrollToReadable** (long replies land at their TOP — all 18 bots, Pages-deployed), Freedom Page→**Freedom Accelerator** copy sweep, centered rhythm strip + progress air. Next: **Dave's live round-11 walk**, then humans.
+**Round 12 shipped 2026-07-21** off Dave's mid-session stress test (which BROKE the handoff — three dominoes, all dead now). Fixed: **session rotation** (a handoff into a session with real turns starts FRESH at a rotated key — Screen 1 + fast-track work; old sessions retire in place, resume = newest; verified `d5-bh_rbf-2`), **engine JSON armor** (`salvagePlainMessage_` — truncated envelopes extract their message or apologize, raw JSON can never reach a student; **engine @6**, node-proven + live-turn smoked), **honest ready-card** ("Start a fresh rewiring session →" + wrap-up note when a session exists; tap = consent, no dialog), **re-entry unbroken** ("Back to my rewiring session →" stays live and never re-sends; Continue button persists on phones; the widget's minimized note now NAMES the tool — the static "Your AI coach is open" line was the stranding culprit), **Freedom Experiments surfaced** (Gateway **@33** returns exps; progress shows "Your Freedom Experiments — every experiment counts, however it went"; chips quote the student's own words: "Saved as a Freedom Experiment ✓ — 'tried to stop at the buffet…'"), and the **tell-your-coach intake line** under progress. Doctrine rules 15 (consent lives in the button) + §4.8 (clamp model failures at the engine). Next: **Dave's live round-12 walk**, then humans.
 
 ```mermaid
 flowchart LR
@@ -40,9 +40,9 @@ flowchart LR
 
 ## ✍️ Waiting on Dave
 
-1. **Walk round 11 live** — phone first (Pages ~10 min after this push; hard-refresh). Watch for: no wobble + full "↻ Refresh", tomorrow-morning day rollover landing on the daily rail (never the wizard), See-my-progress instant + the "from Day N" nudge, a chat with the coach dropping into conversation mode, "Saved as a win ✓ — you'll see it in your progress", long tool replies starting at their top.
-2. **Check the project dropdown for a stray blank project** — if one exists it likely explains the Day-14 wizard flash (Gateway defaulted to it); tell me and I can also harden the Gateway default next round.
-3. If the coach's wording looks old anywhere, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
+1. **Walk round 12 live** — replay your exact break: work a rewiring session a few turns, talk to the coach, build a new focus, and open it. Expect: "Start a fresh rewiring session →" (+ wrap-up note), a CLEAN fresh session on the new focus (old one untouched), "Back to my rewiring session →" staying tappable, the minimized note naming the tool, and no raw JSON anywhere ever. Then See-my-progress → "Your Freedom Experiments" stack + own-words chips. (Pages ~10 min; hard-refresh.)
+2. **Check the project dropdown for a stray blank project** — still the prime suspect for the Day-14 wizard flash; tell me and I can harden the Gateway default next round.
+3. If any wording looks old, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
 
 ## 🔌 Connections
 
