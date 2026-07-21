@@ -195,6 +195,7 @@
 
     // Progress
     PROGRESS_BTN: 'See my progress',
+    PROGRESS_HIDE: 'Hide my progress',
     PROGRESS_TITLE: 'Your movement so far',
     PROGRESS_BASELINE: 'Baseline',
     PROGRESS_EMPTY: 'Log a day’s scores and your movement shows up here.',
@@ -212,6 +213,31 @@
     TELL_COACH_PRE: 'Got a win or Freedom Experiment to add? ',
     TELL_COACH_LINK: 'Tell your coach',
     TELL_COACH_POST: ' — it lands here.',
+
+    // MORE HELP & TOOLS (round 13) — one closed door for everything that
+    // isn't the daily rhythm. Ships collapsed; the rhythm stays the plan.
+    MOREHELP_OPEN: 'More help & tools',
+    MOREHELP_CLOSE: 'Close extra help',
+    MOREHELP_HOW_LINK: 'How this rewiring works (60 seconds) →',
+    MOREHELP_PH_TITLE: 'Revisit the Freedom Power Hour',
+    MOREHELP_PH_SUB: 'You did this once on Day 1 — that’s all it takes. Revisit any tool whenever you like; your daily rhythm above stays the plan.',
+    MOREHELP_DIRECT_TITLE: 'Open a tool directly',
+
+    // HOW THIS REWIRING WORKS — the SYBR story, Dave's method voice
+    // (drafted from his 2026-07-21 dictations; the smiley face looking at
+    // a picture with a magnifying glass is the method's own mnemonic).
+    HOW_TITLE: 'How this rewiring works',
+    HOW_P1: 'Your brain is a prediction machine. It expects you to see the donut, want the donut, eat the donut. And when something genuinely contradicts one of its predictions, your brain doesn’t shrug — it rewires itself to account for what actually happened. Neuroscientists call these prediction errors. This whole method is built on them.',
+    HOW_P2: 'Here’s the move — picture a smiley face looking at a picture through a magnifying glass. You generate real positive emotion first. Then you look straight at the thing — the donut, the drink, the scroll — and notice how good you feel right now, not doing it. Your brain never predicted that. Feeling genuinely good while looking at the very thing it expected you to crave is a prediction error, and your brain quietly rewires to make sense of it: maybe not doing this is the better deal.',
+    HOW_P3: 'It works on fear too. Scared people will reject you if you stop drinking? You generate positive emotion, look straight at that worst nightmare, and notice you can still feel genuinely good — right now, in this moment. Your brain has to make sense of that: maybe I can handle this. Maybe it’s not such a big deal. And fear and fixation start to shrink.',
+    HOW_P4: 'This is the SYBR method — Systematic Brain Rewiring. The “systematic” part is what this page is for: your tools walk you through the exact steps, every time. You don’t have to remember any of this. You just have to show up.',
+    HOW_QUIT_H: 'So… when do I quit?',
+    HOW_QUIT_P: 'You don’t “quit.” Quit dates, streaks, and white-knuckle abstinence are willpower’s tools — and we don’t do willpower. You rewire until not doing it is easy and enjoyable. That is freedom: not a fight you’re winning, a fight that stopped existing.',
+    HOW_ROAD_H: 'The whole road (so you know where this ends)',
+    HOW_ROAD_P: 'The Freedom Power Hour happens once, on Day 1. Then the daily rhythm — a few minutes a day — while your rewiring compounds. When Easy and Enjoyable are high and it feels like a no-brainer, you can simply decide you’re done — for a month, a year, or for good — from ease, never from force. After that, staying free takes about two seconds a day: feel good, and enjoy your freedom. This page is designed to make itself unnecessary.',
+    HOW_ASK_BTN: 'Ask your coach how this applies to your situation →',
+    HOW_ASK_MSG: 'How does this rewiring method apply to my situation right now?',
+    HOW_BACK: '← Back to my next step',
 
     // Activation (mirrors loader.v7)
     ACTIVATE_TITLE: 'Activate your Freedom Accelerator',
@@ -850,7 +876,62 @@
     if (step.phase === 'after_scores') return renderAfterScores();
     if (step.phase === 'day1_done') return renderDay1Done();
     if (step.phase === 'goalplan') return renderGoalPlan();
+    if (step.phase === 'howworks') return renderHowItWorks();
     return renderDaily();
+  }
+
+  /* ============================================================
+   * HOW THIS REWIRING WORKS (round 13) — the SYBR story as a static
+   * side room (same forcedPhase pattern as the goal editor). Static on
+   * purpose: the confidence story is a product asset told word-perfectly
+   * every time; the coach personalizes it via the bridge button below.
+   * ============================================================ */
+  function renderHowItWorks() {
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.HOW_TITLE) + '</h3>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_P1) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_P2) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_P3) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_P4) + '</p>' +
+        '<div class="fh-mh-group">' + esc(COPY.HOW_QUIT_H) + '</div>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_QUIT_P) + '</p>' +
+        '<div class="fh-mh-group">' + esc(COPY.HOW_ROAD_H) + '</div>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_ROAD_P) + '</p>' +
+        '<button class="fh-btn" id="fh-how-ask">' + esc(COPY.HOW_ASK_BTN) + '</button>' +
+        '<div class="fh-linkline fh-center"><a href="#" id="fh-how-back">' + esc(COPY.HOW_BACK) + '</a></div>' +
+      '</div>');
+    document.getElementById('fh-how-ask').addEventListener('click', function () {
+      state.forcedPhase = null;
+      route();
+      // The coach personalizes what the card taught — one tap, his words
+      // arrive as a normal student message (FreedomCoach.ask, round 6 API).
+      try {
+        if (window.FreedomCoach && window.FreedomCoach.ask) {
+          window.FreedomCoach.ask(COPY.HOW_ASK_MSG);
+          if (FS.mode) { fsCoachOpen_(true); }
+          else {
+            var slot = document.getElementById('fh-coach-slot');
+            if (slot && slot.scrollIntoView) { try { slot.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e2) {} }
+          }
+        }
+      } catch (e) {}
+    });
+    document.getElementById('fh-how-back').addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = null;
+      route();
+    });
+  }
+
+  // The four Day-1 tools as revisit buttons (More help & tools).
+  function mhPowerHourButtonsHtml_() {
+    var html = '';
+    for (var i = 0; i < TOOLS.powerHour.length; i++) {
+      var t = TOOLS.powerHour[i];
+      html += '<button class="fh-btn fh-secondary fh-mh-btn" data-mh-ph="' + esc(t.bot) + '">' + esc(t.name) + ' →</button>';
+    }
+    return html;
   }
 
   /* ============================================================
@@ -1302,6 +1383,23 @@
       '<div class="fh-card fh-center">' +
         '<button class="fh-btn fh-secondary" id="fh-progress-btn">' + esc(COPY.PROGRESS_BTN) + '</button>' +
         '<div id="fh-progress"></div>' +
+      '</div>' +
+
+      // MORE HELP & TOOLS (round 13) — ONE closed door for everything that
+      // isn't the daily rhythm: the method explainer, Power Hour revisits,
+      // direct tool opens. Collapsed by default; a collapsed section costs
+      // grandpa nothing on the days he ignores it — which is most days.
+      '<div class="fh-card">' +
+        '<button class="fh-btn fh-secondary" id="fh-morehelp-toggle">' + esc(COPY.MOREHELP_OPEN) + '</button>' +
+        '<div id="fh-morehelp-body" style="display:none">' +
+          '<div class="fh-linkline"><a href="#" id="fh-mh-how">' + esc(COPY.MOREHELP_HOW_LINK) + '</a></div>' +
+          '<div class="fh-mh-group">' + esc(COPY.MOREHELP_PH_TITLE) + '</div>' +
+          '<p class="fh-sub">' + esc(COPY.MOREHELP_PH_SUB) + '</p>' +
+          mhPowerHourButtonsHtml_() +
+          '<div class="fh-mh-group">' + esc(COPY.MOREHELP_DIRECT_TITLE) + '</div>' +
+          '<button class="fh-btn fh-secondary fh-mh-btn" data-mh-daily="bh_rbf">' + esc(toolDisplayName_('bh_rbf')) + ' →</button>' +
+          '<button class="fh-btn fh-secondary fh-mh-btn" data-mh-daily="bh_fearanxiety">' + esc(toolDisplayName_('bh_fearanxiety')) + ' →</button>' +
+        '</div>' +
       '</div>');
 
     rootEl.addEventListener('input', function () { state.dirty = true; });
@@ -1430,10 +1528,19 @@
 
     // Progress on demand — instantly from the prefetched cache when it's
     // warm (then quietly re-pulled so this morning's saves show), live
-    // fetch only as the cold-start fallback.
+    // fetch only as the cold-start fallback. Round 13: the button is a
+    // TOGGLE whose label carries the state (the Step-3 collapse pattern) —
+    // open shows, "Hide my progress" folds it back.
+    var progOpen = false;
     document.getElementById('fh-progress-btn').addEventListener('click', function () {
       var btn = this;
       var box = document.getElementById('fh-progress');
+      if (progOpen) {
+        box.style.display = 'none';
+        progOpen = false;
+        btn.textContent = COPY.PROGRESS_BTN;
+        return;
+      }
       function paint(data) {
         box.innerHTML = progressHtml(data);
         var tc = document.getElementById('fh-progress-coach');
@@ -1444,11 +1551,17 @@
           if (slot && slot.scrollIntoView) { try { slot.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
         });
       }
+      function opened() {
+        box.style.display = '';
+        progOpen = true;
+        btn.textContent = COPY.PROGRESS_HIDE;
+      }
       if (state.progressCache) {
         paint(state.progressCache);
+        opened();
         callGateway({ action: 'progressReview', projectId: state.activeProjectId })
           .then(function (data) {
-            if (data.ok) { state.progressCache = data; paint(data); }
+            if (data.ok) { state.progressCache = data; if (progOpen) { paint(data); } }
           })
           .catch(function () {});
         return;
@@ -1457,12 +1570,45 @@
       callGateway({ action: 'progressReview', projectId: state.activeProjectId })
         .then(function (data) {
           btn.disabled = false;
-          if (!data.ok) { box.innerHTML = '<div class="fh-msg fh-bad">' + esc(data.error || 'Could not load progress.') + '</div>'; return; }
+          if (!data.ok) { box.innerHTML = '<div class="fh-msg fh-bad">' + esc(data.error || 'Could not load progress.') + '</div>'; box.style.display = ''; return; }
           state.progressCache = data;
           paint(data);
+          opened();
         })
         .catch(function () { btn.disabled = false; });
     });
+
+    // MORE HELP & TOOLS wiring (round 13).
+    var mhToggle = document.getElementById('fh-morehelp-toggle');
+    var mhBody = document.getElementById('fh-morehelp-body');
+    if (mhToggle && mhBody) mhToggle.addEventListener('click', function () {
+      var open = mhBody.style.display !== 'none';
+      mhBody.style.display = open ? 'none' : 'block';
+      mhToggle.textContent = open ? COPY.MOREHELP_OPEN : COPY.MOREHELP_CLOSE;
+    });
+    var mhHow = document.getElementById('fh-mh-how');
+    if (mhHow) mhHow.addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = 'howworks';
+      route();
+    });
+    // Power Hour revisits resume their own Day-1 sessions; direct opens use
+    // the daily resume-newest semantics. Explicit taps — never uninvited.
+    var mhBtns = rootEl.querySelectorAll('[data-mh-ph], [data-mh-daily]');
+    for (var mb = 0; mb < mhBtns.length; mb++) {
+      (function (el) {
+        el.addEventListener('click', function () {
+          var ph = el.getAttribute('data-mh-ph');
+          var daily = el.getAttribute('data-mh-daily');
+          if (ph) { mountTool(ph, { sessionKey: 'ph-' + ph }); }
+          else if (daily) { mountDailyTool(daily, ''); }
+          if (!FS.mode) {
+            var stub = document.getElementById('fh-tool-stub');
+            if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
+          }
+        });
+      })(mhBtns[mb]);
+    }
 
   }
 
@@ -2197,6 +2343,12 @@
       '#freedom-home .fh-exp-day{display:inline-block;background:#e8effc;color:#2f6df6;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;}' +
       '#freedom-home .fh-exps-sub{margin:-2px 0 6px;font-size:13px;}' +
       '#freedom-home .fh-tellcoach{margin-top:16px;}' +
+      // Round 13: progress breathing room + More-help + explainer styling.
+      '#freedom-home #fh-progress h3:first-child{margin-top:14px;}' +
+      '#freedom-home .fh-mh-group{font-size:12.5px;font-weight:700;color:#2f4a68;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px;text-align:left;}' +
+      '#freedom-home .fh-mh-btn{margin-top:8px;}' +
+      '#freedom-home #fh-morehelp-body{text-align:left;}' +
+      '#freedom-home .fh-how-p{font-size:14.5px;line-height:1.6;color:#2b3745;margin:0 0 12px;}' +
       '#fh-tool{margin-top:12px;}';
     var style = document.createElement('style');
     style.id = 'fh-styles';

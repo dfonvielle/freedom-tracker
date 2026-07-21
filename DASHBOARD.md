@@ -1,12 +1,12 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-21 (round 12) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-07-21 (round 13) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
 **Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
 ## Headline
 
-**Round 12 shipped 2026-07-21** off Dave's mid-session stress test (which BROKE the handoff — three dominoes, all dead now). Fixed: **session rotation** (a handoff into a session with real turns starts FRESH at a rotated key — Screen 1 + fast-track work; old sessions retire in place, resume = newest; verified `d5-bh_rbf-2`), **engine JSON armor** (`salvagePlainMessage_` — truncated envelopes extract their message or apologize, raw JSON can never reach a student; **engine @6**, node-proven + live-turn smoked), **honest ready-card** ("Start a fresh rewiring session →" + wrap-up note when a session exists; tap = consent, no dialog), **re-entry unbroken** ("Back to my rewiring session →" stays live and never re-sends; Continue button persists on phones; the widget's minimized note now NAMES the tool — the static "Your AI coach is open" line was the stranding culprit), **Freedom Experiments surfaced** (Gateway **@33** returns exps; progress shows "Your Freedom Experiments — every experiment counts, however it went"; chips quote the student's own words: "Saved as a Freedom Experiment ✓ — 'tried to stop at the buffet…'"), and the **tell-your-coach intake line** under progress. Doctrine rules 15 (consent lives in the button) + §4.8 (clamp model failures at the engine). Next: **Dave's live round-12 walk**, then humans.
+**Round 13 shipped 2026-07-21** — the program's **third act enters the product** (tier 1) + the conditionals become forgettable-proof. New: **More help & tools** (one closed door at the rail bottom: the SYBR explainer, Power Hour revisits with once-is-all-it-takes framing, direct RBF/F&A opens), the **"How this rewiring works" card** (prediction errors, the smiley-face-with-magnifying-glass move, the quit-date answer — "a fight that stopped existing" — and the named road ending in "this page is designed to make itself unnecessary", with an ask-your-coach bridge), **progress toggle** (See ↔ Hide, cache-instant), **Gateway default-project hardening** (a finished project always beats a newer blank one — the Day-14 flash closed at ACCOUNT level; node-proven), and the **testability machinery**: `fh preview [phone]` command, the **State Map** below (21 conditionals: trigger + what shows + how to force), doctrine §4.9 (no conditional without a forcing scenario). Round 14 designed and constitutionally constrained (milestone watcher, logged No-Brainer Decision, slips-are-a-feature, no streaks/lockouts/demotions ever) — builds after Dave's own milestone walk. Next: **Dave's round-13 walk + `fh preview`**, then humans.
 
 ```mermaid
 flowchart LR
@@ -40,9 +40,38 @@ flowchart LR
 
 ## ✍️ Waiting on Dave
 
-1. **Walk round 12 live** — replay your exact break: work a rewiring session a few turns, talk to the coach, build a new focus, and open it. Expect: "Start a fresh rewiring session →" (+ wrap-up note), a CLEAN fresh session on the new focus (old one untouched), "Back to my rewiring session →" staying tappable, the minimized note naming the tool, and no raw JSON anywhere ever. Then See-my-progress → "Your Freedom Experiments" stack + own-words chips. (Pages ~10 min; hard-refresh.)
-2. **Check the project dropdown for a stray blank project** — still the prime suspect for the Day-14 wizard flash; tell me and I can harden the Gateway default next round.
-3. If any wording looks old, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
+1. **Walk round 13 live** (Pages ~10 min; hard-refresh): the progress toggle, **More help & tools** at the bottom (explainer → read it as YOUR method voice and flag any wording to change; PH revisits; direct tools), and the ask-your-coach bridge at the end of the explainer.
+2. **Try `fh preview`** in Terminal (and `fh preview phone`) — the scenario buttons force any conditional state; the **State Map** below is the full inventory.
+3. Blank-project check is now optional curiosity: the Gateway default hardening makes a stray blank project harmless (a finished project always wins the default). Delete it if you see it; nothing depends on it.
+4. If any wording looks old, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
+
+## 🗺 State Map — every conditional, its trigger, and how to summon it
+
+*Run `fh preview` (desktop harness) or `fh preview phone` (fullscreen lesson) — the buttons across the top force scenarios; the seeds below force the rest. **Rule (doctrine §4.9): no conditional ships without a row here + a way to force it.***
+
+| State | Trigger (real life) | What the student sees | Force it |
+|---|---|---|---|
+| Setup wizard | project setup stage < 4 | 4-step "Welcome! Let's set up" | `?s=wizard` (clear `ag_fh_pin_v1` first) |
+| **Wizard guard retry** | wizard-shaped state on an account that ever finished setup, no explicit pick | loading shell → one `fresh=true` re-pull → wizard only if server insists twice | visit `?s=day5` (writes pin), then `?s=wizard`; mock log shows the double state call |
+| Crossed-midnight fresh | cached snapshot from a previous local date | instant paint, then forced-fresh background refresh | edit `ag_fh_cache_v1`'s `today` to yesterday, reload |
+| Day 0 / Power Hour / Day-1 done | currentDay ≤ 1 | PH sequence, pips, celebrate | `?s=day1_fresh`, `?s=day1_scores` |
+| Daily rail | day ≥ 2, stage 4 | the three-step rhythm | `?s=day5` |
+| Resume button | today's session has a real student turn | "Continue where you left off with the {tool} →" | open a tool, send anything, reload |
+| **Fresh-start ready card** | ready card while a live session exists | "Start a fresh rewiring session →" + wrap-up note; opening rotates the session key | use a tool, then run the guided flow |
+| Back-to-session | any ready card after opening | live "Back to my rewiring session →" (never re-sends) | open any ready card |
+| Conversation mode | student sent anything, no ready card | doors stand down, "Send a message…", Start-over shows | type to the coach |
+| Guided flow | "Target what's challenging today →" | composer hides, instant feelings panel (prefetched) | tap it |
+| Ready-card end state | prompt built (either door) | card + See-or-edit + Start-over ONLY | finish the guided flow |
+| Progress nudge | today not logged | "These numbers are from Day N — log today's…" | `?s=day9` → See my progress |
+| Progress toggle | tap | table + wins + **Freedom Experiments** + tell-your-coach line; label flips to "Hide my progress" | `?s=day9` |
+| More help & tools | tap (ships collapsed) | explainer link, PH revisits, direct tool opens | any daily scenario |
+| How-this-works card | link in More help | SYBR story + quit-date answer + the road + ask-your-coach bridge | More help → the link |
+| Fullscreen takeover / hint | phone width | "Freedom Accelerator" bar; minimized = hint card + bubble | `fh preview phone` |
+| Coach sheet | phone, "Talk to your coach →" | fullscreen sheet, "Your Freedom AI Coach" bar | `fh preview phone` |
+| Widget minimized note | tool popup minimized | "Your {tool} session is open — tap the blue chat bubble…" | phone: minimize an open tool |
+| Setting-up poll | fresh buyer beat the webhook | "Setting up your tracker…" + auto-retry | `?s=settingup` |
+| Multi-project picker | > 1 projects | dropdown in the one-line header | `?s=multi` |
+| Gateway default pick (server) | state call with no projectId | finished project always beats a newer blank one | node-eval test in round-13 notes; blank never defaults |
 
 ## 🔌 Connections
 
