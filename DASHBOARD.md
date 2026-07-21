@@ -1,6 +1,6 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-21 (round 14) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-07-21 (round 15) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
 **Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
@@ -62,9 +62,11 @@ flowchart LR
 | Guided flow | "Target what's challenging today →" | composer hides, instant feelings panel (prefetched) | tap it |
 | Ready-card end state | prompt built (either door) | card + See-or-edit + Start-over ONLY | finish the guided flow |
 | Progress nudge | today not logged | "These numbers are from Day N — log today's…" | `?s=day9` → See my progress |
-| Progress toggle | tap | table + wins + **Freedom Experiments** + tell-your-coach line; label flips to "Hide my progress" | `?s=day9` |
-| More help & tools | tap (ships collapsed) | explainer link, PH revisits, direct tool opens | any daily scenario |
-| How-this-works card | link in More help | SYBR story + quit-date answer + the road + ask-your-coach bridge | More help → the link |
+| Progress toggle (GOLD button) | tap | table + wins + **Freedom Experiments** + tell-your-coach line; label flips to "Hide my progress" | `?s=day9` |
+| **Freedom Proof headline** | Days 7–9 with any positive movement | "That is your Freedom Proof… You are not powerless" leads the progress view | `?s=day9` |
+| **Exps empty-state teach** | progress open, zero experiments logged | "try delaying your behavior even 2 seconds today" | `?s=day9` (day9 mock has no exps; `?s=milestone` has the full stack) |
+| More help & tools | tap (ships collapsed) | explainer link, PH revisits, direct tools incl. **Withdrawal Helper** + medical-supervision safety line | any daily scenario |
+| How-this-works card | link in More help (also on Day 0) | 2-min SYBR story (3 ingredients, kiss, real-vs-imagined, bar-not-lake) + Freedom Experiments + quit-date answer + Proof-Sprint road + ask-coach bridge + minplan revisit (Day 2+) | More help → the link |
 | Fullscreen takeover / hint | phone width | "Freedom Accelerator" bar; minimized = hint card + bubble | `fh preview phone` |
 | Coach sheet | phone, "Talk to your coach →" | fullscreen sheet, "Your Freedom AI Coach" bar | `fh preview phone` |
 | Widget minimized note | tool popup minimized | "Your {tool} session is open — tap the blue chat bubble…" | phone: minimize an open tool |
