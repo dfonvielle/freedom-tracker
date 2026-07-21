@@ -1,12 +1,12 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-20 (round 10) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-07-21 (round 11) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
 **Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
 ## Headline
 
-**Round 10 shipped 2026-07-20 evening** — chrome unification (the fullscreen rail now wears the same solid **"Freedom Accelerator" bar + minimizer** as the tool popups/coach sheet), two-door **path exclusivity** (guided flow hides the composer; a ready card hides both doors + offers "Start over"), **instant** guided panel (coachHelpMenu prefetched at boot), the round-5 warm-greeting handoff **reverted** (tool greets normally, prompt lands visibly, tail "Let's start rewiring immediately — no questions"), and the RBF bot's **promised-but-unimplemented no-questions skip actually implemented** (bh_rbf Screen-1 fast-track; draft-proven then LIVE). Next milestone: **Dave's live phone + desktop walkthrough of round 10** (plan phase 10).
+**Round 11 shipped 2026-07-21** off Dave's live Day-14 walkthrough (round 10 held up: no-questions fast-track fired on the real page). Fixed: the **Day-14 wizard flash** (pinned project id `ag_fh_pin_v1` + a wizard guard — an established account never re-enters setup from a routine load; one forced-fresh retry, believe the server only if it insists twice), the **wobble + clipped Refresh** (conflicting hdr-right rules merged, select min-width:0, `overflow-x:hidden` — 375px verified zero sideways overflow with the full "↻ Refresh" label), **instant See-my-progress** (prefetch at boot, ~9ms paint, honest "numbers are from Day N" nudge when today isn't logged), coach **conversation mode** (mid-convo the doors stand down; "Send a message…"; Start-over exits), **payoff chips** ("Saved as a win ✓ — you'll see it in your progress"), widget **scrollToReadable** (long replies land at their TOP — all 18 bots, Pages-deployed), Freedom Page→**Freedom Accelerator** copy sweep, centered rhythm strip + progress air. Next: **Dave's live round-11 walk**, then humans.
 
 ```mermaid
 flowchart LR
@@ -40,8 +40,9 @@ flowchart LR
 
 ## ✍️ Waiting on Dave
 
-1. **Walk round 10 live** — phone + desktop on the real lesson (Pages cache ~10 min after this push; hard-refresh). Watch for: the Freedom Accelerator bar, instant "Target…" panel, ready-card-only end state, handoff jumping STRAIGHT to rewiring (no digging screen), "Get help with this" answering instead of asking.
-2. If the coach's wording looks old anywhere, check the Gateway **UI Copy tab** — sheet cells override code copy (CHAT_HINT etc.); clear stale cells.
+1. **Walk round 11 live** — phone first (Pages ~10 min after this push; hard-refresh). Watch for: no wobble + full "↻ Refresh", tomorrow-morning day rollover landing on the daily rail (never the wizard), See-my-progress instant + the "from Day N" nudge, a chat with the coach dropping into conversation mode, "Saved as a win ✓ — you'll see it in your progress", long tool replies starting at their top.
+2. **Check the project dropdown for a stray blank project** — if one exists it likely explains the Day-14 wizard flash (Gateway defaulted to it); tell me and I can also harden the Gateway default next round.
+3. If the coach's wording looks old anywhere, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
 
 ## 🔌 Connections
 
