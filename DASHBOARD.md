@@ -1,12 +1,12 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-21 (round 13) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-07-21 (round 14) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
 **Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
 ## Headline
 
-**Round 13 shipped 2026-07-21** — the program's **third act enters the product** (tier 1) + the conditionals become forgettable-proof. New: **More help & tools** (one closed door at the rail bottom: the SYBR explainer, Power Hour revisits with once-is-all-it-takes framing, direct RBF/F&A opens), the **"How this rewiring works" card** (prediction errors, the smiley-face-with-magnifying-glass move, the quit-date answer — "a fight that stopped existing" — and the named road ending in "this page is designed to make itself unnecessary", with an ask-your-coach bridge), **progress toggle** (See ↔ Hide, cache-instant), **Gateway default-project hardening** (a finished project always beats a newer blank one — the Day-14 flash closed at ACCOUNT level; node-proven), and the **testability machinery**: `fh preview [phone]` command, the **State Map** below (21 conditionals: trigger + what shows + how to force), doctrine §4.9 (no conditional without a forcing scenario). Round 14 designed and constitutionally constrained (milestone watcher, logged No-Brainer Decision, slips-are-a-feature, no streaks/lockouts/demotions ever) — builds after Dave's own milestone walk. Next: **Dave's round-13 walk + `fh preview`**, then humans.
+**Rounds 13 + 14 shipped 2026-07-21** — the program has its **third act**, end to end. Round 13: **More help & tools** (SYBR explainer with the quit-date answer + the named road, Power Hour revisits, direct tool opens), progress See↔Hide toggle, **Gateway default-project hardening** (Day-14 closed at account level), and the testability machinery (`fh preview`, the State Map below, doctrine §4.9). Round 14: **the milestone** — the Gateway watcher notices 3 logged days of Easy ≥7 + Enjoyable ≥7 and the rail raises the gold "⭐ Something worth seeing" card itself (grandpa never self-assesses); the **No-Brainer Life-Changing Decision room** (decide from ease; slips are rewiring material; two-second maintenance preview); deciding logs the milestone (registry JSON, works past the edit window), the ⭐ line **leads the progress story**, the card never returns, and the coach carries the decision as background context with slip-framing rules (never brings it up unprompted, never frames recurrence as failure — nothing resets). "Not yet" = 7-day snooze. Full journey + snooze + decided-state harness-verified; zero console errors. **Maintenance mode (tier 3) remains deliberately unbuilt** — designed after Dave's own milestone walk. Next: **Dave's live walk of rounds 13–14** (`fh preview` forces everything), then humans.
 
 ```mermaid
 flowchart LR
@@ -40,10 +40,9 @@ flowchart LR
 
 ## ✍️ Waiting on Dave
 
-1. **Walk round 13 live** (Pages ~10 min; hard-refresh): the progress toggle, **More help & tools** at the bottom (explainer → read it as YOUR method voice and flag any wording to change; PH revisits; direct tools), and the ask-your-coach bridge at the end of the explainer.
-2. **Try `fh preview`** in Terminal (and `fh preview phone`) — the scenario buttons force any conditional state; the **State Map** below is the full inventory.
-3. Blank-project check is now optional curiosity: the Gateway default hardening makes a stray blank project harmless (a finished project always wins the default). Delete it if you see it; nothing depends on it.
-4. If any wording looks old, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
+1. **Walk rounds 13–14 live** (Pages ~10 min; hard-refresh): progress toggle, **More help & tools** (read the explainer as YOUR method voice — flag any wording), and the milestone journey via `fh preview` → **milestone** scenario (the gold card → decision room → decide → ⭐ in progress; also the **decided** scenario). Author-review the milestone/decision copy especially — it's the method's biggest moment.
+2. Your REAL account will show the gold card once your own scores hold 7+/7+ for three logged days — that's the lived walk that will teach us maintenance mode (tier 3, deliberately unbuilt).
+3. If any wording looks old, check the Gateway **UI Copy tab** — sheet cells override code copy; clear stale cells.
 
 ## 🗺 State Map — every conditional, its trigger, and how to summon it
 
@@ -69,6 +68,8 @@ flowchart LR
 | Fullscreen takeover / hint | phone width | "Freedom Accelerator" bar; minimized = hint card + bubble | `fh preview phone` |
 | Coach sheet | phone, "Talk to your coach →" | fullscreen sheet, "Your Freedom AI Coach" bar | `fh preview phone` |
 | Widget minimized note | tool popup minimized | "Your {tool} session is open — tap the blue chat bubble…" | phone: minimize an open tool |
+| **Milestone card** | 3 most recent LOGGED score days all Easy ≥7 AND Enjoyable ≥7, no decision, not snoozed | gold "⭐ Something worth seeing" card between step 3 and progress; "Not yet" = 7-day snooze | `?s=milestone` |
+| **Decision room + logged decision** | "Tell me about the No-Brainer Decision →" | decide-from-ease copy, slips-are-rewiring note, "I've made my decision" → saved; card never returns; ⭐ line leads the progress story; coach knows (background only) | `?s=milestone` → walk it; `?s=decided` = already-decided state |
 | Setting-up poll | fresh buyer beat the webhook | "Setting up your tracker…" + auto-retry | `?s=settingup` |
 | Multi-project picker | > 1 projects | dropdown in the one-line header | `?s=multi` |
 | Gateway default pick (server) | state call with no projectId | finished project always beats a newer blank one | node-eval test in round-13 notes; blank never defaults |
