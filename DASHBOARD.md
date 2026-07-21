@@ -1,12 +1,12 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-19 — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-07-20 (round 10) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
-**Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
+**Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
 ## Headline
 
-Freedom Home build **phases 5–9.8 DONE** — 9.8 (2026-07-19) gave the rail the **ChatNode-style mobile fullscreen takeover** (phone = whole screen; desktop unchanged; tools render inline in the rail via the widget's new `data-inline`). Next milestone is **Dave's phone + desktop live test** (plan phase 10).
+**Round 10 shipped 2026-07-20 evening** — chrome unification (the fullscreen rail now wears the same solid **"Freedom Accelerator" bar + minimizer** as the tool popups/coach sheet), two-door **path exclusivity** (guided flow hides the composer; a ready card hides both doors + offers "Start over"), **instant** guided panel (coachHelpMenu prefetched at boot), the round-5 warm-greeting handoff **reverted** (tool greets normally, prompt lands visibly, tail "Let's start rewiring immediately — no questions"), and the RBF bot's **promised-but-unimplemented no-questions skip actually implemented** (bh_rbf Screen-1 fast-track; draft-proven then LIVE). Next milestone: **Dave's live phone + desktop walkthrough of round 10** (plan phase 10).
 
 ```mermaid
 flowchart LR
@@ -26,20 +26,22 @@ flowchart LR
 | Coach v3 (fc:prompt events, send-to-tool) | 🟢 built | [coach.v3.js](coach.v3.js) |
 | Freedom Home one-page rail | 🟡 built + mock-harness green, awaiting live test | [freedom-home.v1.js](freedom-home.v1.js) |
 | Mobile fullscreen takeover (9.8) | 🟢 **proven on Dave's iPhone** (2026-07-20); rounds 2–4 shipped same-day: tools popup fullscreen OVER the rail, minimized rail = hint card, one-bubble invariant, coach fullscreen sheet (round-4 fc-scroll fix: composer pinned, help never crushed) | [test_home_lesson.html](test_home_lesson.html) |
-| Grandpa polish 9.9 (rounds 5–8) | 🟢 shipped 2026-07-20: coach GREETS first (templated bubble, intro box gone, more-help demoted), one-button de-plumbed handoff + newest-wins, warm-start tools ("your coach filled me in"), goal line + goal&plan edit card (updateGoals), what's-this → coach, **day rolls at student-local midnight** (Gateway @30; clients send tz)  + round 8 (one-line header, goal box, get-help→minplan, collapsed log, coach button diet + editable handoff); ⚠️ coach AI provider outage diagnosed = Gateway "Coach AI Settings" config (Dave: set AI_PROVIDER=openrouter + coach_smokeAI) | plan doc 9.9 note |
+| Grandpa polish 9.9 (rounds 5–9) | 🟢 shipped 2026-07-20: rounds 5–8 (greeting experiments, handoff diet, goal box, day-rollover tz, one-line header) + round 9 (two-door coach — Recommend removed, "Target what's challenging today →" primary); provider outage resolved (Dave set AI_PROVIDER=openrouter) | plan doc 9.9 notes |
+| **Round 10 — chrome + exclusivity + handoff revert** | 🟢 shipped 2026-07-20 evening, harness-verified desktop+375: solid "Freedom Accelerator" bar (floating – gone, labeled ↻ Refresh back), one-line goal box + step-1 "My moment", coach head de-duped ("Your Freedom AI Coach" sheet bar; Day · Refresh · picker line), chat hint = composer label, doors exclusive + "Start over with the freedom coach", coachHelpMenu **prefetched** (instant panel), warm greeting deleted (prompt lands visibly + "— no questions." tail, /fear/i-gated), step-1 get-help preloads minplan with the goal line on fresh sessions; **bh_rbf Screen-1 no-questions fast-track added in ai_tools (was promised in greeting, implemented nowhere) — proven in harness (Screen 2 skipped), promoted LIVE** | plan doc 9.9 round 10 |
 | 9.7 polish (auto-log chips w/ undo, de-trackered copy) | 🟢 done | git log |
 | Test harnesses | 🟢 in repo | [test_coach_home.html](test_coach_home.html) · [test_home.html](test_home.html) |
 
 ## Progress
 
-**Done:** phases 5–9.8 of the Freedom Home plan (shell, wizard, power-hour, daily, progress, coach persistence, session resume, auto-log chips, de-trackered voice, mobile fullscreen takeover).
+**Done:** phases 5–9.8 + polish rounds 5–10 of the Freedom Home plan (shell, wizard, power-hour, daily, progress, coach persistence, session resume, auto-log chips, de-trackered voice, mobile fullscreen takeover, two-door coach, round-10 chrome/exclusivity/handoff).
 
-- [ ] Phase 10 — Dave live test on a real lesson
+- [ ] Phase 10 — Dave live test on a real lesson (now = walking round 10)
 - [ ] Phase 11 — September model bump (scheduled; before Gemini 2.5-Flash's Oct 16 deprecation)
 
 ## ✍️ Waiting on Dave
 
-1. **Phase-10 live test** — run Freedom Home in a real Systeme lesson, note friction, green-light wider rollout.
+1. **Walk round 10 live** — phone + desktop on the real lesson (Pages cache ~10 min after this push; hard-refresh). Watch for: the Freedom Accelerator bar, instant "Target…" panel, ready-card-only end state, handoff jumping STRAIGHT to rewiring (no digging screen), "Get help with this" answering instead of asking.
+2. If the coach's wording looks old anywhere, check the Gateway **UI Copy tab** — sheet cells override code copy (CHAT_HINT etc.); clear stale cells.
 
 ## 🔌 Connections
 

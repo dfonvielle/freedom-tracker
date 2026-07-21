@@ -49,7 +49,7 @@
      * ============================================================ */
     var COPY = {
       LOADING: 'Opening your coach\u2026',
-      HEADER: '{NAME}Freedom AI Coach',
+      HEADER: '{NAME}Freedom AI Coach',   // unused since round 10 (the name-heading repeated the sheet bar / step title). Key kept for UI-Copy-tab compat.
       SUBLINE: 'Day {DAY}',
       REFRESH_BTN: '\u21bb Refresh',
       REFRESH_DOING: 'Refreshing\u2026',
@@ -58,10 +58,17 @@
       // Round 9 (Dave): "Recommend my next move" is GONE from Home \u2014 it
       // steered from the past week's log, and a recommendation built on
       // solved problems is one day behind the student. Two doors, both
-      // about TODAY: target it, or talk it out.
-      CHAT_HINT: '\u2026or just tell me what\u2019s going on below, and I\u2019ll help you find what to rewire.',
+      // about TODAY: target it, or talk it out. Round 10: the hint sits
+      // directly ABOVE the composer (it is that field's label), readable
+      // size, and the doors are EXCLUSIVE \u2014 entering one hides the other.
+      CHAT_HINT: 'Or tell me what\u2019s going on, and I\u2019ll help you find what to rewire:',
       CHAT_PLACEHOLDER: 'How can I help?',
       SEND_BTN: 'Send',
+      START_OVER: 'Start over with the freedom coach',
+      // Appended to every Home handoff prompt (visible in See-or-edit): the
+      // rewiring tools already treat "no questions" as "skip the digging,
+      // set up and start rewiring" \u2014 the coach conversation IS the digging.
+      PROMPT_TAIL: 'Let\u2019s start rewiring immediately \u2014 no questions.',
       THINKING: 'Thinking\u2026',
       COPY_BUTTON: 'Copy prompt',
       COPIED: 'Copied \u2713',
@@ -146,6 +153,10 @@
       helpOpen: false,
       helpMenu: null,        // {ub, canLog, feelings:[...]}
       helpFeeling: null,     // current feeling object when in the form
+      _helpMenuFetching: false,   // round 10: prefetched at boot so the panel opens instantly
+      // round 10: a ready prompt-card is the END state of either door —
+      // while one is showing, both doors hide and Start-over is the way back
+      promptActive: false,
       // soft refresh
       _refreshing: false,
       _refreshFlash: false
@@ -279,6 +290,7 @@
           }
           var hasConvo = !!(state.messages && state.messages.length);
           if (!state.booted || (!hasConvo && !state.busy)) { renderCoach(); }
+          fetchHelpMenu();   // round 10 prefetch — no-op if cached or already in flight
           // Round 8: NO auto-greeting. Dave's verdict on round 5's greeting
           // bubble: "a greeting for the sake of greeting — taking up mental
           // space without getting them up and running." The interface IS the
@@ -423,6 +435,8 @@
       state.helpOpen = false;
       state.helpMenu = null;     // help menu is localized per project, so refetch
       state.helpFeeling = null;
+      state.promptActive = false;
+      lastPromptBox = null;
       state.busy = false;
       rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
       loadState();
@@ -449,6 +463,8 @@
       state.helpOpen = false;
       state.helpMenu = null;
       state.helpFeeling = null;
+      state.promptActive = false;
+      lastPromptBox = null;
       state.busy = false;
 
       // Also clear the tracker loader's persisted snapshot (shared device),
@@ -467,36 +483,39 @@
     // ============================================================
     function renderCoach() {
       state.booted = true;
-      var name = state.firstName ? esc(state.firstName) + '\u2019s ' : '';
+      // Round 10: NO name-heading ("so-and-so's Freedom AI Coach" repeated
+      // the sheet bar / the rail's step title). The head is ONE line —
+      // Day · Refresh · project picker — the same line the rail trains.
       var html =
         '<div class="fc-card">' +
           '<div class="fc-head">' +
-            '<div>' +
-              '<h3>' + name + 'Freedom AI Coach</h3>' +
-              '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) +
-                ' <span class="fc-sep">·</span> ' +
-                '<button class="fc-refreshlink" id="fc-refresh">' +
-                esc(state._refreshFlash ? COPY.REFRESH_DONE : COPY.REFRESH_BTN) + '</button></p>' +
-            '</div>' +
+            '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) +
+              ' <span class="fc-sep">·</span> ' +
+              '<button class="fc-refreshlink" id="fc-refresh">' +
+              esc(state._refreshFlash ? COPY.REFRESH_DONE : COPY.REFRESH_BTN) + '</button></p>' +
             coachProjectPickerHtml() +
           '</div>' +
           // fc-scroll: inert wrapper inline; in Freedom Home's fullscreen
           // sheet it becomes THE scroll region — conversation first, actions
-          // trailing it, composer pinned. The old intro box is gone: the
-          // greeting bubble (round 5) does its job as an actual message.
+          // trailing it, composer pinned.
           '<div class="fc-scroll">' +
           (state.writable ? '' : '<div class="fc-note fc-readonly">' + esc(COPY.READONLY_NOTE) + '</div>') +
           '<div id="fc-transcript" class="fc-transcript"></div>' +
-          // Round 9 (Dave): TWO DOORS, both about TODAY. The guided
-          // emotional-targeting flow is the primary button; the composer is
-          // the other door (the caption points at it).
+          // Round 9 (Dave): TWO DOORS, both about TODAY. Round 10: the
+          // doors are EXCLUSIVE (updateDoors_) — the guided flow hides the
+          // composer; a ready prompt-card hides both and offers Start-over.
           '<button id="fc-morehelp" class="fc-recbtn">' + esc(COPY.MORE_HELP_BTN) + '</button>' +
-          '<div class="fc-reccaption">' + esc(COPY.CHAT_HINT) + '</div>' +
           '<div id="fc-help" class="fc-help"></div>' +
+          '<button id="fc-startover" class="fc-startover" style="display:none">' + esc(COPY.START_OVER) + '</button>' +
           '</div>' +
-          '<div class="fc-inputrow">' +
-            '<textarea id="fc-input" rows="1" placeholder="' + esc(COPY.CHAT_PLACEHOLDER) + '"></textarea>' +
-            '<button id="fc-send" class="fc-sendbtn">' + esc(COPY.SEND_BTN) + '</button>' +
+          // Round 10: the chat hint is the composer's LABEL — directly above
+          // the box it describes, readable size, hidden together with it.
+          '<div class="fc-composer" id="fc-composer">' +
+            '<div class="fc-chathint">' + esc(COPY.CHAT_HINT) + '</div>' +
+            '<div class="fc-inputrow">' +
+              '<textarea id="fc-input" rows="1" placeholder="' + esc(COPY.CHAT_PLACEHOLDER) + '"></textarea>' +
+              '<button id="fc-send" class="fc-sendbtn">' + esc(COPY.SEND_BTN) + '</button>' +
+            '</div>' +
           '</div>' +
         '</div>';
       rootEl.innerHTML = html;
@@ -510,6 +529,7 @@
       // wrapper on purpose: a bare handler would receive the click EVENT as
       // onSend's textArg and treat it as programmatic text
       document.getElementById('fc-send').addEventListener('click', function () { onSend(); });
+      document.getElementById('fc-startover').addEventListener('click', onStartOver);
       var fcProj = document.getElementById('fc-project');
       if (fcProj) { fcProj.addEventListener('change', function () { onProjectChange(this.value); }); }
       var fcRefresh = document.getElementById('fc-refresh');
@@ -532,6 +552,33 @@
         document.getElementById('fc-morehelp').textContent = COPY.MORE_HELP_CLOSE;
         if (state.helpMenu) { renderHelpPanel(); } else { fetchHelpMenu(); }
       }
+      updateDoors_();
+    }
+
+    // Round 10: ONE function owns which conversation path is visible.
+    // Idle → both doors. Guided flow open → composer hides. Ready
+    // prompt-card → both doors hide; Start-over is the way back.
+    // Idempotent on purpose — cheap to call after any render or state flip.
+    function updateDoors_() {
+      var more = document.getElementById('fc-morehelp');
+      var composer = document.getElementById('fc-composer');
+      var startOver = document.getElementById('fc-startover');
+      if (more) { more.style.display = state.promptActive ? 'none' : ''; }
+      if (composer) { composer.style.display = (state.promptActive || state.helpOpen) ? 'none' : ''; }
+      if (startOver) { startOver.style.display = state.promptActive ? '' : 'none'; }
+    }
+
+    // Round 10: the back door out of a ready prompt-card — a clean LOCAL
+    // reset to the two-door idle state (no server wait; the prefetched
+    // help menu survives, so the guided door stays instant).
+    function onStartOver() {
+      state.messages = [];
+      state.helpOpen = false;
+      state.helpFeeling = null;
+      state.promptActive = false;
+      state.busy = false;
+      lastPromptBox = null;
+      renderCoach();
     }
 
     function autoGrow() {
@@ -603,6 +650,7 @@
       state.helpFeeling = null;
       var btn = document.getElementById('fc-morehelp');
       if (btn) { btn.textContent = COPY.MORE_HELP_CLOSE; }
+      updateDoors_();
       if (state.helpMenu) { renderHelpPanel(); } else { fetchHelpMenu(); }
     }
     function closeHelp() {
@@ -612,20 +660,31 @@
       if (btn) { btn.textContent = COPY.MORE_HELP_BTN; }
       var panel = document.getElementById('fc-help');
       if (panel) { panel.innerHTML = ''; }
+      updateDoors_();
     }
     function helpMsg(text) {
       var panel = document.getElementById('fc-help');
       if (panel) { panel.innerHTML = '<div class="fc-help-loading">' + esc(text) + '</div>'; }
     }
+    // Round 10: also called at BOOT as a prefetch (from loadState), so the
+    // guided door opens INSTANTLY instead of "One moment…" + a Gateway
+    // round trip on tap. DOM work happens only if the panel is open.
     function fetchHelpMenu() {
-      helpMsg(COPY.HELP_LOADING);
+      if (state.helpMenu) { if (state.helpOpen) { renderHelpPanel(); } return; }
+      if (state._helpMenuFetching) { if (state.helpOpen) { helpMsg(COPY.HELP_LOADING); } return; }
+      state._helpMenuFetching = true;
+      if (state.helpOpen) { helpMsg(COPY.HELP_LOADING); }
       callGateway({ action: 'coachHelpMenu', projectId: state.activeProjectId })
         .then(function (data) {
-          if (!data.ok) { helpMsg(data.error || COPY.ERROR_GENERIC); return; }
+          state._helpMenuFetching = false;
+          if (!data.ok) { if (state.helpOpen) { helpMsg(data.error || COPY.ERROR_GENERIC); } return; }
           state.helpMenu = data;
           if (state.helpOpen) { renderHelpPanel(); }
         })
-        .catch(function () { helpMsg(COPY.ERROR_GENERIC); });
+        .catch(function () {
+          state._helpMenuFetching = false;
+          if (state.helpOpen) { helpMsg(COPY.ERROR_GENERIC); }
+        });
     }
 
     // The persistent target box: what the student wants to be free from. Shown
@@ -858,6 +917,7 @@
       msg._el = row;
       tx.appendChild(row);
       if (!replaying) { scrollDown(); }
+      updateDoors_();
     }
     function removeBubble(msg) {
       if (msg && msg._el && msg._el.parentNode) { msg._el.parentNode.removeChild(msg._el); }
@@ -917,6 +977,18 @@
       // plumbing — grandpa never chooses between Load and Copy, and repeated
       // Recommends can't stack live cards (the previous one greys out).
       if (window.FREEDOM_HOME === true) {
+        state.promptActive = true;   // end state of either door (updateDoors_)
+        // Round 10: every Home handoff prompt ends with the no-questions
+        // tail — the rewiring tools treat "no questions" as "skip the
+        // digging, set up and start immediately" (the coach conversation
+        // WAS the digging). Appended here so the peek shows exactly what
+        // will be sent, and edits ride along.
+        var tailText = String(text == null ? '' : text).replace(/\s+$/, '');
+        // RBF-bound prompts only (same /fear/i test as Home's routeBot):
+        // the F&A tool never promised a no-questions skip.
+        if (COPY.PROMPT_TAIL && !(/fear/i.test(String(tool || ''))) && tailText.indexOf(COPY.PROMPT_TAIL) === -1) {
+          tailText += '\n\n' + COPY.PROMPT_TAIL;
+        }
         if (lastPromptBox) {
           try {
             lastPromptBox.className = 'fc-promptbox fc-prompt-old';
@@ -944,7 +1016,7 @@
         var peekTa = document.createElement('textarea');
         peekTa.className = 'fc-prompt';
         peekTa.rows = 4;
-        peekTa.value = text;
+        peekTa.value = tailText;
         peekTa.style.display = 'none';
 
         var sendBtn = document.createElement('button');
@@ -1222,7 +1294,7 @@
         '#freedom-coach h3{margin:0 0 4px 0;font-size:19px;}' +
         '#freedom-coach .fc-sub{font-size:13.5px;color:#5b6b7a;margin:0;}' +
         '#freedom-coach .fc-center{text-align:center;color:#5b6b7a;font-size:14.5px;padding:8px 0;}' +
-        '#freedom-coach .fc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:14px;}' +
+        '#freedom-coach .fc-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}' +
         '#freedom-coach .fc-project{border:1px solid #c4cfd9;border-radius:8px;padding:9px 10px;font-size:15px;font-family:inherit;color:inherit;background:#fff;max-width:200px;}' +
         '#freedom-coach .fc-intro{background:#eef6f3;border:1px solid #bcd9cf;border-radius:8px;padding:11px 13px;font-size:14.5px;margin-bottom:14px;}' +
         '#freedom-coach .fc-note{border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:14px;}' +
@@ -1239,8 +1311,8 @@
         // more-help button (secondary)
         '#freedom-coach .fc-morehelpbtn{width:100%;background:#eef3f6;color:#1f6f5c;border:1px solid #cfe0d9;padding:11px 18px;font-size:14.5px;min-height:42px;margin-bottom:8px;}' +
         '#freedom-coach .fc-morehelpbtn:active{opacity:.85;}' +
-        // round 8: recommend caption (the button draws on the past week)
-        '#freedom-coach .fc-reccaption{text-align:center;font-size:12.5px;color:#5b6b7a;margin:-4px 0 10px;}' +
+        // round 10: start-over — the quiet way back out of a ready prompt-card
+        '#freedom-coach .fc-startover{display:block;width:100%;background:none;border:none;color:#5b6b7a;font-size:13.5px;font-weight:600;text-decoration:underline;padding:8px 0;margin:2px 0 4px;min-height:0;}' +
         // round 5: the Freedom Home prompt card — one line, one button, peek link
         '#freedom-coach .fc-prompt-ready{font-size:14.5px;font-weight:700;color:#1f6f5c;margin-bottom:8px;}' +
         '#freedom-coach .fc-sendtool{display:block;width:100%;margin-bottom:2px;}' +
@@ -1301,8 +1373,10 @@
         '#freedom-coach .fc-dismissbtn{background:#eef3f6;color:#5b6b7a;border:1px solid #d8e0e7;padding:11px 14px;font-size:14px;}' +
         '#freedom-coach .fc-review-done{border-style:solid;border-color:#bcd9cf;background:#eef6f3;}' +
         '#freedom-coach .fc-review-donerow{font-size:14.5px;font-weight:700;color:#1f6f5c;}' +
-        // input row
-        '#freedom-coach .fc-inputrow{display:flex;gap:8px;align-items:flex-end;margin-top:10px;border-top:1px solid #eef0f3;padding-top:12px;}' +
+        // composer = chat hint (the field's label, round 10) + input row
+        '#freedom-coach .fc-composer{margin-top:10px;border-top:1px solid #eef0f3;padding-top:10px;}' +
+        '#freedom-coach .fc-chathint{font-size:14.5px;font-weight:600;color:#42505e;margin:0 0 8px;}' +
+        '#freedom-coach .fc-inputrow{display:flex;gap:8px;align-items:flex-end;}' +
         '#freedom-coach .fc-inputrow textarea{flex:1;box-sizing:border-box;border:1px solid #c4cfd9;border-radius:10px;padding:11px;font-size:16px;font-family:inherit;color:inherit;resize:none;line-height:1.4;max-height:140px;}' +
         '#freedom-coach .fc-sendbtn{background:#1f6f5c;color:#fff;padding:12px 18px;font-size:15px;min-height:44px;}' +
         '#freedom-coach .fc-sendbtn:active{opacity:.85;}' +
@@ -1327,7 +1401,7 @@
         '.fh-coach-sheet #freedom-coach .fc-head{flex:none;}' +
         '.fh-coach-sheet #freedom-coach .fc-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}' +
         '.fh-coach-sheet #freedom-coach .fc-transcript{max-height:none;overflow:visible;}' +
-        '.fh-coach-sheet #freedom-coach .fc-inputrow{flex:none;}';
+        '.fh-coach-sheet #freedom-coach .fc-composer{flex:none;}';
       var style = document.createElement('style');
       style.id = 'fc-styles';
       style.textContent = css;

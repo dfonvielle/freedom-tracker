@@ -153,20 +153,24 @@
     DAILY_STRIP_TITLE: 'Today’s rhythm — three small steps',
     STEP1_TITLE: '1 · Morning rewiring (30 sec–2 min)',
     STEP1_CHECK: 'I did my Happiness & Success Jumpstart',
-    STEP1_ANCHOR: 'Your moment: {ANCHOR}',
+    STEP1_ANCHOR: 'My moment: {ANCHOR}',
     STEP2_TITLE: '2 · Talk it out, then rewire',
     STEP2_SUB: 'Tell your coach what’s going on (or tap “Recommend my next move”). Share your experiments, wins, and concerns — your coach logs them for you. When it hands you a loaded prompt, one tap sends it into your rewiring tool below.',
     STEP2_SUB_POPUP: 'Tell your coach what’s going on (or tap “Recommend my next move”). Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',   // unused since round 5 (card diet — the coach's own greeting teaches)
     STEP2_COACH_OPEN: 'Talk to your coach →',
-    COACH_SHEET_TITLE: 'Your AI Coach',
-    // Round 5: handed-off tools greet warm, not cold — same tool, same
-    // session key, presentation-only (the widget's greeting override).
-    WARM_GREETING: '## Your coach filled me in\n\nI have what you two worked out — it lands below as your first message.\n\nAdd anything you like, or we dive straight in.',
+    COACH_SHEET_TITLE: 'Your Freedom AI Coach',
+    // Round 10: the fullscreen rail gets the SAME solid-bar chrome as the
+    // tool popups and the coach sheet — one pattern to get used to.
+    FS_BAR_TITLE: 'Freedom Accelerator',
+    // (Round 5's WARM_GREETING — "Your coach filled me in" — is GONE, round
+    // 10: a meta-message about our plumbing while the real prompt was still
+    // in flight read as broken. The tool greets normally; the loaded prompt
+    // lands as the student's visible first message.)
     // Round 6/8: goal visibility + editing (rides the Gateway updateGoals
-    // action the full tracker already uses). Round 8: the box carries BOTH
-    // context lines (goal + morning moment) and is the one edit door.
+    // action the full tracker already uses). Round 10: ONE line again — the
+    // morning moment moved back down into Step 1 (Dave: the two-line box
+    // repeated furniture the step already owns).
     GOAL_LINE_PREFIX: 'I want freedom from: ',
-    GOAL_JS_PREFIX: 'H&S Jumpstart: ',
     GOAL_TITLE: 'Your goal & plan',
     GOAL_UB_LABEL: 'I want to make it easier and more enjoyable to be free from:',
     GOAL_JS_LABEL: 'My morning rewiring moment (the H&S Jumpstart):',
@@ -688,21 +692,21 @@
 
     rootEl.innerHTML =
       '<div class="fh-wrap">' +
-        // Round 8: ONE line — day chip, project picker, refresh. The
-        // greeting sentence is gone; real estate goes to the next step.
+        // Round 8: ONE line — day chip, project picker, refresh. Round 10:
+        // the refresh keeps its LABEL even fullscreen (the solid bar owns
+        // the corner now, so nothing sits under the old floating –).
         '<div class="fh-header">' +
           '<div class="fh-daychip">' + esc(dayLabel) + '</div>' +
           '<div class="fh-hdr-right">' + pickerHtml +
-            '<button class="fh-refresh" id="fh-refresh" title="Refresh" aria-label="Refresh">' + esc(FS.mode ? '↻' : COPY.REFRESH_BTN) + '</button>' +
+            '<button class="fh-refresh" id="fh-refresh" title="Refresh" aria-label="Refresh">' + esc(COPY.REFRESH_BTN) + '</button>' +
           '</div>' +
         '</div>' +
-        // Rounds 6/8: the context box — the goal AND the morning moment,
-        // always visible in full; tapping opens the goal & plan editor.
+        // Round 6/8/10: the context box — JUST the goal, one line; tapping
+        // opens the goal & plan editor (which still edits both fields).
         ((state.setup && state.setup.stage >= 4 && state.setup.ub)
           ? '<button class="fh-goal-line" id="fh-goal-line">' +
               '<span class="fh-goal-caret">›</span>' +
               '<div>' + esc(COPY.GOAL_LINE_PREFIX) + esc(state.setup.ub) + '</div>' +
-              (state.setup.jumpstart ? '<div class="fh-goal-js">' + esc(COPY.GOAL_JS_PREFIX) + esc(state.setup.jumpstart) + '</div>' : '') +
             '</button>'
           : '') +
         '<div id="fh-body">' + bodyHtml + '</div>' +
@@ -1148,13 +1152,15 @@
     renderShell(
       '<div class="fh-strip"><div class="fh-strip-title">' + esc(COPY.DAILY_STRIP_TITLE) + '</div></div>' +
 
-      // STEP 1 — jumpstart
+      // STEP 1 — jumpstart. Round 10: the morning moment lives HERE again
+      // ("My moment: …" — it is this step's context, not the goal's). Help
+      // opens the Minimalist Plan tool itself (never a coach detour).
       '<div class="fh-card' + (jumpDone ? ' fh-card-done' : '') + '">' +
         '<h3>' + esc(COPY.STEP1_TITLE) + (jumpDone ? ' <span class="fh-done-tick">✓</span>' : '') + '</h3>' +
+        (state.setup.jumpstart
+          ? '<p class="fh-sub fh-anchor">' + esc(COPY.STEP1_ANCHOR.replace('{ANCHOR}', state.setup.jumpstart)) + '</p>'
+          : '') +
         '<label class="fh-check"><input type="checkbox" id="fh-jump"' + (jumpDone ? ' checked' : '') + '/> ' + esc(COPY.STEP1_CHECK) + '</label>' +
-        // Round 8: the moment lives in the goal box up top; help opens the
-        // Minimalist Plan tool itself (their own Power Hour session — it
-        // teaches the plan and the H&S Jumpstart). Never a coach detour.
         '<div class="fh-linkline"><a href="#" id="fh-js-help">' + esc(COPY.STEP1_HELP) + '</a></div>' +
         '<div class="fh-msg" id="fh-jump-msg"></div>' +
       '</div>' +
@@ -1208,10 +1214,20 @@
 
     // Step 1 help (round 8): their own Minimalist Plan session from the
     // Power Hour — the tool that teaches the plan + the H&S Jumpstart.
+    // Round 10: a FRESH session hits the ground running — the goal line the
+    // student already sees up top auto-sends as their first message, so the
+    // tool answers instead of asking "what do you want to break free from?".
+    // An existing conversation resumes untouched (injecting a greeting-
+    // answer mid-history is noise).
     var jsHelp = document.getElementById('fh-js-help');
     if (jsHelp) jsHelp.addEventListener('click', function (e) {
       e.preventDefault();
+      var fresh = !sessionHasUserTurn_('bh_minplan', 'ph-bh_minplan');
       mountTool('bh_minplan', { sessionKey: 'ph-bh_minplan' });
+      if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
+        window.AgtWidget.send(document.getElementById('fh-tool-stub'),
+          COPY.GOAL_LINE_PREFIX + state.setup.ub);
+      }
       if (!FS.mode) {
         var helpStub = document.getElementById('fh-tool-stub');
         if (helpStub && helpStub.scrollIntoView) { try { helpStub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
@@ -1336,8 +1352,12 @@
   // F&A before RBF, since F&A only exists when the coach routed there.
   // A session counts only when the STUDENT said something — a mount that
   // merely greeted is not a conversation worth resurrecting.
-  function toolSessionExists_(botId) {
-    var key = 'ai_tools.v1.' + botId + (state.draft ? '.draft' : '') + '.kd' + state.currentDay + '-' + botId;
+  // A REAL session = the student actually spoke (a greeting alone doesn't
+  // count). Key shape mirrors the widget's lsKey with an explicit
+  // data-session-key. Round 10: generalized so the Step-1 minplan preload
+  // can ask about its 'ph-' session too.
+  function sessionHasUserTurn_(botId, sessionKey) {
+    var key = 'ai_tools.v1.' + botId + (state.draft ? '.draft' : '') + '.k' + sessionKey;
     try {
       var raw = localStorage.getItem(key);
       if (!raw) { return false; }
@@ -1348,6 +1368,9 @@
       }
       return false;
     } catch (e) { return false; }
+  }
+  function toolSessionExists_(botId) {
+    return sessionHasUserTurn_(botId, 'd' + state.currentDay + '-' + botId);
   }
   function toolDisplayName_(botId) {
     if (botId === 'bh_fearanxiety') { return 'Fear & Anxiety Relief tool'; }
@@ -1483,23 +1506,11 @@
     // Remember which tool the student touched LAST today, so a re-render
     // resumes the right one when both tools hold sessions.
     try { localStorage.setItem('fh_last_tool_d' + state.currentDay, botId); } catch (e) {}
-    // Warm start (round 5): a handed-off tool greets "your coach filled me
-    // in" instead of the cold opening question. Presentation-only — the
-    // widget's greeting override; explicit session-key means the session
-    // is NOT re-keyed, and the engine flow underneath is untouched.
-    var mountOpts = { sessionKey: 'd' + state.currentDay + '-' + botId };
-    if (promptText) {
-      var wg = document.getElementById('fh-warm-greet');
-      if (!wg) {
-        wg = document.createElement('script');
-        wg.type = 'text/markdown';
-        wg.id = 'fh-warm-greet';
-        document.body.appendChild(wg);   // outside rootEl: survives re-renders
-      }
-      wg.textContent = COPY.WARM_GREETING;
-      mountOpts.greetingFrom = 'fh-warm-greet';
-    }
-    mountTool(botId, mountOpts);
+    // Round 10: the round-5 warm-greeting override is gone — the tool opens
+    // with its own greeting and the coach's prompt lands as the student's
+    // visible first message (the prompt itself now ends with "No questions…",
+    // which the tool honors by skipping its digging phase).
+    mountTool(botId, { sessionKey: 'd' + state.currentDay + '-' + botId });
     // The prompt rides AgtWidget.send: it lands in fresh AND restored
     // sessions alike (the old only-on-fresh injection silently swallowed
     // handoffs into an already-open tool).
@@ -1618,7 +1629,7 @@
     } else {
       return;                           // iframe with a cross-origin parent: stay inline
     }
-    fsMakeMinBtn_();
+    fsMakeBar_();
     fsSetOpen_(true);                   // auto-open the moment the lesson loads
     if (FS.mode === 'frame') { window.setTimeout(fsVerifyOrDegrade_, 150); }
   }
@@ -1659,18 +1670,27 @@
     FS.launcher = b;
   }
 
-  // Floating minimize button — FS chrome, not render output, so it exists in
-  // EVERY state (loading, pairing, wizard, rail) and survives re-renders.
-  function fsMakeMinBtn_() {
+  // Solid top bar (round 10) — the SAME chrome pattern as the tool popups
+  // and the coach sheet: title + minimizer in a solid bar. FS chrome, not
+  // render output, so it exists in EVERY state (loading, pairing, wizard,
+  // rail) and survives re-renders. FS.minBtn holds the whole bar node.
+  function fsMakeBar_() {
+    var bar = document.createElement('div');
+    bar.className = 'fh-fs-bar';
+    var title = document.createElement('div');
+    title.className = 'fh-fs-bar-title';
+    title.textContent = COPY.FS_BAR_TITLE;
     var b = document.createElement('button');
     b.type = 'button';
-    b.className = 'fh-fs-min';
+    b.className = 'fh-fs-bar-min';
     b.title = 'Minimize';
     b.setAttribute('aria-label', 'Minimize');
     b.innerHTML = '&#8211;';
     b.onclick = function () { fsSetOpen_(false); };
-    document.body.appendChild(b);
-    FS.minBtn = b;
+    bar.appendChild(title);
+    bar.appendChild(b);
+    document.body.appendChild(bar);
+    FS.minBtn = bar;
   }
 
   // COACH SHEET — on phones the coach gets the whole screen too. A fixed
@@ -1756,7 +1776,7 @@
       else { document.body.classList.remove('fh-fs-lock'); }
     }
     if (FS.launcher) { FS.launcher.style.display = open ? 'none' : 'flex'; }
-    if (FS.minBtn) { FS.minBtn.style.display = open ? 'block' : 'none'; }
+    if (FS.minBtn) { FS.minBtn.style.display = open ? 'flex' : 'none'; }
   }
 
   // Belt & braces: if a transformed/filtered ancestor traps position:fixed,
@@ -1852,14 +1872,11 @@
       // FULLSCREEN TAKEOVER: the rail root becomes a fixed full-viewport
       // scroller (inside the fullscreened lesson iframe, or of the page
       // itself in self mode). env() pads for notches where it applies.
+      // Top padding clears the solid bar (round 10) — content scrolls under
+      // an opaque fixed bar, so no corner-collision lanes are needed anymore.
       '#freedom-home.fh-fs-on{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999990;' +
       'overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f5f8fb;box-sizing:border-box;' +
-      'padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px));}' +
-      // Reserve the floating minimize button's FULL lane (34px button at
-      // right:10 + 8px gap = 52px). 38px was tuned for the old wide
-      // "↻ Refresh" label, which survived a corner graze; round 8's
-      // icon-only ↻ sat entirely under the – (Dave: "we can only minimize").
-      '#freedom-home.fh-fs-on .fh-header{padding-right:52px;}' +
+      'padding:calc(50px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px));}' +
       // Minimized-on-phone state: hide the app, show ONE plain hint line
       // (a ::before pseudo-element — innerHTML re-renders can't wipe it).
       // Coach sheet chrome (fh- classes only; the coach styles its own
@@ -1876,9 +1893,16 @@
       '#freedom-home.fh-fs-hint::before{content:"Your Freedom Page is open — tap the blue chat bubble at the lower left to bring it back.";' +
       'display:block;background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:14px;' +
       'font-size:14px;line-height:1.5;color:#5a6875;text-align:left;}' +
-      '.fh-fs-min{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:999992;' +
-      'width:34px;height:34px;border-radius:50%;border:none;background:rgba(29,39,51,.55);color:#fff;' +
-      'font-size:20px;line-height:1;cursor:pointer;display:none;padding:0;}' +
+      // The rail's solid bar (round 10): rail-blue, title left, – right —
+      // the exact pattern the tool popups and coach sheet already trained.
+      // Sits above the rail (999992 > 999990); the coach sheet (999994) and
+      // tool popups (999999) still cover it with bars of their own.
+      '.fh-fs-bar{position:fixed;top:0;left:0;right:0;z-index:999992;display:none;align-items:center;' +
+      'justify-content:space-between;gap:10px;box-sizing:border-box;' +
+      'padding:calc(8px + env(safe-area-inset-top,0px)) 6px 8px 14px;background:#2f6df6;color:#fff;' +
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
+      '.fh-fs-bar-title{font-weight:700;font-size:16px;}' +
+      '.fh-fs-bar-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
       FS_CHROME_CSS +
       '#freedom-home .fh-wrap{max-width:720px;margin:0 auto;}' +
       // flex-wrap + a real min width for the greeting column: on phones the
@@ -1891,7 +1915,7 @@
       '#freedom-home .fh-hdr-right{margin-left:auto;flex:1 1 auto;min-width:0;justify-content:flex-end;}' +
       '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;white-space:nowrap;}' +
       '#freedom-home .fh-goal-line{display:block;width:100%;text-align:left;background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:9px 30px 9px 12px;font:inherit;font-size:13.5px;color:#2f4a68;margin:0 0 12px;cursor:pointer;position:relative;line-height:1.45;}' +
-      '#freedom-home .fh-goal-js{margin-top:7px;}' +
+      '#freedom-home .fh-anchor{margin:0 0 4px;}' +
       '#freedom-home .fh-goal-caret{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:19px;color:#7a8794;}' +
       '#freedom-home .fh-hi{font-size:15px;color:#4a5765;margin-top:6px;}' +
       '#freedom-home .fh-refresh{background:none;border:1px solid #c4cfd9;border-radius:8px;padding:7px 12px;color:#4a5765;cursor:pointer;font:inherit;font-size:13px;}' +
