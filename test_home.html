@@ -198,9 +198,16 @@
     if (u.indexOf(GATEWAY_ID) >= 0) {
       var p = {};
       try { p = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
-      logLine('→ coach ' + p.action);
+      logLine('→ coach ' + p.action + (p.home ? ' home=true' : ''));
       var resp = coachRoute(p);
-      return Promise.resolve({ ok: true, json: function () { return Promise.resolve(resp); } });
+      // coachApply is slowed so the typed "Saving a …" verbs are visible
+      // (round 16) — the real Gateway takes about this long anyway.
+      var delay = (p.action === 'coachApply') ? 700 : 0;
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          resolve({ ok: true, json: function () { return Promise.resolve(resp); } });
+        }, delay);
+      });
     }
     if (u.indexOf('/api/') >= 0) { return Promise.reject(new Error('no identity in harness')); }
     return realFetch.apply(window, arguments);
@@ -228,6 +235,17 @@
       // auto-apply chip (payoff copy) is testable alongside conversation mode.
       var lastMsg = '';
       try { lastMsg = p.messages[p.messages.length - 1].text; } catch (e) {}
+      // Challenge-shaped → an OPPORTUNITIES proposal WITH a previous value
+      // (round 16: verifies the rewiring-opportunity chip family + Undo).
+      if (/challeng|struggl|stress/i.test(lastMsg)) {
+        return { ok: true,
+          message: 'That moment is workable — saving it as a rewiring opportunity.',
+          proposal: { summary: 'Add to Opportunities', updates: [{
+            field: 'opportunities', label: 'Opportunities', day: M.currentDay, mode: 'append',
+            current: 'earlier note about evenings',
+            addedText: lastMsg.slice(0, 80),
+            finalText: 'earlier note about evenings\n' + lastMsg.slice(0, 80) }] } };
+      }
       if (/win|donut|success/i.test(lastMsg)) {
         return { ok: true,
           message: 'That is a great win — noticing the pull fade is rewiring at work.',

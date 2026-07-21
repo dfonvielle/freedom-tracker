@@ -186,6 +186,10 @@
     STEP2_TOOL_DIRECT: 'Start my rewiring session without the coach →',
     STEP2_TOOL_RESUME: 'Continue where you left off with the {TOOL} →',
     STEP2_TOOL_LOADED: 'Your tool is loaded with what you and your coach worked out — continue below.',
+    // Round 16: the model round trip becomes a planted seed — one muted
+    // line under the first typing dots of a daily session, gone when the
+    // reply lands. Daily mounts only (Day-1 tools predate experiments).
+    WAIT_TIP: 'While the AI thinks: what would a two-second Freedom Experiment look like today?',
     // (STEP2_TOOL_LOADED_POPUP deleted round 12 — the widget's inline note
     // names the open tool itself now; the rail adds only the Continue button.)
     STEP3_TITLE: '3 · Log your progress (30 seconds)',
@@ -2008,6 +2012,7 @@
     stub.setAttribute('data-session-key', opts.sessionKey || (botId + '-default'));
     if (opts.greetingFrom) stub.setAttribute('data-greeting-from', opts.greetingFrom);
     if (opts.firstMessageFrom) stub.setAttribute('data-first-message-from', opts.firstMessageFrom);
+    if (opts.waitTip) stub.setAttribute('data-wait-tip', opts.waitTip);
     holder.appendChild(stub);
     window.AgtWidget.mount(stub);
     state.toolMountedBot = botId;
@@ -2054,7 +2059,7 @@
     // with its own greeting and the coach's prompt lands as the student's
     // visible first message (the prompt itself now ends with "No questions…",
     // which the tool honors by skipping its digging phase).
-    mountTool(botId, { sessionKey: key });
+    mountTool(botId, { sessionKey: key, waitTip: COPY.WAIT_TIP });
     // The prompt rides AgtWidget.send: it lands in fresh AND restored
     // sessions alike (the old only-on-fresh injection silently swallowed
     // handoffs into an already-open tool).

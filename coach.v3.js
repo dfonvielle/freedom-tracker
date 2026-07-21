@@ -110,13 +110,19 @@
       // what 'experiment' means when it's his sentence) + a payoff line.
       // Freedom Experiment is the method's proper noun.
       LOGGED_WIN: 'Saved as a win \u2713',
-      LOGGED_OPP: 'Saved \u2713',
+      LOGGED_OPP: 'Saved as a rewiring opportunity \u2713',
       LOGGED_EXP: 'Saved as a Freedom Experiment \u2713',
       LOGGED_GENERIC: 'Saved for you \u2713',
       PAYOFF_WIN: 'You\u2019ll see it in your progress.',
       PAYOFF_EXP: 'Every experiment counts, however it went \u2014 you\u2019ll see it in your progress.',
-      PAYOFF_OPP: 'Ask me anytime what\u2019s been hardest and we\u2019ll pick one to rewire.',
-      LOGGED_SAVING: 'Logging\u2026',
+      PAYOFF_OPP: 'Ask me anytime what\u2019s been challenging, and we\u2019ll pick a moment to rewire.',
+      LOGGED_SAVING: 'Saving this for you\u2026',   // generic fallback
+      // Round 16 (Dave): the transient verb NAMES the category — the wait
+      // itself teaches why the coach saves things. 'Rewiring opportunity'
+      // reframes struggles as material, not complaints.
+      SAVING_WIN: 'Saving a win\u2026',
+      SAVING_EXP: 'Saving a Freedom Experiment\u2026',
+      SAVING_OPP: 'Saving a rewiring opportunity\u2026',
       LOGGED_UNDO: 'Undo',
       LOGGED_UNDOING: 'Removing\u2026',
       LOGGED_UNDONE: 'Removed. Your call, always.',
@@ -649,7 +655,7 @@
       setBusy(true);
       var pending = pushCoach(COPY.THINKING, { pending: true });
 
-      callGateway({ action: 'coachChat', projectId: state.activeProjectId, messages: chatPayload() })
+      callGateway({ action: 'coachChat', projectId: state.activeProjectId, home: true, messages: chatPayload() })
         .then(function (data) {
           removeBubble(pending);
           if (!data.ok) { pushCoach(data.error || COPY.ERROR_GENERIC); return; }
@@ -827,7 +833,7 @@
       var old = btn ? btn.textContent : '';
       if (btn) { btn.textContent = COPY.FEELING_BUILDING; btn.disabled = true; }
 
-      callGateway({ action: 'coachBuildPrompt', projectId: state.activeProjectId,
+      callGateway({ action: 'coachBuildPrompt', projectId: state.activeProjectId, home: true,
                     feeling: f.key, text: text, thoughtIds: ids })
         .then(function (data) {
           if (!data.ok) {
@@ -1158,6 +1164,12 @@
       if (field === 'experiments') { return COPY.LOGGED_EXP; }
       return COPY.LOGGED_GENERIC;
     }
+    function autoLogSavingLabel(field) {
+      if (field === 'wins') { return COPY.SAVING_WIN; }
+      if (field === 'experiments') { return COPY.SAVING_EXP; }
+      if (field === 'opportunities') { return COPY.SAVING_OPP; }
+      return COPY.LOGGED_SAVING;
+    }
     function autoLogPayoff(field) {
       if (field === 'wins') { return COPY.PAYOFF_WIN; }
       if (field === 'experiments') { return COPY.PAYOFF_EXP; }
@@ -1177,7 +1189,13 @@
       var updates = (msg.proposal && msg.proposal.updates) || [];
       var html = '';
       if (phase === 'saving') {
-        html = '<div class="fc-review-donerow">' + esc(COPY.LOGGED_SAVING) + '</div>';
+        if (updates.length) {
+          for (var sv = 0; sv < updates.length; sv++) {
+            html += '<div class="fc-review-donerow">' + esc(autoLogSavingLabel(updates[sv].field)) + '</div>';
+          }
+        } else {
+          html = '<div class="fc-review-donerow">' + esc(COPY.LOGGED_SAVING) + '</div>';
+        }
       } else if (phase === 'undone') {
         html = '<div class="fc-review-donerow">' + esc(COPY.LOGGED_UNDONE) + '</div>';
       } else {
