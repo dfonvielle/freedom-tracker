@@ -177,6 +177,17 @@
     CREATE_GO: 'Create my new project →',
     CREATE_WORKING: 'Creating your new project…',
     CREATE_CANCEL: 'Never mind, take me back',
+    // Round 18: archive (never delete). The restore door lives in the
+    // picker; the archive control lives in the goal & plan room.
+    PROJ_ARCHIVED: 'Archived projects… ({N})',
+    ARCH_TITLE: 'Your archived projects',
+    ARCH_SUB: 'Nothing here is deleted. Bring one back anytime and it returns to your menu with everything intact.',
+    ARCH_EMPTY: 'No archived projects right now.',
+    ARCH_RESTORE: 'Bring it back →',
+    ARCH_RESTORING: 'Bringing it back…',
+    ARCH_NOTE: 'Done with this project? Archiving moves it out of your menu. Nothing is deleted, and you can bring it back anytime.',
+    ARCH_BTN: 'Archive this project →',
+    ARCH_WORKING: 'Archiving…',
 
     // Daily rail
     DAILY_STRIP_TITLE: 'Today’s rhythm: three small steps',
@@ -613,6 +624,7 @@
     state.writable = (data.writable === false) ? false : true;
     state.confidence = data.confidence || { optedOut: false, since: '' };
     state.canCreateProject = data.canCreateProject === true;
+    state.archived = data.archived || [];   // round 18: restorable projects
     state.setup = data.setup || { stage: 0, ub: '', jumpstart: '' };
     state.milestoneDecision = data.milestoneDecision || null;
     state.scoreQuestions = data.scoreQuestions || null;
@@ -891,6 +903,10 @@
           + esc(p.label || ('Project ' + pid)) + '</option>';
       }
       if (state.canCreateProject) { opts += '<option value="__new">' + esc(COPY.PROJ_NEW) + '</option>'; }
+      // Round 18: the restore door appears only when something is archived.
+      if (state.archived && state.archived.length) {
+        opts += '<option value="__archived">' + esc(COPY.PROJ_ARCHIVED.replace('{N}', String(state.archived.length))) + '</option>';
+      }
       pickerHtml = '<select id="fh-proj" class="fh-proj">' + opts + '</select>';
     }
 
@@ -937,6 +953,11 @@
         // so the pick lands on a consent CARD first (doctrine rule 15).
         // The select snaps back to the active project on re-render.
         state.forcedPhase = 'createconfirm';
+        route();
+        return;
+      }
+      if (v === '__archived') {
+        state.forcedPhase = 'archivedlist';
         route();
         return;
       }
@@ -996,7 +1017,64 @@
     if (step.phase === 'howworks') return renderHowItWorks();
     if (step.phase === 'nblcd') return renderNblcd();
     if (step.phase === 'createconfirm') return renderCreateConfirm();
+    if (step.phase === 'archivedlist') return renderArchivedList();
     return renderDaily();
+  }
+
+  /* ============================================================
+   * ARCHIVED PROJECTS (round 18) — restore room. Archiving itself
+   * lives in the goal & plan editor; nothing is ever deleted.
+   * ============================================================ */
+  function renderArchivedList() {
+    state._phWalk = false;
+    var items = '';
+    var list = state.archived || [];
+    for (var i = 0; i < list.length; i++) {
+      items += '<div class="fh-arch-row"><div class="fh-arch-label">' + esc(list[i].label) + '</div>' +
+        '<button class="fh-btn fh-secondary fh-arch-restore" data-pid="' + esc(String(list[i].projectId)) + '">' +
+        esc(COPY.ARCH_RESTORE) + '</button></div>';
+    }
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.ARCH_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.ARCH_SUB) + '</p>' +
+        (items || '<p class="fh-sub">' + esc(COPY.ARCH_EMPTY) + '</p>') +
+        '<div class="fh-linkline"><a href="#" id="fh-arch-back">' + esc(COPY.GOAL_BACK) + '</a></div>' +
+      '</div>');
+    document.getElementById('fh-arch-back').addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = null;
+      route();
+    });
+    var btns = document.querySelectorAll('#freedom-home .fh-arch-restore');
+    for (var b = 0; b < btns.length; b++) {
+      btns[b].addEventListener('click', function () {
+        var btn = this;
+        var pid = btn.getAttribute('data-pid');
+        btn.disabled = true;
+        btn.textContent = COPY.ARCH_RESTORING;
+        callGateway({ action: 'unarchiveProject', projectId: pid }).then(function (data) {
+          if (!data || !data.ok) {
+            btn.disabled = false;
+            btn.textContent = COPY.ARCH_RESTORE;
+            return;
+          }
+          // Land ON the restored project, exactly like picking it.
+          state._explicitProjectPick = true;
+          state.progressCache = null;
+          state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+          state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+          state.activeProjectId = String(data.activeProjectId || pid);
+          unmountTool();
+          clearStateCache();
+          rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
+          loadState(false);
+        }).catch(function () {
+          btn.disabled = false;
+          btn.textContent = COPY.ARCH_RESTORE;
+        });
+      });
+    }
   }
 
   /* ============================================================
@@ -1025,7 +1103,12 @@
         if (!data || !data.ok) {
           btn.disabled = false;
           btn.textContent = COPY.CREATE_GO;
-          return setMsg('fh-create-msg', (data && data.error) || 'Something went wrong. Please try again.', false);
+          // Round 18: the server's diagnostic detail rides along (small,
+          // parenthesized) — a failed create now names its reason on the
+          // card instead of pretending it worked.
+          var msg = (data && data.error) || 'Something went wrong. Please try again.';
+          if (data && data.detail) { msg += ' (' + data.detail + ')'; }
+          return setMsg('fh-create-msg', msg, false);
         }
         // The Gateway names the NEW project explicitly (activeProjectId;
         // projectId kept as a legacy alias). Reading a field the server
@@ -1208,8 +1291,9 @@
   // conversation resumes untouched. (Round 15: shared by Step-1 "Get help
   // with this" and the explainer's revisit link.)
   function openMinplan_() {
-    var fresh = !sessionHasUserTurn_('bh_minplan', 'ph-bh_minplan');
-    mountTool('bh_minplan', { sessionKey: 'ph-bh_minplan' });
+    var mpKey = scopedSessionKey_('bh_minplan', 'ph-bh_minplan');
+    var fresh = !sessionHasUserTurn_('bh_minplan', mpKey);
+    mountTool('bh_minplan', { sessionKey: mpKey });
     if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
       window.AgtWidget.send(document.getElementById('fh-tool-stub'),
         COPY.GOAL_LINE_PREFIX + state.setup.ub);
@@ -1246,8 +1330,44 @@
         '<input type="text" id="fh-goal-js" value="' + esc(state.setup.jumpstart) + '" />' +
         '<button class="fh-btn" id="fh-goal-save">' + esc(COPY.GOAL_SAVE) + '</button>' +
         '<div class="fh-msg" id="fh-goal-msg"></div>' +
+        // Round 18: archive lives here — the project's own settings room —
+        // never as a destructive control on the picker. Rule 15: the sub
+        // line carries the consequence; only multi-project accounts see it
+        // (the server refuses the last active project regardless).
+        (((state.projects || []).length > 1)
+          ? '<div class="fh-divider"></div>' +
+            '<p class="fh-sub">' + esc(COPY.ARCH_NOTE) + '</p>' +
+            '<button class="fh-btn fh-secondary" id="fh-goal-archive">' + esc(COPY.ARCH_BTN) + '</button>' +
+            '<div class="fh-msg" id="fh-arch-msg"></div>'
+          : '') +
         '<div class="fh-linkline fh-center"><a href="#" id="fh-goal-back">' + esc(COPY.GOAL_BACK) + '</a></div>' +
       '</div>');
+    var archBtn = document.getElementById('fh-goal-archive');
+    if (archBtn) archBtn.addEventListener('click', function () {
+      archBtn.disabled = true;
+      archBtn.textContent = COPY.ARCH_WORKING;
+      callGateway({ action: 'archiveProject', projectId: state.activeProjectId }).then(function (data) {
+        if (!data || !data.ok) {
+          archBtn.disabled = false;
+          archBtn.textContent = COPY.ARCH_BTN;
+          return setMsg('fh-arch-msg', (data && data.error) || 'Could not archive. Try again.', false);
+        }
+        // Land on the account default, exactly like switching projects.
+        state._explicitProjectPick = true;
+        state.progressCache = null;
+        state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+        state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+        state.activeProjectId = String(data.activeProjectId || '');
+        unmountTool();
+        clearStateCache();
+        rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
+        loadState(false);
+      }).catch(function (err) {
+        archBtn.disabled = false;
+        archBtn.textContent = COPY.ARCH_BTN;
+        setMsg('fh-arch-msg', String(err), false);
+      });
+    });
     document.getElementById('fh-goal-save').addEventListener('click', function () {
       var ub = document.getElementById('fh-goal-ub').value.trim();
       var js = document.getElementById('fh-goal-js').value.trim();
@@ -1498,7 +1618,9 @@
         '<div id="fh-d0-planbox"' + (planOpen ? '' : ' style="display:none"') + '>' +
           '<label class="fh-label">' + esc(COPY.D0_PLAN_LABEL) + '</label>' +
           '<input type="text" id="fh-d0-plan" placeholder="' + esc(COPY.D0_PLAN_PLACEHOLDER) + '" value="' + esc(plan) + '" />' +
-          '<button class="fh-btn fh-secondary" id="fh-d0-save">' + esc(COPY.D0_SAVE) + '</button>' +
+          // Round 18 (Dave's screenshot): Save is a do-action — blue, not a
+          // second gray next to Close.
+          '<button class="fh-btn" id="fh-d0-save">' + esc(COPY.D0_SAVE) + '</button>' +
           '<p class="fh-sub">' + esc(COPY.D0_PLAN_NOTE) + '</p>' +
           '<div class="fh-msg" id="fh-d0-msg"></div>' +
         '</div>' +
@@ -1563,7 +1685,7 @@
         '<button class="fh-btn" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
         '<div class="fh-msg" id="fh-ph-msg"></div>' +
       '</div>');
-    mountTool(tool.bot, { sessionKey: 'ph-' + tool.bot });
+    mountTool(tool.bot, { sessionKey: scopedSessionKey_(tool.bot, 'ph-' + tool.bot) });
     document.getElementById('fh-ph-done').addEventListener('click', function () {
       var btn = document.getElementById('fh-ph-done');
       btn.disabled = true;
@@ -1664,7 +1786,7 @@
         '<button class="fh-btn fh-secondary" id="fh-wd-done">' + esc(COPY.WITHDRAWAL_DONE) + '</button>' +
         '<div class="fh-msg" id="fh-wd-msg"></div>' +
       '</div>');
-    mountTool('bh_withdrawal', { sessionKey: 'ph-bh_withdrawal' });
+    mountTool('bh_withdrawal', { sessionKey: scopedSessionKey_('bh_withdrawal', 'ph-bh_withdrawal') });
     document.getElementById('fh-wd-done').addEventListener('click', function () {
       callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: { d1_withdrawal: true } })
         .then(function (data) {
@@ -1994,7 +2116,7 @@
         el.addEventListener('click', function () {
           var ph = el.getAttribute('data-mh-ph');
           var daily = el.getAttribute('data-mh-daily');
-          if (ph) { mountTool(ph, { sessionKey: 'ph-' + ph }); }
+          if (ph) { mountTool(ph, { sessionKey: scopedSessionKey_(ph, 'ph-' + ph) }); }
           else if (daily) { mountDailyTool(daily, ''); }
           if (!FS.mode) {
             var stub = document.getElementById('fh-tool-stub');
@@ -2028,6 +2150,44 @@
       return false;
     } catch (e) { return false; }
   }
+  // Round 18: tool sessions are PROJECT-scoped. Flat 'ph-<bot>' /
+  // 'd<N>-<bot>' keys meant a student's SECOND project resumed the FIRST
+  // project's conversations mid-stream (Dave's walk find). Every session
+  // key, rotation pointer, and recency stamp now carries a p<projectId>-
+  // prefix. Legacy unprefixed sessions can only have been created before a
+  // second project existed, so they belong to the account's OLDEST project —
+  // that project (and only it) ADOPTS them one time by copying the widget's
+  // localStorage entry to the scoped name. Single-project students are
+  // always "oldest", so nobody's history disappears.
+  function keyScope_() { return 'p' + String(state.activeProjectId || '0') + '-'; }
+  function isOldestProject_() {
+    var list = state.projects || [];
+    if (list.length < 2) return true;
+    var oldest = list[0];
+    for (var i = 1; i < list.length; i++) {
+      if (String(list[i].day0Date || '') < String(oldest.day0Date || '')) oldest = list[i];
+    }
+    return String(oldest.projectId) === String(state.activeProjectId);
+  }
+  function widgetLsKey_(botId, sessionKey) {
+    return 'ai_tools.v1.' + botId + (state.draft ? '.draft' : '') + '.k' + sessionKey;
+  }
+  // Scope a session name; the oldest project inherits the legacy session's
+  // content under the new name (copy, never move — standalone lessons that
+  // might share a key keep working untouched).
+  function scopedSessionKey_(botId, base) {
+    var scoped = keyScope_() + base;
+    if (isOldestProject_()) {
+      try {
+        var sk = widgetLsKey_(botId, scoped);
+        var lk = widgetLsKey_(botId, base);
+        if (!localStorage.getItem(sk) && localStorage.getItem(lk)) {
+          localStorage.setItem(sk, localStorage.getItem(lk));
+        }
+      } catch (e) {}
+    }
+    return scoped;
+  }
   // Round 12: today's ACTIVE session key per tool, rotatable. A coach
   // handoff that finds real turns in the current session rotates to a
   // FRESH key — the prompt lands on Screen 1 (where the no-questions
@@ -2037,17 +2197,25 @@
   // localStorage, just no longer offered; "resume" always means NEWEST.
   function activeToolKey_(botId) {
     var k = '';
-    try { k = localStorage.getItem('fh_tool_key_d' + state.currentDay + '_' + botId) || ''; } catch (e) {}
-    return k || ('d' + state.currentDay + '-' + botId);
+    try {
+      k = localStorage.getItem('fh_tool_key_' + keyScope_() + 'd' + state.currentDay + '_' + botId) || '';
+      if (!k && isOldestProject_()) {
+        // Inherit a legacy rotation pointer (its value is an UNSCOPED
+        // session name) — scope it and adopt that session's content.
+        var legacy = localStorage.getItem('fh_tool_key_d' + state.currentDay + '_' + botId) || '';
+        if (legacy) { k = scopedSessionKey_(botId, legacy); }
+      }
+    } catch (e) {}
+    return k || scopedSessionKey_(botId, 'd' + state.currentDay + '-' + botId);
   }
   function rotateToolKey_(botId) {
     var cur = activeToolKey_(botId);
-    var base = 'd' + state.currentDay + '-' + botId;
+    var base = keyScope_() + 'd' + state.currentDay + '-' + botId;
     var n = 2;
     var m = cur.match(/-(\d+)$/);
     if (cur !== base && m) { n = Number(m[1]) + 1; }
     var next = base + '-' + n;
-    try { localStorage.setItem('fh_tool_key_d' + state.currentDay + '_' + botId, next); } catch (e) {}
+    try { localStorage.setItem('fh_tool_key_' + keyScope_() + 'd' + state.currentDay + '_' + botId, next); } catch (e) {}
     return next;
   }
   function toolSessionExists_(botId) {
@@ -2059,7 +2227,12 @@
   }
   function todaysToolSession_() {
     var last = '';
-    try { last = localStorage.getItem('fh_last_tool_d' + state.currentDay) || ''; } catch (e) {}
+    try {
+      last = localStorage.getItem('fh_last_tool_' + keyScope_() + 'd' + state.currentDay) || '';
+      if (!last && isOldestProject_()) {
+        last = localStorage.getItem('fh_last_tool_d' + state.currentDay) || '';
+      }
+    } catch (e) {}
     if (last && toolSessionExists_(last)) { return last; }
     var bots = ['bh_fearanxiety', TOOLS.dailyDefault];
     for (var i = 0; i < bots.length; i++) {
@@ -2250,7 +2423,7 @@
     }
     // Remember which tool the student touched LAST today, so a re-render
     // resumes the right one when both tools hold sessions.
-    try { localStorage.setItem('fh_last_tool_d' + state.currentDay, botId); } catch (e) {}
+    try { localStorage.setItem('fh_last_tool_' + keyScope_() + 'd' + state.currentDay, botId); } catch (e) {}
     // Round 10: the round-5 warm-greeting override is gone — the tool opens
     // with its own greeting and the coach's prompt lands as the student's
     // visible first message (the prompt itself now ends with "No questions…",
@@ -2721,6 +2894,12 @@
       '#freedom-home .fh-chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px;}' +
       '#freedom-home .fh-chip{background:#eef3f9;border:1px solid #c9d9ec;border-radius:16px;padding:7px 13px;font:inherit;font-size:13.5px;color:#2f4a68;cursor:pointer;}' +
       '#freedom-home .fh-chip:active{background:#dbe7f5;}' +
+      // Round 18 (Dave's screenshot): the Day-0 plan input was a sliver.
+      '#freedom-home #fh-d0-planbox input{width:100%;box-sizing:border-box;font-size:15px;padding:10px;}' +
+      // Round 18: archived-projects restore rows.
+      '#freedom-home .fh-arch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;}' +
+      '#freedom-home .fh-arch-label{font-size:14.5px;color:#2f4a68;min-width:0;overflow:hidden;text-overflow:ellipsis;}' +
+      '#freedom-home .fh-arch-row .fh-btn{width:auto;margin:0;padding:9px 14px;flex:none;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;white-space:nowrap;}' +
       // min-width:0 is what actually lets the SELECT shrink below its
       // content (flex items default to min-width:auto) — without it the

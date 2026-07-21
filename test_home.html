@@ -120,6 +120,9 @@
     M.currentDay = 5;
     M.projects = [{ projectId: '1', label: 'late-night doomscrolling' }, { projectId: '2', label: 'sugar after dinner' }];
     M.canCreate = true;
+    // Round 18: one pre-archived project so the picker's restore door is
+    // visible on load; archiving live adds to this list.
+    M.archivedList = [{ projectId: '9', label: 'an old finished behavior' }];
   }
   // Round 14 forcing scenarios (State Map): the milestone watcher fires /
   // a decision already exists. Shapes mirror the REAL Gateway exactly:
@@ -184,6 +187,7 @@
       activeProjectId: M.activeId || ((M.projects && M.projects[0]) ? M.projects[0].projectId : '1'),
       projectType: 'ACCELERATOR', currentDay: M.currentDay, maxDay: 7, maxTrackedDay: 400,
       writable: true, unlimited: !!M.canCreate, canCreateProject: !!M.canCreate,
+      archived: M.archivedList || [],
       confidence: { optedOut: false, since: '' },
       milestoneDecision: M.nblcd || null,
       setup: { stage: M.stage, ub: M.ub, jumpstart: M.jumpstart },
@@ -298,7 +302,42 @@
       }
       return { ok: true, token: 'mock-token' };
     }
+    if (p.action === 'archiveProject') {
+      // Round 18 mirror: refuse the last active project; move to archived;
+      // activeProjectId = the remaining default.
+      M.projects = M.projects || [{ projectId: '1', label: 'Test project' }];
+      if (M.projects.length <= 1) return { ok: false, error: 'This is your only active project, so it can’t be archived.' };
+      M.archivedList = M.archivedList || [];
+      for (var ai = 0; ai < M.projects.length; ai++) {
+        if (String(M.projects[ai].projectId) === String(p.projectId)) {
+          M.archivedList.push(M.projects[ai]);
+          M.projects.splice(ai, 1);
+          break;
+        }
+      }
+      M.activeId = M.projects[0].projectId;
+      return { ok: true, projects: M.projects, archived: M.archivedList, activeProjectId: M.activeId };
+    }
+    if (p.action === 'unarchiveProject') {
+      M.archivedList = M.archivedList || [];
+      for (var ui = 0; ui < M.archivedList.length; ui++) {
+        if (String(M.archivedList[ui].projectId) === String(p.projectId)) {
+          M.projects.push(M.archivedList[ui]);
+          M.archivedList.splice(ui, 1);
+          break;
+        }
+      }
+      M.activeId = String(p.projectId);
+      return { ok: true, projects: M.projects, archived: M.archivedList, activeProjectId: M.activeId };
+    }
     if (p.action === 'createProject') {
+      // Round 18: ?fail=create forces the HONEST failure path (mirrors the
+      // server's no-new-project-after-re-read error with its detail field).
+      if (qs.get('fail') === 'create') {
+        return { ok: false,
+          error: 'Your project was set up but hasn’t appeared on your account yet. Give it a moment, then check your project menu or tap Create once more.',
+          detail: 'post-create re-read found no new project (before=2, after=2, webhook masterRow=99)' };
+      }
       // REAL Gateway shape (round 17): {ok, projects, activeProjectId,
       // projectId} — activeProjectId names the NEW project explicitly.
       // WARNING (doctrine §4.5): the old mock returned ONLY {ok, projectId};
