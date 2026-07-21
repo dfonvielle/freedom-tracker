@@ -63,6 +63,7 @@
       // size, and the doors are EXCLUSIVE \u2014 entering one hides the other.
       CHAT_HINT: 'Or tell me what\u2019s going on, and I\u2019ll help you find what to rewire:',
       CHAT_PLACEHOLDER: 'How can I help?',
+      SEND_PLACEHOLDER: 'Send a message\u2026',   // round 11: once a conversation is underway
       SEND_BTN: 'Send',
       START_OVER: 'Start over with the freedom coach',
       // Appended to every Home handoff prompt (visible in See-or-edit): the
@@ -95,10 +96,10 @@
       DISMISSED: 'No problem. It is still your call.',
       // Freedom Home auto-log chips (log-then-tell; Undo appears only when
       // there is a previous value to restore \u2014 the Gateway refuses empty writes).
-      LOGGED_WIN: 'Logged as a win \u2713',
-      LOGGED_OPP: 'Noted as something to work on \u2713',
-      LOGGED_EXP: 'Logged your experiment \u2713',
-      LOGGED_GENERIC: 'Logged for you \u2713',
+      LOGGED_WIN: 'Saved as a win \u2713 \u2014 you\u2019ll see it in your progress',
+      LOGGED_OPP: 'Saved \u2713 \u2014 ask me anytime what\u2019s been hardest and we\u2019ll pick one to rewire',
+      LOGGED_EXP: 'Saved your experiment \u2713 \u2014 ask me anytime what you\u2019ve tried',
+      LOGGED_GENERIC: 'Saved for you \u2713',
       LOGGED_SAVING: 'Logging\u2026',
       LOGGED_UNDO: 'Undo',
       LOGGED_UNDOING: 'Removing\u2026',
@@ -555,17 +556,32 @@
       updateDoors_();
     }
 
-    // Round 10: ONE function owns which conversation path is visible.
-    // Idle → both doors. Guided flow open → composer hides. Ready
-    // prompt-card → both doors hide; Start-over is the way back.
-    // Idempotent on purpose — cheap to call after any render or state flip.
+    // Round 10/11: ONE function owns which conversation path is visible.
+    // Four states — IDLE: both doors invite (hint = the composer's label).
+    // GUIDED open: composer hides. CONVERSATION (round 11 — the student
+    // has sent something, no ready card): the doors stop advertising —
+    // transcript + composer only, placeholder turns into "Send a
+    // message…", Start-over is the exit. READY CARD: both doors hide;
+    // Open + See-or-edit + Start-over remain. Idempotent on purpose —
+    // cheap to call after any render or state flip.
     function updateDoors_() {
       var more = document.getElementById('fc-morehelp');
       var composer = document.getElementById('fc-composer');
+      var hint = composer ? composer.querySelector('.fc-chathint') : null;
+      var input = document.getElementById('fc-input');
       var startOver = document.getElementById('fc-startover');
-      if (more) { more.style.display = state.promptActive ? 'none' : ''; }
+      var convo = !state.promptActive && !state.helpOpen && hasStudentTurn_();
+      if (more) { more.style.display = (state.promptActive || convo) ? 'none' : ''; }
       if (composer) { composer.style.display = (state.promptActive || state.helpOpen) ? 'none' : ''; }
-      if (startOver) { startOver.style.display = state.promptActive ? '' : 'none'; }
+      if (hint) { hint.style.display = convo ? 'none' : ''; }
+      if (input) { input.placeholder = convo ? COPY.SEND_PLACEHOLDER : COPY.CHAT_PLACEHOLDER; }
+      if (startOver) { startOver.style.display = (state.promptActive || convo) ? '' : 'none'; }
+    }
+    function hasStudentTurn_() {
+      for (var i = 0; i < state.messages.length; i++) {
+        if (state.messages[i] && state.messages[i].role === 'student') { return true; }
+      }
+      return false;
     }
 
     // Round 10: the back door out of a ready prompt-card — a clean LOCAL

@@ -89,7 +89,7 @@
    * are replaced at render time.
    * ============================================================ */
   var COPY = {
-    LOADING: 'Loading your Freedom Page…',
+    LOADING: 'Loading your Freedom Accelerator…',
     HEADER_DAY: 'Day {DAY}',
     HEADER_HI: 'Hi{NAME} — here’s your next step.',
     REFRESH_BTN: '↻ Refresh',
@@ -197,6 +197,7 @@
     PROGRESS_TITLE: 'Your movement so far',
     PROGRESS_BASELINE: 'Baseline',
     PROGRESS_EMPTY: 'Log a day’s scores and your movement shows up here.',
+    PROGRESS_NUDGE: 'These numbers are from {DAY} — log today’s progress (30 seconds) and this updates to today.',
     PROGRESS_UP: 'Real movement since your baseline. That is your rewiring working.',
     PROGRESS_FLAT: 'Steady is fine. Every session stacks quiet groundwork, and the wins below are proof.',
     PROGRESS_DOWN: 'Scores dip sometimes, and nothing is lost. Every concern is an opportunity for rewiring, and your wins below are still yours.',
@@ -204,7 +205,7 @@
     WINS_EARLIER: '…plus {N} earlier wins in your full tracker.',
 
     // Activation (mirrors loader.v7)
-    ACTIVATE_TITLE: 'Activate your Freedom Page',
+    ACTIVATE_TITLE: 'Activate your Freedom Accelerator',
     ACTIVATE_SIGNED_IN: 'You’re signed in as ',
     ACTIVATE_SUB: 'Enter the activation code from your welcome email.',
     ACTIVATE_NO_EMAIL: 'Enter the email you bought with.',
@@ -236,7 +237,7 @@
 
   // token + identity SHARED with loader.v7/coach.v3 (activate once, works
   // everywhere). Only the state snapshot cache is home-specific.
-  var LS = { identity: 'ag_ft_identity_v6', token: 'ag_ft_token', cache: 'ag_fh_cache_v1' };
+  var LS = { identity: 'ag_ft_identity_v6', token: 'ag_ft_token', cache: 'ag_fh_cache_v1', pin: 'ag_fh_pin_v1' };
 
   var state = {
     identity: null, token: null,
@@ -429,6 +430,37 @@
     } catch (e) {}
   }
   function clearStateCache() { try { localStorage.removeItem(LS.cache); } catch (e) {} }
+
+  // Round 11: the project pointer + per-project "finished setup" map live
+  // OUTSIDE the state cache, keyed to the account — losing the snapshot
+  // (expiry, token rotation) must never lose WHICH project the student was
+  // on, or the fact that setup ever finished. Both were possible before,
+  // and together they produced Dave's Day-14 morning "welcome, let's set
+  // up your project" flash (Gateway default project / transient empty
+  // setup rendering the wizard over a long-established account).
+  function pinWho_() {
+    return String((state.identity && state.identity.accountId) || state.token || '');
+  }
+  function readPin_() {
+    try {
+      var p = JSON.parse(localStorage.getItem(LS.pin) || 'null');
+      if (!p || p.who !== pinWho_()) return null;
+      return p;
+    } catch (e) { return null; }
+  }
+  function writePin_() {
+    try {
+      var p = readPin_() || { who: pinWho_(), done: {} };
+      p.who = pinWho_();
+      if (state.activeProjectId != null) { p.id = String(state.activeProjectId); }
+      p.done = p.done || {};
+      if (state.setup && state.setup.stage >= 4 && state.activeProjectId != null) {
+        p.done[String(state.activeProjectId)] = 1;
+      }
+      localStorage.setItem(LS.pin, JSON.stringify(p));
+    } catch (e) {}
+  }
+
   function hydrateFromCache(snap) {
     state.projects = snap.projects || [];
     state.activeProjectId = snap.activeProjectId;
@@ -480,10 +512,17 @@
     if (data.firstName && state.identity && !state.identity.firstName) {
       state.identity.firstName = data.firstName;
     }
+    // Round 11: remember the project + its finished-setup fact durably,
+    // and let a confirmed stage-4 state re-arm the wizard guard.
+    writePin_();
+    if (state.setup && state.setup.stage >= 4) { state._wizardRetried = false; }
   }
 
   function loadState(background) {
-    var payload = { action: 'state', projectId: state.activeProjectId };
+    // Round 11: never ask for "whatever project the Gateway defaults to"
+    // when this device knows which project the student was on.
+    var pin = readPin_();
+    var payload = { action: 'state', projectId: (state.activeProjectId != null ? state.activeProjectId : (pin ? pin.id : null)) };
     // Crossed midnight since the cached snapshot? Bust server caches so
     // yesterday's Day N can never survive into today (the day-rollover
     // confusion from Dave's Day-12/13 morning).
@@ -500,12 +539,31 @@
         state._recoverTried = false;
         adoptState(data);
         writeStateCache();
+        prefetchProgress_();
         if (!background || safeToRerender()) route();
       })
       .catch(function () {
-        if (!background) renderFatal('Could not load your Freedom Page. Check your connection and try again.');
+        if (!background) renderFatal('Could not load your Freedom Accelerator. Check your connection and try again.');
       });
   }
+  // Round 11: "See my progress" answers from memory. The review is fetched
+  // once in the background after state lands (and re-pulled after anything
+  // that changes it), so the tap paints instantly — same cure as the
+  // round-10 coachHelpMenu prefetch. In-memory only: progress can carry a
+  // pile of win texts, and boot is early enough that the cache is warm
+  // before any human reaches the button.
+  function prefetchProgress_(force) {
+    if (state._progressFetching) return;
+    if (state.progressCache && !force) return;
+    state._progressFetching = true;
+    callGateway({ action: 'progressReview', projectId: state.activeProjectId })
+      .then(function (data) {
+        state._progressFetching = false;
+        if (data && data.ok) { state.progressCache = data; }
+      })
+      .catch(function () { state._progressFetching = false; });
+  }
+
   function safeToRerender() {
     if (state.dirty) return false;
     try {
@@ -727,6 +785,10 @@
     if (ps) ps.addEventListener('change', function () {
       var v = this.value;
       clearSetupPoll_();
+      // Round 11: an explicit pick may legitimately land in a wizard
+      // (new or unfinished project) — tell the guard to stand down.
+      state._explicitProjectPick = true;
+      state.progressCache = null;   // per-project — never show another project's numbers
       state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
       rootEl.innerHTML = shellLoading();
       if (v === '__new') {
@@ -753,7 +815,27 @@
     clearSetupPoll_();
     unmountTool();
     var step = nextStep();
-    if (step.phase === 'wizard') return renderWizard();
+    if (step.phase === 'wizard') {
+      // Round 11 wizard guard: an account that has EVER finished setup on
+      // this device only sees a wizard after an EXPLICIT project choice
+      // ("+ Start a new project" / picking one). A wizard arriving from a
+      // routine load is default-project drift or a transiently empty setup
+      // read, not a real reset (Dave's Day-14 "welcome, let's set up your
+      // project" flash). Force ONE fresh re-pull; if the server insists
+      // twice, believe it. (Cost of the belt: returning to a genuinely
+      // mid-wizard project pays one extra spinner beat.)
+      var pin = readPin_();
+      var anyDone = false;
+      if (pin && pin.done) { for (var dk in pin.done) { if (pin.done.hasOwnProperty(dk)) { anyDone = true; break; } } }
+      if (anyDone && !state._explicitProjectPick && !state._wizardRetried) {
+        state._wizardRetried = true;
+        rootEl.innerHTML = shellLoading();
+        state._freshNext = true;
+        loadState(false);
+        return;
+      }
+      return renderWizard();
+    }
     if (step.phase === 'day0') return renderDay0();
     if (step.phase === 'power_hour') return renderPowerHour(step.index != null ? step.index : 0);
     if (step.phase === 'after_scores') return renderAfterScores();
@@ -1150,7 +1232,10 @@
     var hideConf = !!(state.confidence && state.confidence.optedOut);
 
     renderShell(
-      '<div class="fh-strip"><div class="fh-strip-title">' + esc(COPY.DAILY_STRIP_TITLE) + '</div></div>' +
+      // fh-strip-daily (round 11): centered with real air — Dave: the title
+      // read smushed between the goal box and step 1. (The Power Hour strip
+      // keeps the default layout: its pips need the space-between row.)
+      '<div class="fh-strip fh-strip-daily"><div class="fh-strip-title">' + esc(COPY.DAILY_STRIP_TITLE) + '</div></div>' +
 
       // STEP 1 — jumpstart. Round 10: the morning moment lives HERE again
       // ("My moment: …" — it is this step's context, not the goal's). Help
@@ -1321,6 +1406,7 @@
           if (data.completion) state.completion = data.completion;
           state.dirty = false;
           writeStateCache();
+          prefetchProgress_(true);   // today's scores just changed the review
           setMsg('fh-day-msg', COPY.STEP3_SAVED, true);
           // Round 8: collapse on success — the button label carries the state.
           var lb = document.getElementById('fh-log-body');
@@ -1331,16 +1417,29 @@
         .catch(function (err) { setMsg('fh-day-msg', String(err), false); });
     });
 
-    // Progress on demand.
+    // Progress on demand — instantly from the prefetched cache when it's
+    // warm (then quietly re-pulled so this morning's saves show), live
+    // fetch only as the cold-start fallback.
     document.getElementById('fh-progress-btn').addEventListener('click', function () {
       var btn = this;
+      var box = document.getElementById('fh-progress');
+      function paint(data) { box.innerHTML = progressHtml(data); }
+      if (state.progressCache) {
+        paint(state.progressCache);
+        callGateway({ action: 'progressReview', projectId: state.activeProjectId })
+          .then(function (data) {
+            if (data.ok) { state.progressCache = data; paint(data); }
+          })
+          .catch(function () {});
+        return;
+      }
       btn.disabled = true;
       callGateway({ action: 'progressReview', projectId: state.activeProjectId })
         .then(function (data) {
           btn.disabled = false;
-          var box = document.getElementById('fh-progress');
           if (!data.ok) { box.innerHTML = '<div class="fh-msg fh-bad">' + esc(data.error || 'Could not load progress.') + '</div>'; return; }
-          box.innerHTML = progressHtml(data);
+          state.progressCache = data;
+          paint(data);
         })
         .catch(function () { btn.disabled = false; });
     });
@@ -1410,6 +1509,15 @@
         esc(c == null ? '—' : c) + '</td><td>' + esc(d == null ? '—' : (d > 0 ? '+' + d : d)) + '</td></tr>';
     }
     html += '</table>';
+    // Round 11 (Dave's call: payoff stays free, logging gets a reason) —
+    // when today isn't logged yet, say honestly which day the numbers are
+    // from and point at the 30-second log.
+    var d0 = state.day || { fields: [] };
+    var todayLogged = (fieldVal(d0, 'rbf') != null && fieldVal(d0, 'rbf') !== '')
+      || !!(d0.scores && d0.scores.values && (d0.scores.values.easy != null || d0.scores.values.enjoy != null));
+    if (!todayLogged && data.currentLabel) {
+      html += '<p class="fh-sub fh-nudge">' + esc(COPY.PROGRESS_NUDGE.replace('{DAY}', data.currentLabel)) + '</p>';
+    }
     if (data.last7 && data.last7.deltas) {
       var parts = [];
       for (var j = 0; j < mks.length; j++) {
@@ -1551,6 +1659,7 @@
   // done-styling honest on the next render) and confirm visibly. No
   // re-render — the live coach and tool widgets must not be torn down.
   document.addEventListener('fc:applied', function () {
+    prefetchProgress_(true);   // the coach just logged a win/experiment — the review changed
     callGateway({ action: 'getDay', projectId: state.activeProjectId, day: state.currentDay })
       .then(function (data) {
         if (data.ok && data.day) { state.day = data.day; writeStateCache(); }
@@ -1648,7 +1757,7 @@
       b.type = 'button';
       b.className = 'fh-fs-launcher fh-fs-launcher-left';
       b.setAttribute(FS_OWNED, '1');
-      b.setAttribute('aria-label', 'Open your Freedom Page');
+      b.setAttribute('aria-label', 'Open your Freedom Accelerator');
       b.innerHTML = fsLauncherSvg_();
       b.onclick = function () { fsSetOpen_(true); };
       doc.body.appendChild(b);
@@ -1663,7 +1772,7 @@
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'fh-fs-launcher fh-fs-launcher-left';
-    b.setAttribute('aria-label', 'Open your Freedom Page');
+    b.setAttribute('aria-label', 'Open your Freedom Accelerator');
     b.innerHTML = fsLauncherSvg_();
     b.onclick = function () { fsSetOpen_(true); };
     document.body.appendChild(b);
@@ -1712,7 +1821,7 @@
     min.type = 'button';
     min.className = 'fh-sheet-min';
     min.title = 'Minimize';
-    min.setAttribute('aria-label', 'Back to your Freedom Page');
+    min.setAttribute('aria-label', 'Back to your Freedom Accelerator');
     min.innerHTML = '&#8211;';
     min.onclick = function () { fsCoachOpen_(false); };
     head.appendChild(title);
@@ -1874,8 +1983,11 @@
       // itself in self mode). env() pads for notches where it applies.
       // Top padding clears the solid bar (round 10) — content scrolls under
       // an opaque fixed bar, so no corner-collision lanes are needed anymore.
+      // overflow-x:hidden (round 11): the fullscreen scroller must never
+      // pan sideways — any accidentally-wide child produced the iOS
+      // left-right "wobble" Dave felt. Vertical-only, like the coach sheet.
       '#freedom-home.fh-fs-on{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999990;' +
-      'overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f5f8fb;box-sizing:border-box;' +
+      'overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:#f5f8fb;box-sizing:border-box;' +
       'padding:calc(50px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px));}' +
       // Minimized-on-phone state: hide the app, show ONE plain hint line
       // (a ::before pseudo-element — innerHTML re-renders can't wipe it).
@@ -1890,7 +2002,7 @@
       '.fh-sheet-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
       '.fh-sheet-body{flex:1;min-height:0;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}' +
       '#freedom-home.fh-fs-hint > *{display:none !important;}' +
-      '#freedom-home.fh-fs-hint::before{content:"Your Freedom Page is open — tap the blue chat bubble at the lower left to bring it back.";' +
+      '#freedom-home.fh-fs-hint::before{content:"Your Freedom Accelerator is open — tap the blue chat bubble at the lower left to bring it back.";' +
       'display:block;background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:14px;' +
       'font-size:14px;line-height:1.5;color:#5a6875;text-align:left;}' +
       // The rail's solid bar (round 10): rail-blue, title left, – right —
@@ -1911,8 +2023,11 @@
       // finding 2026-07-20).
       // Round 8: one-line header — chip left, picker+refresh right; the
       // picker flexes with ellipsis so everything truly fits one row.
+      // Round 11: ONE hdr-right rule (a second rule below once re-declared
+      // flex:none, overriding the shrink and pushing Refresh off-screen —
+      // Dave's clipped "Refr" + the sideways wobble).
       '#freedom-home .fh-header{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 12px;}' +
-      '#freedom-home .fh-hdr-right{margin-left:auto;flex:1 1 auto;min-width:0;justify-content:flex-end;}' +
+      '#freedom-home .fh-hdr-right{display:flex;gap:8px;align-items:center;margin-left:auto;flex:1 1 auto;min-width:0;justify-content:flex-end;}' +
       '#freedom-home .fh-daychip{display:inline-block;background:#2f6df6;color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:14px;white-space:nowrap;}' +
       '#freedom-home .fh-goal-line{display:block;width:100%;text-align:left;background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:9px 30px 9px 12px;font:inherit;font-size:13.5px;color:#2f4a68;margin:0 0 12px;cursor:pointer;position:relative;line-height:1.45;}' +
       '#freedom-home .fh-anchor{margin:0 0 4px;}' +
@@ -1934,8 +2049,10 @@
       '#freedom-home .fh-btn.fh-secondary{background:#eef3f9;color:#2f4a68;}' +
       '#freedom-home .fh-check{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;margin:10px 0;}' +
       '#freedom-home .fh-check input{width:auto;margin-top:3px;}' +
-      '#freedom-home .fh-refresh{width:auto;margin-top:0;}' +
-      '#freedom-home .fh-hdr-right{display:flex;gap:8px;align-items:center;flex:none;}' +
+      '#freedom-home .fh-refresh{width:auto;margin-top:0;white-space:nowrap;}' +
+      // min-width:0 is what actually lets the SELECT shrink below its
+      // content (flex items default to min-width:auto) — without it the
+      // one-line header cannot fit a long project name at 375px.
       '#freedom-home .fh-proj{border:1px solid #c4cfd9;border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;color:#4a5765;background:#fff;flex:0 1 auto;min-width:0;max-width:220px;text-overflow:ellipsis;}' +
       '#freedom-home .fh-msg{margin-top:8px;font-size:13.5px;min-height:18px;}' +
       '#freedom-home .fh-good{color:#2c9a4b;}#freedom-home .fh-bad{color:#c0392b;}' +
@@ -1951,20 +2068,23 @@
       '#freedom-home .fh-dots-label{font-size:12.5px;color:#7a8794;margin-left:4px;}' +
       '#freedom-home .fh-strip{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;gap:10px;}' +
       '#freedom-home .fh-strip-title{font-weight:700;font-size:15px;}' +
+      '#freedom-home .fh-strip-daily{justify-content:center;margin:4px 0 14px;}' +
+      '#freedom-home .fh-strip-daily .fh-strip-title{font-size:16px;}' +
       '#freedom-home .fh-strip-steps{display:flex;gap:6px;}' +
       '#freedom-home .fh-pip{width:26px;height:26px;border-radius:50%;background:#e3e9ef;color:#5a6875;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}' +
       '#freedom-home .fh-pip-done{background:#2c9a4b;color:#fff;}' +
       '#freedom-home .fh-pip-now{background:#2f6df6;color:#fff;}' +
       '#freedom-home .fh-field{margin:8px 0;}' +
       '#freedom-home .fh-goal{background:#f4f8fd;border-radius:8px;padding:10px;font-size:14.5px;}' +
-      '#freedom-home .fh-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;}' +
-      '#freedom-home .fh-table th,#freedom-home .fh-table td{border-bottom:1px solid #e3e9ef;padding:6px 8px;text-align:center;}' +
+      '#freedom-home .fh-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;}' +
+      '#freedom-home .fh-table th,#freedom-home .fh-table td{border-bottom:1px solid #e3e9ef;padding:9px 8px;text-align:center;}' +
       '#freedom-home .fh-table td:first-child,#freedom-home .fh-table th:first-child{text-align:left;}' +
       '#freedom-home .fh-toolpick{margin-top:8px;}' +
-      '#freedom-home .fh-headline{font-weight:600;color:#2c5a3f;}' +
-      '#freedom-home .fh-wins-title{margin-top:16px;}' +
-      '#freedom-home .fh-wins{margin:6px 0 4px;padding-left:20px;text-align:left;font-size:14px;}' +
-      '#freedom-home .fh-wins li{margin:6px 0;}' +
+      '#freedom-home .fh-headline{font-weight:600;color:#2c5a3f;margin:8px 0 12px;}' +
+      '#freedom-home .fh-nudge{margin-top:12px;}' +
+      '#freedom-home .fh-wins-title{margin-top:18px;}' +
+      '#freedom-home .fh-wins{margin:8px 0 4px;padding-left:20px;text-align:left;font-size:14px;}' +
+      '#freedom-home .fh-wins li{margin:8px 0;}' +
       '#freedom-home .fh-win-day{display:inline-block;background:#e7f3ec;color:#2c9a4b;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;}' +
       '#fh-tool{margin-top:12px;}';
     var style = document.createElement('style');
@@ -2011,6 +2131,7 @@
         state.identity.firstName = cachedSnap.snapshot.firstName;
       }
       route();
+      prefetchProgress_();
       verifyIdentityThenRefresh_(cachedId);
       return;
     }

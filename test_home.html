@@ -202,6 +202,17 @@
         tool: 'Rapid Behavioral Freedom tool' };
     }
     if (p.action === 'coachChat') {
+      // Round 11: a win-shaped message comes back with a log proposal so the
+      // auto-apply chip (payoff copy) is testable alongside conversation mode.
+      var lastMsg = '';
+      try { lastMsg = p.messages[p.messages.length - 1].text; } catch (e) {}
+      if (/win|donut|success/i.test(lastMsg)) {
+        return { ok: true,
+          message: 'That is a great win — noticing the pull fade is rewiring at work.',
+          proposal: { summary: 'Add to Wins', updates: [{
+            field: 'wins', label: 'Wins', day: M.currentDay, mode: 'append',
+            current: '', addedText: lastMsg.slice(0, 80), finalText: lastMsg.slice(0, 80) }] } };
+      }
       return { ok: true, message: 'Heard. Logging that quietly. What felt easier today?' };
     }
     if (p.action === 'coachApply') { return { ok: true, applied: ['wins'], failed: [] }; }
@@ -226,6 +237,8 @@
     if (p.dayScores) summary += ' dayScores=' + JSON.stringify(p.dayScores);
     if (p.scores) summary += ' scores=' + JSON.stringify(p.scores);
     if (p.confidentForever) summary += ' confidentForever=true';
+    if (p.fresh) summary += ' fresh=true';
+    if (p.projectId != null) summary += ' pid=' + p.projectId;
     logLine('→ ' + summary);
 
     if (p.action === 'state') {
