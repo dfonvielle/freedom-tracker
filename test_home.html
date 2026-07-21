@@ -107,12 +107,10 @@
         { day: 6, text: 'Evening felt lighter, no pull after dinner' },
         { day: 4, text: 'Noticed the urge, watched it pass without acting' }
       ], total: 7 },
-      // Round 12: exps mirrors the REAL reflectRecentEntries_ shape exactly
-      // (same {items:[{day,text}],total} as wins — additive field).
-      exps: { items: [
-        { day: 7, text: 'Left the phone charging in the kitchen at 9pm' },
-        { day: 5, text: 'Delayed opening the feed by two breaths, then skipped it' }
-      ], total: 4 } };
+      // Round 15: day9 deliberately has NO exps — it forces the empty-state
+      // teach line (+ the Day 7–9 proof headline). The milestone scenario
+      // carries the full exps stack (round-12 shape: {items,total}).
+      exps: { items: [], total: 0 } };
   }
   if (scenario === 'multi') {
     M.currentDay = 5;

@@ -50,6 +50,10 @@
     var COPY = {
       LOADING: 'Opening your coach\u2026',
       HEADER: '{NAME}Freedom AI Coach',   // unused since round 10 (the name-heading repeated the sheet bar / step title). Key kept for UI-Copy-tab compat.
+      // Round 15 (Dave's desktop walk): inline desktop had NO identity —
+      // the round-10 de-dupe removed the heading everywhere, but only the
+      // phone sheet has a bar to repeat. Rendered always, hidden in-sheet.
+      HEADER_TITLE: 'Your Freedom AI Coach',
       SUBLINE: 'Day {DAY}',
       REFRESH_BTN: '\u21bb Refresh',
       REFRESH_DOING: 'Refreshing\u2026',
@@ -502,10 +506,13 @@
       var html =
         '<div class="fc-card">' +
           '<div class="fc-head">' +
+            '<div>' +
+            '<h3 class="fc-hd-title">' + esc(COPY.HEADER_TITLE) + '</h3>' +
             '<p class="fc-sub">' + esc(COPY.SUBLINE.replace('{DAY}', state.currentDay)) +
               ' <span class="fc-sep">·</span> ' +
               '<button class="fc-refreshlink" id="fc-refresh">' +
               esc(state._refreshFlash ? COPY.REFRESH_DONE : COPY.REFRESH_BTN) + '</button></p>' +
+            '</div>' +
             coachProjectPickerHtml() +
           '</div>' +
           // fc-scroll: inert wrapper inline; in Freedom Home's fullscreen
@@ -1468,7 +1475,9 @@
         '.fh-coach-sheet #freedom-coach .fc-head{flex:none;}' +
         '.fh-coach-sheet #freedom-coach .fc-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}' +
         '.fh-coach-sheet #freedom-coach .fc-transcript{max-height:none;overflow:visible;}' +
-        '.fh-coach-sheet #freedom-coach .fc-composer{flex:none;}';
+        '.fh-coach-sheet #freedom-coach .fc-composer{flex:none;}' +
+        // Round 15: the sheet bar already says who this is.
+        '.fh-coach-sheet #freedom-coach .fc-hd-title{display:none;}';
       var style = document.createElement('style');
       style.id = 'fc-styles';
       style.textContent = css;

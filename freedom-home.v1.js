@@ -130,8 +130,9 @@
     // Power Hour
     PH_STRIP_TITLE: 'Day 1 — Freedom Power Hour',
     PH_TOOL_OF: 'Tool {I} of 4: {NAME}',
-    PH_INTRO: 'Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
-    PH_INTRO_POPUP: 'Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below — the next tool opens right away.',
+    PH_INTRO: 'Four one-time power moves, each rewiring from a different angle — you do this once, today. Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
+    PH_CJC_TIP: 'Pro tip: push Create Joyous Chaos as far as you can — that’s where the powerful rewiring is.',
+    PH_INTRO_POPUP: 'Four one-time power moves, each rewiring from a different angle — you do this once, today. Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below — the next tool opens right away.',
     PH_DONE_BTN: 'I finished this tool → Continue',
     PH_DONE_SAVING: 'Saving…',
     PH_SCORES_TITLE: 'One last thing: your Freedom Scores after the Power Hour',
@@ -200,6 +201,9 @@
     PROGRESS_BASELINE: 'Baseline',
     PROGRESS_EMPTY: 'Log a day’s scores and your movement shows up here.',
     PROGRESS_NUDGE: 'These numbers are from {DAY} — log today’s progress (30 seconds) and this updates to today.',
+    // Round 15: the week-one proof moment (Days 7–9, any movement) — the
+    // system names the proof; grandpa never computes it. Rule 16.
+    PROGRESS_PROOF: 'That is your Freedom Proof: you rewired your own brain, on purpose. You are not powerless — and you can never unsee this.',
     PROGRESS_UP: 'Real movement since your baseline. That is your rewiring working.',
     PROGRESS_FLAT: 'Steady is fine. Every session stacks quiet groundwork, and the wins below are proof.',
     PROGRESS_DOWN: 'Scores dip sometimes, and nothing is lost. Every concern is an opportunity for rewiring, and your wins below are still yours.',
@@ -209,6 +213,10 @@
     // dates — experiments instead), and every one counts by definition.
     EXPS_TITLE: 'Your Freedom Experiments',
     EXPS_SUB: 'Every experiment counts, however it went.',
+    // Round 15: the empty state TEACHES at the moment of relevance —
+    // grandpa learns what a Freedom Experiment is exactly when he notices
+    // he has none, with the 2-second version that's impossible to fail.
+    EXPS_EMPTY: 'Your Freedom Experiments will land here — try delaying your behavior even 2 seconds today, and tell your coach.',
     EXPS_EARLIER: '…plus {N} earlier Freedom Experiments in your full tracker.',
     TELL_COACH_PRE: 'Got a win or Freedom Experiment to add? ',
     TELL_COACH_LINK: 'Tell your coach',
@@ -218,25 +226,37 @@
     // isn't the daily rhythm. Ships collapsed; the rhythm stays the plan.
     MOREHELP_OPEN: 'More help & tools',
     MOREHELP_CLOSE: 'Close extra help',
-    MOREHELP_HOW_LINK: 'How this rewiring works (60 seconds) →',
+    MOREHELP_HOW_LINK: 'How this rewiring works (2 minutes) →',
     MOREHELP_PH_TITLE: 'Revisit the Freedom Power Hour',
     MOREHELP_PH_SUB: 'You did this once on Day 1 — that’s all it takes. Revisit any tool whenever you like; your daily rhythm above stays the plan.',
     MOREHELP_DIRECT_TITLE: 'Open a tool directly',
+    // Round 15 (Dave's catch): the Withdrawal Helper only existed inside
+    // Day 1 — someone whose cravings spike on Day 9 had no path to it.
+    // The safety line is load-bearing and ships wherever the tool does.
+    MOREHELP_WD_SAFETY: 'If your behavior involves serious physical withdrawal, get medical supervision.',
 
-    // HOW THIS REWIRING WORKS — the SYBR story, Dave's method voice
-    // (drafted from his 2026-07-21 dictations; the smiley face looking at
-    // a picture with a magnifying glass is the method's own mnemonic).
+    // HOW THIS REWIRING WORKS — the SYBR story, Dave's method voice.
+    // Round 15: merged with his original SYBR-101 teaching devices (the 3
+    // named ingredients, the kiss proof, real-vs-imagined, bar-not-lake)
+    // at the round-13 card's length discipline. Label stays time-honest.
     HOW_TITLE: 'How this rewiring works',
-    HOW_P1: 'Your brain is a prediction machine. It expects you to see the donut, want the donut, eat the donut. And when something genuinely contradicts one of its predictions, your brain doesn’t shrug — it rewires itself to account for what actually happened. Neuroscientists call these prediction errors. This whole method is built on them.',
-    HOW_P2: 'Here’s the move — picture a smiley face looking at a picture through a magnifying glass. You generate real positive emotion first. Then you look straight at the thing — the donut, the drink, the scroll — and notice how good you feel right now, not doing it. Your brain never predicted that. Feeling genuinely good while looking at the very thing it expected you to crave is a prediction error, and your brain quietly rewires to make sense of it: maybe not doing this is the better deal.',
-    HOW_P3: 'It works on fear too. Scared people will reject you if you stop drinking? You generate positive emotion, look straight at that worst nightmare, and notice you can still feel genuinely good — right now, in this moment. Your brain has to make sense of that: maybe I can handle this. Maybe it’s not such a big deal. And fear and fixation start to shrink.',
-    HOW_P4: 'This is the SYBR method — Systematic Brain Rewiring. The “systematic” part is what this page is for: your tools walk you through the exact steps, every time. You don’t have to remember any of this. You just have to show up.',
+    HOW_P1: 'Your brain is a prediction machine. It expects you to see the donut, want the donut, eat the donut. And when something genuinely contradicts one of its predictions, your brain doesn’t shrug — it rewires itself to make better predictions next time. Neuroscientists call these prediction errors. Everything on this page is built on them.',
+    HOW_ING_H: 'The three ingredients',
+    HOW_ING_INTRO: 'To remember them, picture a Smiley Face looking at a Picture with a Magnifying Glass:',
+    HOW_ING_1: 'Smiley Face — real positive emotion, generated right now. Not imagined, not hoped-for. Real.',
+    HOW_ING_2: 'Picture — the specific thing you’re rewiring: the donut, the drink, the 5pm moment where it actually gets hard.',
+    HOW_ING_3: 'Magnifying Glass — noticing the unexpected: “I feel genuinely good right now, looking straight at this.” The noticing is what aims the rewiring.',
+    HOW_KISS: 'How fast can this work? Think of a moment someone kissed you and sparks flew. Did your brain need weeks to change how you thought and felt? Real positive emotion rewires the brain practically instantly — which is why it’s the engine here.',
+    HOW_REAL: 'And it has to be real. If you just imagine feeling good about skipping the behavior, your brain dismisses it — it knows you’re pretending. Here you generate the feeling first, then look. Your brain can’t dismiss what’s actually happening: feeling good where it predicted struggle is a prediction error, and the wiring updates on the spot.',
+    HOW_HARD: 'That’s also why this beats picturing yourself happy and free by some lake. The lake was never the problem — 5pm in your kitchen is, or the buffet line, or the bar with your friends. This method aims the rewiring at the exact moments that are actually hard. It works on fear the same way: feel genuinely good while looking straight at your worst-case scenario, and the fear starts losing its grip.',
+    HOW_SYS: 'This is the SYBR method — Systematic Brain Rewiring. “Systematic” is what this page is for: the tools generate the emotion with you (the Calm Happy Focus Technique), pick the right pictures, and point the magnifying glass — every time, in the right order. You don’t have to remember any of this. You just have to show up.',
     HOW_QUIT_H: 'So… when do I quit?',
-    HOW_QUIT_P: 'You don’t “quit.” Quit dates, streaks, and white-knuckle abstinence are willpower’s tools — and we don’t do willpower. You rewire until not doing it is easy and enjoyable. That is freedom: not a fight you’re winning, a fight that stopped existing.',
+    HOW_QUIT_P: 'You don’t “quit.” There are no quit dates, streaks, or white-knuckling here — you can even keep doing the behavior while you rewire. Instead, from Day 2 on, you run Freedom Experiments: skip or delay the behavior — even 2 seconds counts — and see what happens. Every experiment is a success, however it goes, because every one teaches your brain something. You rewire until not doing it is easy and enjoyable. That is freedom: not a fight you’re winning — a fight that stopped existing.',
     HOW_ROAD_H: 'The whole road (so you know where this ends)',
-    HOW_ROAD_P: 'The Freedom Power Hour happens once, on Day 1. Then the daily rhythm — a few minutes a day — while your rewiring compounds. When Easy and Enjoyable are high and it feels like a no-brainer, you can simply decide you’re done — for a month, a year, or for good — from ease, never from force. After that, staying free takes about two seconds a day: feel good, and enjoy your freedom. This page is designed to make itself unnecessary.',
+    HOW_ROAD_P: 'Day 1 is the Freedom Power Hour — about an hour, once. Every day after takes 7–22 minutes. Your first 7 days are a Freedom Proof Sprint: the goal isn’t to be finished — it’s proof that YOU can rewire your own brain. Any change counts, and once you’ve seen it, you can never unsee it. You are not powerless. Then the rhythm compounds until Easy and Enjoyable are high and being done feels like a no-brainer — you decide you’re done, from ease, never force. After that, staying free takes about two seconds a day. This page is designed to make itself unnecessary.',
     HOW_ASK_BTN: 'Ask your coach how this applies to your situation →',
     HOW_ASK_MSG: 'How does this rewiring method apply to my situation right now?',
+    HOW_MINPLAN_LINK: 'Or revisit your Minimalist Plan — it walks this method through with your own behavior →',
     HOW_BACK: '← Back to my next step',
 
     // THE MILESTONE (round 14) — the system notices freedom; grandpa never
@@ -925,16 +945,37 @@
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.HOW_TITLE) + '</h3>' +
         '<p class="fh-how-p">' + esc(COPY.HOW_P1) + '</p>' +
-        '<p class="fh-how-p">' + esc(COPY.HOW_P2) + '</p>' +
-        '<p class="fh-how-p">' + esc(COPY.HOW_P3) + '</p>' +
-        '<p class="fh-how-p">' + esc(COPY.HOW_P4) + '</p>' +
+        '<div class="fh-mh-group">' + esc(COPY.HOW_ING_H) + '</div>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_ING_INTRO) + '</p>' +
+        '<ul class="fh-how-ing">' +
+          '<li>' + esc(COPY.HOW_ING_1) + '</li>' +
+          '<li>' + esc(COPY.HOW_ING_2) + '</li>' +
+          '<li>' + esc(COPY.HOW_ING_3) + '</li>' +
+        '</ul>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_KISS) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_REAL) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_HARD) + '</p>' +
+        '<p class="fh-how-p">' + esc(COPY.HOW_SYS) + '</p>' +
         '<div class="fh-mh-group">' + esc(COPY.HOW_QUIT_H) + '</div>' +
         '<p class="fh-how-p">' + esc(COPY.HOW_QUIT_P) + '</p>' +
         '<div class="fh-mh-group">' + esc(COPY.HOW_ROAD_H) + '</div>' +
         '<p class="fh-how-p">' + esc(COPY.HOW_ROAD_P) + '</p>' +
         '<button class="fh-btn" id="fh-how-ask">' + esc(COPY.HOW_ASK_BTN) + '</button>' +
+        // The interactive teacher (round 15): the Minimalist Plan walks the
+        // method with THEIR behavior — offered on the daily rail only (on
+        // Days 0–1 the Power Hour flow owns the tool slot).
+        (state.currentDay >= 2
+          ? '<div class="fh-linkline"><a href="#" id="fh-how-minplan">' + esc(COPY.HOW_MINPLAN_LINK) + '</a></div>'
+          : '') +
         '<div class="fh-linkline fh-center"><a href="#" id="fh-how-back">' + esc(COPY.HOW_BACK) + '</a></div>' +
       '</div>');
+    var mp = document.getElementById('fh-how-minplan');
+    if (mp) mp.addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = null;
+      route();
+      openMinplan_();
+    });
     document.getElementById('fh-how-ask').addEventListener('click', function () {
       state.forcedPhase = null;
       route();
@@ -1044,6 +1085,24 @@
       state.forcedPhase = null;
       route();
     });
+  }
+
+  // Their own Power-Hour Minimalist Plan session — the tool that teaches
+  // the plan, the Jumpstart, AND the method interactively. Fresh session →
+  // the goal line auto-sends so it answers instead of asking; an existing
+  // conversation resumes untouched. (Round 15: shared by Step-1 "Get help
+  // with this" and the explainer's revisit link.)
+  function openMinplan_() {
+    var fresh = !sessionHasUserTurn_('bh_minplan', 'ph-bh_minplan');
+    mountTool('bh_minplan', { sessionKey: 'ph-bh_minplan' });
+    if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
+      window.AgtWidget.send(document.getElementById('fh-tool-stub'),
+        COPY.GOAL_LINE_PREFIX + state.setup.ub);
+    }
+    if (!FS.mode) {
+      var helpStub = document.getElementById('fh-tool-stub');
+      if (helpStub && helpStub.scrollIntoView) { try { helpStub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
+    }
   }
 
   // The four Day-1 tools as revisit buttons (More help & tools).
@@ -1247,7 +1306,16 @@
         '<div class="fh-divider"></div>' +
         '<p class="fh-sub">' + esc(COPY.D0_NOTE) + '</p>' +
         '<button class="fh-btn" id="fh-d0-start">' + esc(COPY.D0_START_NOW) + '</button>' +
+        // Round 15: the Day-0 checkbox says "I understand how I'll do this"
+        // — this link is what there is to understand.
+        '<div class="fh-linkline"><a href="#" id="fh-d0-how">' + esc(COPY.MOREHELP_HOW_LINK) + '</a></div>' +
       '</div>');
+    var d0How = document.getElementById('fh-d0-how');
+    if (d0How) d0How.addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = 'howworks';
+      route();
+    });
     document.getElementById('fh-d0-save').addEventListener('click', function () {
       setMsg('fh-d0-msg', COPY.SAVING, true);
       callGateway({
@@ -1299,6 +1367,7 @@
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.PH_TOOL_OF.replace('{I}', String(idx + 1)).replace('{NAME}', tool.name)) + '</h3>' +
         '<p class="fh-sub">' + esc(FS.mode ? COPY.PH_INTRO_POPUP : COPY.PH_INTRO) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
+        (tool.bot === 'bh_cjc' ? '<p class="fh-sub"><strong>' + esc(COPY.PH_CJC_TIP) + '</strong></p>' : '') +
         '<div id="fh-tool"></div>' +
         '<button class="fh-btn" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
         '<div class="fh-msg" id="fh-ph-msg"></div>' +
@@ -1507,9 +1576,11 @@
       // never self-assesses. "Not yet" = 7-day snooze, zero pressure.
       milestoneCardHtml_() +
 
-      // Progress (pull, never push)
+      // Progress (pull, never push). Round 15: GOLD — the page's payoff
+      // color (blue = do, green = talk, gold = see what you've built,
+      // gray = optional). One family with the milestone card above it.
       '<div class="fh-card fh-center">' +
-        '<button class="fh-btn fh-secondary" id="fh-progress-btn">' + esc(COPY.PROGRESS_BTN) + '</button>' +
+        '<button class="fh-btn fh-gold" id="fh-progress-btn">' + esc(COPY.PROGRESS_BTN) + '</button>' +
         '<div id="fh-progress"></div>' +
       '</div>' +
 
@@ -1527,6 +1598,8 @@
           '<div class="fh-mh-group">' + esc(COPY.MOREHELP_DIRECT_TITLE) + '</div>' +
           '<button class="fh-btn fh-secondary fh-mh-btn" data-mh-daily="bh_rbf">' + esc(toolDisplayName_('bh_rbf')) + ' →</button>' +
           '<button class="fh-btn fh-secondary fh-mh-btn" data-mh-daily="bh_fearanxiety">' + esc(toolDisplayName_('bh_fearanxiety')) + ' →</button>' +
+          '<button class="fh-btn fh-secondary fh-mh-btn" data-mh-ph="bh_withdrawal">Withdrawal Helper →</button>' +
+          '<p class="fh-sub fh-mh-safety">' + esc(COPY.MOREHELP_WD_SAFETY) + '</p>' +
         '</div>' +
       '</div>');
 
@@ -1542,16 +1615,7 @@
     var jsHelp = document.getElementById('fh-js-help');
     if (jsHelp) jsHelp.addEventListener('click', function (e) {
       e.preventDefault();
-      var fresh = !sessionHasUserTurn_('bh_minplan', 'ph-bh_minplan');
-      mountTool('bh_minplan', { sessionKey: 'ph-bh_minplan' });
-      if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
-        window.AgtWidget.send(document.getElementById('fh-tool-stub'),
-          COPY.GOAL_LINE_PREFIX + state.setup.ub);
-      }
-      if (!FS.mode) {
-        var helpStub = document.getElementById('fh-tool-stub');
-        if (helpStub && helpStub.scrollIntoView) { try { helpStub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
-      }
+      openMinplan_();
     });
 
     // Step 3 collapse/expand (round 8).
@@ -1880,6 +1944,11 @@
       html += '</ul>';
       var moreExps = data.exps.total - data.exps.items.length;
       if (moreExps > 0) { html += '<p class="fh-sub">' + esc(COPY.EXPS_EARLIER.replace('{N}', String(moreExps))) + '</p>'; }
+    } else {
+      // Round 15: the empty state teaches — what a Freedom Experiment is,
+      // at the exact moment grandpa notices he has none.
+      html += '<h3 class="fh-wins-title">' + esc(COPY.EXPS_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.EXPS_EMPTY) + '</p>';
     }
     // The intake pointer (round 12): no second input box — the coach IS the
     // way in, and this line teaches the loop.
@@ -1896,6 +1965,9 @@
     for (var k in fb) {
       if (fb.hasOwnProperty(k) && fb[k] && fb[k].change != null) { sum += Number(fb[k].change); n++; }
     }
+    // Round 15: the week-one proof moment outranks the generic up-headline
+    // (Days 7–9, any positive movement) — rule 16, the system names it.
+    if (n && sum > 0 && state.currentDay >= 7 && state.currentDay <= 9) return COPY.PROGRESS_PROOF;
     if (n && sum > 0) return COPY.PROGRESS_UP;
     if (n && sum < 0) return COPY.PROGRESS_DOWN;
     return COPY.PROGRESS_FLAT;
@@ -2488,6 +2560,11 @@
       '#freedom-home .fh-milestone{border-color:#e8d49a;background:#fffdf5;}' +
       '#freedom-home .fh-mile-text{font-size:14.5px;color:#5a4d28;}' +
       '#freedom-home .fh-mile-line{font-weight:700;color:#8a6d1d;margin:2px 0 10px;}' +
+      // Round 15: gold = the payoff color (blue do, green talk, gray optional).
+      '#freedom-home .fh-btn.fh-gold{background:#d99e0b;color:#fff;}' +
+      '#freedom-home .fh-how-ing{margin:0 0 12px;padding-left:20px;text-align:left;font-size:14.5px;line-height:1.55;color:#2b3745;}' +
+      '#freedom-home .fh-how-ing li{margin:6px 0;}' +
+      '#freedom-home .fh-mh-safety{font-size:12.5px;margin-top:6px;}' +
       '#fh-tool{margin-top:12px;}';
     var style = document.createElement('style');
     style.id = 'fh-styles';
