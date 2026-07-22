@@ -115,10 +115,17 @@
     WIZ2_SUB: 'You’ll look back at these numbers to see proof of change. There are no bad scores (all zeros are fine)! Low initial scores only make the improvement more satisfying.',
     WIZ2_BUTTON: 'Save my baseline →',
     SCORE_ERROR: 'Scores must be whole numbers from 0 to 10.',
-    WIZ_BASELINE_SAVED: 'Your baseline scores are saved ✓',
+    WIZ_BASELINE_SAVED: 'Your baseline scores from step 2 are saved ✓',
+    WIZ_EDIT_BACK: '← Back (nothing changes)',
     WIZ3_TITLE: 'Pick your daily rewiring moment',
     WIZ3_SUB: 'Each morning you’ll do 30 seconds to 2 minutes of rewiring (the Happiness & Success Jumpstart). It makes it easier and more enjoyable to not do your UB.',
-    WIZ3_ANCHOR: 'Anchor this rewiring moment to something you already do every morning:',
+    // Round 19: "mindless" is load-bearing for the method (a jumpstart
+    // during video games or work aims at nothing) — rendered emphasized,
+    // so the three keys.
+    WIZ3_ANCHOR_PRE: 'Anchor this rewiring moment to something ',
+    WIZ3_ANCHOR_EM: 'mindless',
+    WIZ3_ANCHOR_POST: ' you already do every morning. Pick one, or write your own:',
+    WIZ3_CHIP_OTHER: 'Something else…',
     WIZ3_LABEL: 'I’ll do my morning rewiring (the H&S Jumpstart) at this time and place:',
     WIZ3_PLACEHOLDER: 'e.g. 7am, while my coffee brews',
     WIZ3_BUTTON: 'Continue →',
@@ -141,6 +148,9 @@
     D0_TEACH: 'The four tools teach you everything as you go. There’s nothing to study first.',
     D0_START_NOW: 'Start my Freedom Power Hour and Day 1 now →',
     D0_PLAN_TOGGLE: 'I’ll do it later. Save a time and place →',
+    // Round 19 (Dave: "it doesn't look like I did anything"): once a plan
+    // exists, the collapsed line SHOWS it — a possession, not an invitation.
+    D0_PLAN_SET: 'I’ll do it later. My plan: {PLAN} ›',
     D0_PLAN_CLOSE: 'Close',
     D0_PLAN_LABEL: 'My Freedom Power Hour time and place:',
     D0_PLAN_PLACEHOLDER: 'e.g. Saturday morning, at the kitchen table',
@@ -177,11 +187,19 @@
     CREATE_GO: 'Create my new project →',
     CREATE_WORKING: 'Creating your new project…',
     CREATE_CANCEL: 'Never mind, take me back',
-    // Round 18: archive (never delete). The restore door lives in the
-    // picker; the archive control lives in the goal & plan room.
-    PROJ_ARCHIVED: 'Archived projects… ({N})',
-    ARCH_TITLE: 'Your archived projects',
-    ARCH_SUB: 'Nothing here is deleted. Bring one back anytime and it returns to your menu with everything intact.',
+    // Round 18: archive (never delete). Round 19 (Dave couldn't FIND
+    // archive, and blank projects had no path to it at all): the picker
+    // door is now a full Manage-projects room — every active project can
+    // be archived there, every archived one restored. The goal & plan
+    // room keeps its contextual control too.
+    PROJ_MANAGE: 'Manage projects…',
+    MNG_TITLE: 'Manage your projects',
+    MNG_SUB: 'Archiving moves a project out of your menu. Nothing is deleted, and you can bring any of them back anytime.',
+    MNG_ACTIVE_H: 'Active',
+    MNG_ARCH_H: 'Archived',
+    MNG_CURRENT: 'current',
+    MNG_ARCHIVE_BTN: 'Archive',
+    MNG_ARCHIVING: 'Archiving…',
     ARCH_EMPTY: 'No archived projects right now.',
     ARCH_RESTORE: 'Bring it back →',
     ARCH_RESTORING: 'Bringing it back…',
@@ -861,6 +879,15 @@
    * ============================================================ */
   function shellLoading(msg) { return '<div class="fh-card fh-center">' + esc(msg || COPY.LOADING) + '</div>'; }
 
+  // Round 19 (Dave's walk: step transitions landed him mid-page, cut off
+  // from the step dots and the saved-note): jump to the top of the rail.
+  // Wizard steps + side rooms only — never the daily rail, whose re-renders
+  // must stay where the student is.
+  function scrollTopNow_() {
+    try { if (rootEl && rootEl.scrollTop) rootEl.scrollTop = 0; } catch (e) {}
+    try { window.scrollTo(0, 0); } catch (e2) {}
+  }
+
   // Round 17: mirror of the Gateway's projectLabelFromUb_ so the picker shows
   // the student's own words the moment wizard step 1 saves (no hard refresh).
   function labelFromUb_(ub) {
@@ -903,9 +930,10 @@
           + esc(p.label || ('Project ' + pid)) + '</option>';
       }
       if (state.canCreateProject) { opts += '<option value="__new">' + esc(COPY.PROJ_NEW) + '</option>'; }
-      // Round 18: the restore door appears only when something is archived.
-      if (state.archived && state.archived.length) {
-        opts += '<option value="__archived">' + esc(COPY.PROJ_ARCHIVED.replace('{N}', String(state.archived.length))) + '</option>';
+      // Round 19: one Manage door for both directions (archive + restore).
+      // Appears whenever there is anything to manage.
+      if ((state.projects && state.projects.length > 1) || (state.archived && state.archived.length)) {
+        opts += '<option value="__manage">' + esc(COPY.PROJ_MANAGE) + '</option>';
       }
       pickerHtml = '<select id="fh-proj" class="fh-proj">' + opts + '</select>';
     }
@@ -956,8 +984,8 @@
         route();
         return;
       }
-      if (v === '__archived') {
-        state.forcedPhase = 'archivedlist';
+      if (v === '__manage') {
+        state.forcedPhase = 'manageprojects';
         route();
         return;
       }
@@ -1017,28 +1045,51 @@
     if (step.phase === 'howworks') return renderHowItWorks();
     if (step.phase === 'nblcd') return renderNblcd();
     if (step.phase === 'createconfirm') return renderCreateConfirm();
-    if (step.phase === 'archivedlist') return renderArchivedList();
+    if (step.phase === 'manageprojects') return renderManageProjects();
     return renderDaily();
   }
 
   /* ============================================================
-   * ARCHIVED PROJECTS (round 18) — restore room. Archiving itself
-   * lives in the goal & plan editor; nothing is ever deleted.
+   * MANAGE PROJECTS (round 19) — one room, both directions. Dave's
+   * walk found archive undiscoverable AND unreachable for blank
+   * projects (the goal line only exists at stage 4). Every active
+   * project archives here; every archived one restores. Nothing is
+   * ever deleted.
    * ============================================================ */
-  function renderArchivedList() {
+  function projectRowLabel_(p) {
+    return String(p.label || (p.projectId != null ? 'Project ' + p.projectId : ''));
+  }
+  function renderManageProjects() {
     state._phWalk = false;
-    var items = '';
-    var list = state.archived || [];
-    for (var i = 0; i < list.length; i++) {
-      items += '<div class="fh-arch-row"><div class="fh-arch-label">' + esc(list[i].label) + '</div>' +
-        '<button class="fh-btn fh-secondary fh-arch-restore" data-pid="' + esc(String(list[i].projectId)) + '">' +
-        esc(COPY.ARCH_RESTORE) + '</button></div>';
+    scrollTopNow_();
+    var html = '';
+    var act = state.projects || [];
+    html += '<div class="fh-mng-h">' + esc(COPY.MNG_ACTIVE_H) + '</div>';
+    for (var i = 0; i < act.length; i++) {
+      var isCurrent = String(act[i].projectId) === String(state.activeProjectId);
+      html += '<div class="fh-arch-row"><div class="fh-arch-label">' + esc(projectRowLabel_(act[i])) +
+        (isCurrent ? ' <span class="fh-mng-cur">' + esc(COPY.MNG_CURRENT) + '</span>' : '') + '</div>' +
+        (act.length > 1
+          ? '<button class="fh-btn fh-secondary fh-mng-archive" data-pid="' + esc(String(act[i].projectId)) + '">' + esc(COPY.MNG_ARCHIVE_BTN) + '</button>'
+          : '') +
+        '</div>';
+    }
+    var arch = state.archived || [];
+    html += '<div class="fh-mng-h">' + esc(COPY.MNG_ARCH_H) + '</div>';
+    if (arch.length) {
+      for (var a = 0; a < arch.length; a++) {
+        html += '<div class="fh-arch-row"><div class="fh-arch-label">' + esc(arch[a].label) + '</div>' +
+          '<button class="fh-btn fh-secondary fh-arch-restore" data-pid="' + esc(String(arch[a].projectId)) + '">' +
+          esc(COPY.ARCH_RESTORE) + '</button></div>';
+      }
+    } else {
+      html += '<p class="fh-sub">' + esc(COPY.ARCH_EMPTY) + '</p>';
     }
     renderShell(
       '<div class="fh-card">' +
-        '<h3>' + esc(COPY.ARCH_TITLE) + '</h3>' +
-        '<p class="fh-sub">' + esc(COPY.ARCH_SUB) + '</p>' +
-        (items || '<p class="fh-sub">' + esc(COPY.ARCH_EMPTY) + '</p>') +
+        '<h3>' + esc(COPY.MNG_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.MNG_SUB) + '</p>' +
+        html +
         '<div class="fh-linkline"><a href="#" id="fh-arch-back">' + esc(COPY.GOAL_BACK) + '</a></div>' +
       '</div>');
     document.getElementById('fh-arch-back').addEventListener('click', function (e) {
@@ -1046,9 +1097,46 @@
       state.forcedPhase = null;
       route();
     });
-    var btns = document.querySelectorAll('#freedom-home .fh-arch-restore');
-    for (var b = 0; b < btns.length; b++) {
-      btns[b].addEventListener('click', function () {
+    var abtns = document.querySelectorAll('#freedom-home .fh-mng-archive');
+    for (var b = 0; b < abtns.length; b++) {
+      abtns[b].addEventListener('click', function () {
+        var btn = this;
+        var pid = btn.getAttribute('data-pid');
+        btn.disabled = true;
+        btn.textContent = COPY.MNG_ARCHIVING;
+        callGateway({ action: 'archiveProject', projectId: pid }).then(function (data) {
+          if (!data || !data.ok) {
+            btn.disabled = false;
+            btn.textContent = COPY.MNG_ARCHIVE_BTN;
+            return;
+          }
+          state.projects = data.projects || state.projects;
+          state.archived = data.archived || state.archived;
+          if (String(pid) === String(state.activeProjectId)) {
+            // Archived the project being viewed: land on the account default.
+            state._explicitProjectPick = true;
+            state.progressCache = null;
+            state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+            state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+            state.activeProjectId = String(data.activeProjectId || '');
+            unmountTool();
+            clearStateCache();
+            rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
+            loadState(false);
+            return;
+          }
+          // Archived a background project: stay right here, list updated.
+          writeStateCache();
+          renderManageProjects();
+        }).catch(function () {
+          btn.disabled = false;
+          btn.textContent = COPY.MNG_ARCHIVE_BTN;
+        });
+      });
+    }
+    var rbtns = document.querySelectorAll('#freedom-home .fh-arch-restore');
+    for (var r = 0; r < rbtns.length; r++) {
+      rbtns[r].addEventListener('click', function () {
         var btn = this;
         var pid = btn.getAttribute('data-pid');
         btn.disabled = true;
@@ -1439,14 +1527,24 @@
   function wizardStepUb() {
     var editing = (state._wizEdit === 'ub');
     var name = (state.identity && state.identity.firstName) ? ', ' + state.identity.firstName : '';
+    scrollTopNow_();
     renderShell(
       '<div class="fh-card">' + (editing ? '' : wizardDots(1)) +
         '<h3>' + esc(editing ? COPY.WIZ_CTX_HEAD : COPY.WIZ1_TITLE.replace('{NAME}', name)) + '</h3>' +
         '<label class="fh-label">' + esc(COPY.WIZ1_LABEL) + '</label>' +
         '<textarea id="fh-ub" rows="3" placeholder="' + esc(COPY.WIZ1_PLACEHOLDER) + '">' + esc(state.setup.ub) + '</textarea>' +
         '<button class="fh-btn" id="fh-next">' + esc(editing ? COPY.WIZ_EDIT_SAVE : COPY.WIZ1_BUTTON) + '</button>' +
+        // Round 19: curiosity taps need a free exit — the only way out was
+        // a 5-second server save.
+        (editing ? '<div class="fh-linkline"><a href="#" id="fh-wiz-cancel">' + esc(COPY.WIZ_EDIT_BACK) + '</a></div>' : '') +
         '<div class="fh-msg" id="fh-wiz-msg"></div>' +
       '</div>');
+    var cancel = document.getElementById('fh-wiz-cancel');
+    if (cancel) cancel.addEventListener('click', function (e) {
+      e.preventDefault();
+      state._wizEdit = null;
+      renderWizard();
+    });
     document.getElementById('fh-next').addEventListener('click', function () {
       var ub = document.getElementById('fh-ub').value.trim();
       if (!validText(ub)) return setMsg('fh-wiz-msg', COPY.WIZ1_ERROR, false);
@@ -1476,6 +1574,7 @@
       '<input type="number" min="0" max="10" step="1" id="' + idPrefix + key + '" placeholder="0-10" value="' + esc(value == null ? '' : value) + '" /></div>';
   }
   function wizardStepBaseline() {
+    scrollTopNow_();
     renderShell(
       wizardContextHtml_() +
       '<div class="fh-card">' + wizardDots(2) +
@@ -1509,33 +1608,52 @@
   }
   function wizardStepJumpstart() {
     var editing = (state._wizEdit === 'jumpstart');
+    scrollTopNow_();
     // The chips fill the (still editable) field — the examples used to be
-    // dead text; now they're grandpa's native input method, a tap.
+    // dead text; now they're grandpa's native input method, a tap. Round
+    // 19: a "Something else…" chip drops the cursor into the field.
     var chips = '<div class="fh-chips">';
     for (var c = 0; c < COPY.WIZ3_CHIPS.length; c++) {
       chips += '<button type="button" class="fh-chip" data-chip="' + esc(COPY.WIZ3_CHIPS[c]) + '">' + esc(COPY.WIZ3_CHIPS[c]) + '</button>';
     }
+    chips += '<button type="button" class="fh-chip" id="fh-chip-other">' + esc(COPY.WIZ3_CHIP_OTHER) + '</button>';
     chips += '</div>';
     renderShell(
+      // Round 19: the saved-note leads the PAGE (Dave read it inside the
+      // step-3 card as "step 3 is done"), and names the step it belongs to.
+      (editing ? '' : '<div class="fh-note">' + esc(COPY.WIZ_BASELINE_SAVED) + '</div>') +
       wizardContextHtml_() +
       '<div class="fh-card">' + (editing ? '' : wizardDots(3)) +
-        (editing ? '' : '<div class="fh-note">' + esc(COPY.WIZ_BASELINE_SAVED) + '</div>') +
         '<h3>' + esc(COPY.WIZ3_TITLE) + '</h3>' +
         '<p class="fh-sub">' + esc(COPY.WIZ3_SUB) + '</p>' +
-        '<label class="fh-label">' + esc(COPY.WIZ3_ANCHOR) + '</label>' +
+        '<label class="fh-label">' + esc(COPY.WIZ3_ANCHOR_PRE) + '<em>' + esc(COPY.WIZ3_ANCHOR_EM) + '</em>' + esc(COPY.WIZ3_ANCHOR_POST) + '</label>' +
         chips +
         '<label class="fh-label">' + esc(COPY.WIZ3_LABEL) + '</label>' +
         '<input type="text" id="fh-js" placeholder="' + esc(COPY.WIZ3_PLACEHOLDER) + '" value="' + esc(state.setup.jumpstart) + '" />' +
         '<button class="fh-btn" id="fh-next">' + esc(editing ? COPY.WIZ_EDIT_SAVE : COPY.WIZ3_BUTTON) + '</button>' +
+        (editing ? '<div class="fh-linkline"><a href="#" id="fh-wiz-cancel">' + esc(COPY.WIZ_EDIT_BACK) + '</a></div>' : '') +
         '<div class="fh-msg" id="fh-wiz-msg"></div>' +
       '</div>');
     wireWizardContext_();
+    var cancel = document.getElementById('fh-wiz-cancel');
+    if (cancel) cancel.addEventListener('click', function (e) {
+      e.preventDefault();
+      state._wizEdit = null;
+      renderWizard();
+    });
     var chipBtns = document.querySelectorAll('#freedom-home .fh-chip');
     for (var b = 0; b < chipBtns.length; b++) {
+      if (chipBtns[b].id === 'fh-chip-other') continue;
       chipBtns[b].addEventListener('click', function () {
         document.getElementById('fh-js').value = this.getAttribute('data-chip');
       });
     }
+    var other = document.getElementById('fh-chip-other');
+    if (other) other.addEventListener('click', function () {
+      var inp = document.getElementById('fh-js');
+      inp.focus();
+      try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {}
+    });
     document.getElementById('fh-next').addEventListener('click', function () {
       var js = document.getElementById('fh-js').value.trim();
       if (!validText(js)) return setMsg('fh-wiz-msg', COPY.WIZ3_ERROR, false);
@@ -1555,6 +1673,7 @@
   function wizardStepGoalPlan() {
     // Round 17: the recap rows are tappable — a typo or a joke entry is not
     // a life sentence. Each row re-opens its wizard step prefilled.
+    scrollTopNow_();
     renderShell(
       '<div class="fh-card">' + wizardDots(4) +
         '<h3>' + esc(COPY.WIZ4_TITLE) + '</h3>' +
@@ -1604,9 +1723,14 @@
     // when the student starts, and the time-and-place planner recedes to a
     // collapsed optional (its old label implied Day 1 = tomorrow).
     state._phWalk = false;
+    scrollTopNow_();
     var d0 = (state.currentDay === 0) ? state.day : null;
     var plan = d0 ? (fieldVal(d0, 'd0_ph_plan') || '') : '';
     var planOpen = !!state._d0PlanOpen;
+    // Round 19 (Dave: "it doesn't look like I did anything"): a saved plan
+    // becomes the collapsed line itself — a possession, tappable to change.
+    var planShort = plan.length > 60 ? plan.substring(0, 59).replace(/\s+\S*$/, '') + '…' : plan;
+    var closedLabel = plan ? COPY.D0_PLAN_SET.replace('{PLAN}', planShort) : COPY.D0_PLAN_TOGGLE;
     renderShell(
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.D0_TITLE) + '</h3>' +
@@ -1614,7 +1738,7 @@
         '<p class="fh-sub">' + esc(COPY.D0_FOCUS) + '</p>' +
         '<p class="fh-sub">' + esc(COPY.D0_TEACH) + '</p>' +
         '<button class="fh-btn" id="fh-d0-start">' + esc(COPY.D0_START_NOW) + '</button>' +
-        '<button class="fh-btn fh-secondary" id="fh-d0-plan-toggle">' + esc(planOpen ? COPY.D0_PLAN_CLOSE : COPY.D0_PLAN_TOGGLE) + '</button>' +
+        '<button class="fh-btn fh-secondary" id="fh-d0-plan-toggle">' + esc(planOpen ? COPY.D0_PLAN_CLOSE : closedLabel) + '</button>' +
         '<div id="fh-d0-planbox"' + (planOpen ? '' : ' style="display:none"') + '>' +
           '<label class="fh-label">' + esc(COPY.D0_PLAN_LABEL) + '</label>' +
           '<input type="text" id="fh-d0-plan" placeholder="' + esc(COPY.D0_PLAN_PLACEHOLDER) + '" value="' + esc(plan) + '" />' +
@@ -1629,7 +1753,10 @@
       state._d0PlanOpen = !state._d0PlanOpen;
       var box = document.getElementById('fh-d0-planbox');
       box.style.display = state._d0PlanOpen ? '' : 'none';
-      this.textContent = state._d0PlanOpen ? COPY.D0_PLAN_CLOSE : COPY.D0_PLAN_TOGGLE;
+      var cur = (state.day && state.currentDay === 0) ? (fieldVal(state.day, 'd0_ph_plan') || '') : '';
+      var curShort = cur.length > 60 ? cur.substring(0, 59).replace(/\s+\S*$/, '') + '…' : cur;
+      this.textContent = state._d0PlanOpen ? COPY.D0_PLAN_CLOSE
+        : (cur ? COPY.D0_PLAN_SET.replace('{PLAN}', curShort) : COPY.D0_PLAN_TOGGLE);
     });
     document.getElementById('fh-d0-save').addEventListener('click', function () {
       setMsg('fh-d0-msg', COPY.SAVING, true);
@@ -1641,7 +1768,10 @@
         if (data.day) state.day = data.day;
         if (data.completion) state.completion = data.completion;
         writeStateCache();
-        setMsg('fh-d0-msg', 'Saved ✓', true);
+        // Round 19: collapse into the plan-carrying line — the visible
+        // before/after that makes the save feel real.
+        state._d0PlanOpen = false;
+        renderDay0();
       }).catch(function (err) { setMsg('fh-d0-msg', String(err), false); });
     });
     document.getElementById('fh-d0-start').addEventListener('click', function () {
@@ -2896,10 +3026,14 @@
       '#freedom-home .fh-chip:active{background:#dbe7f5;}' +
       // Round 18 (Dave's screenshot): the Day-0 plan input was a sliver.
       '#freedom-home #fh-d0-planbox input{width:100%;box-sizing:border-box;font-size:15px;padding:10px;}' +
-      // Round 18: archived-projects restore rows.
+      // Round 18: archived-projects restore rows. Round 19: manage-room
+      // section heads + current chip; the anchor label's em carries weight.
       '#freedom-home .fh-arch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;}' +
       '#freedom-home .fh-arch-label{font-size:14.5px;color:#2f4a68;min-width:0;overflow:hidden;text-overflow:ellipsis;}' +
       '#freedom-home .fh-arch-row .fh-btn{width:auto;margin:0;padding:9px 14px;flex:none;}' +
+      '#freedom-home .fh-mng-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#5b7797;margin:14px 0 4px;}' +
+      '#freedom-home .fh-mng-cur{font-size:11.5px;font-weight:700;color:#2f6df6;background:#e7effd;border-radius:9px;padding:2px 8px;margin-left:6px;}' +
+      '#freedom-home .fh-label em{font-style:italic;font-weight:700;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;white-space:nowrap;}' +
       // min-width:0 is what actually lets the SELECT shrink below its
       // content (flex items default to min-width:auto) — without it the

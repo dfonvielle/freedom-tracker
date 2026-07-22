@@ -157,7 +157,9 @@
     if (day === 0) {
       fields = [
         { key: 'd0_all', label: 'I understand…and I’m looking forward to the rewiring!', type: 'check', value: false },
-        { key: 'd0_ph_plan', label: 'My Day 1 Freedom Power Hour time and place:', type: 'text', value: '' }
+        // Round 19: the mock STORES the plan (the real tracker does) — the
+        // collapsed "My plan: …" line depends on the read-back.
+        { key: 'd0_ph_plan', label: 'My Day 1 Freedom Power Hour time and place:', type: 'text', value: M.d0plan || '' }
       ];
       return { day: 0, title: 'Day 0', fields: fields };
     }
@@ -377,7 +379,7 @@
         // response carries currentDay so the chip updates immediately.
         if (M.currentDay === 0) { M.currentDay = 1; }
       } else if (day === 0) {
-        // day-0 fields not modeled beyond echo
+        if (p.fields && 'd0_ph_plan' in p.fields) { M.d0plan = String(p.fields.d0_ph_plan || ''); }
       } else {
         var d = M.daily[day] = M.daily[day] || {};
         Object.keys(p.fields || {}).forEach(function (k) { d[k] = (k === 'jumpstart') ? !!p.fields[k] : p.fields[k]; });
