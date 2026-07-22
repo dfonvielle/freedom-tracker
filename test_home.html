@@ -304,6 +304,20 @@
       }
       return { ok: true, token: 'mock-token' };
     }
+    if (p.action === 'renameProject') {
+      // Round 20 mirror: rename sets the label AND locks it — the mock's
+      // ub-save label write skips locked pids, like the real Gateway.
+      M.projects = M.projects || [{ projectId: '1', label: 'Test project' }];
+      M.renamedLock = M.renamedLock || {};
+      for (var rni = 0; rni < M.projects.length; rni++) {
+        if (String(M.projects[rni].projectId) === String(p.projectId)) {
+          M.projects[rni].label = String(p.label || '').substring(0, 40);
+          M.renamedLock[String(p.projectId)] = true;
+          break;
+        }
+      }
+      return { ok: true, projects: M.projects, archived: M.archivedList || [], label: String(p.label || '') };
+    }
     if (p.action === 'archiveProject') {
       // Round 18 mirror: refuse the last active project; move to archived;
       // activeProjectId = the remaining default.
@@ -358,10 +372,15 @@
     if (p.action === 'setupSave') {
       if (p.step === 'ub') {
         M.ub = p.ub; M.stage = Math.max(M.stage, 1);
-        // Mirror the server: the ub save also writes the dropdown label.
+        // Mirror the server: the ub save also writes the dropdown label —
+        // unless a manual rename locked it (round 20).
         var lst = M.projects || [];
+        var lockMap = M.renamedLock || {};
         for (var li = 0; li < lst.length; li++) {
-          if (String(lst[li].projectId) === String(M.activeId || '1')) { lst[li].label = M.ub; break; }
+          if (String(lst[li].projectId) === String(M.activeId || '1')) {
+            if (!lockMap[String(lst[li].projectId)]) { lst[li].label = M.ub; }
+            break;
+          }
         }
         return { ok: true, stage: M.stage, ub: M.ub };
       }

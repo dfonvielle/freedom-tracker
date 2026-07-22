@@ -157,9 +157,21 @@
     D0_SAVE: 'Save my plan',
     D0_PLAN_NOTE: 'This page will be right here waiting. It remembers everything.',
 
-    // Power Hour
+    // Power Hour (round 20 rebuild: a stepped page like the daily rhythm —
+    // all five steps visible, tools open on the student's TAP (rule 5:
+    // tools never appear uninvited; the old phone auto-popup was a fossil
+    // from the lesson-IS-the-tool era), fresh sessions preloaded with the
+    // contract sentence so every tool opens already personalized.)
     PH_STRIP_TITLE: 'Day 1: Freedom Power Hour',
     PH_TOOL_OF: 'Tool {I} of 4: {NAME}',
+    PH_OPEN: 'Open my rewiring session →',
+    PH_OPEN_RESUME: 'Continue my rewiring session →',
+    PH_TEACH_MIN: 'The tool fills your screen. The – button at the top right brings you back to this page anytime.',
+    PH_SCORES_ROW: 'Your Freedom Scores after the Power Hour',
+    PH_BLURB_bh_nbwe: 'Dissolves the willpower fight before it starts. Tell it what you want freedom from and it does the rest.',
+    PH_BLURB_bh_minplan: 'Builds your tiny daily plan and teaches the rewiring method using your own behavior.',
+    PH_BLURB_bh_feelgs: 'Your first real taste of feeling genuinely good while looking straight at the behavior.',
+    PH_BLURB_bh_cjc: 'The wildcard. Push it as far as you can. That is where the powerful rewiring happens.',
     PH_INTRO: 'Four one-time power moves, each rewiring from a different angle. You do this once, today. Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
     PH_CJC_TIP: 'Pro tip: push Create Joyous Chaos as far as you can. That’s where the powerful rewiring is.',
     PH_INTRO_POPUP: 'Four one-time power moves, each rewiring from a different angle. You do this once, today. Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below and the next tool opens right away.',
@@ -200,6 +212,10 @@
     MNG_CURRENT: 'current',
     MNG_ARCHIVE_BTN: 'Archive',
     MNG_ARCHIVING: 'Archiving…',
+    MNG_RENAME_BTN: 'Rename',
+    MNG_RENAME_SAVE: 'Save',
+    MNG_RENAME_CANCEL: 'Cancel',
+    MNG_RENAMING: 'Saving…',
     ARCH_EMPTY: 'No archived projects right now.',
     ARCH_RESTORE: 'Bring it back →',
     ARCH_RESTORING: 'Bringing it back…',
@@ -1038,8 +1054,8 @@
       return renderWizard();
     }
     if (step.phase === 'day0') return renderDay0();
-    if (step.phase === 'power_hour') return renderPowerHour(step.index != null ? step.index : 0);
-    if (step.phase === 'after_scores') return renderAfterScores();
+    if (step.phase === 'power_hour') return renderPowerHourRail();
+    if (step.phase === 'after_scores') return renderPowerHourRail();
     if (step.phase === 'day1_done') return renderDay1Done();
     if (step.phase === 'goalplan') return renderGoalPlan();
     if (step.phase === 'howworks') return renderHowItWorks();
@@ -1067,11 +1083,15 @@
     html += '<div class="fh-mng-h">' + esc(COPY.MNG_ACTIVE_H) + '</div>';
     for (var i = 0; i < act.length; i++) {
       var isCurrent = String(act[i].projectId) === String(state.activeProjectId);
-      html += '<div class="fh-arch-row"><div class="fh-arch-label">' + esc(projectRowLabel_(act[i])) +
+      html += '<div class="fh-arch-row" data-rowpid="' + esc(String(act[i].projectId)) + '">' +
+        '<div class="fh-arch-label">' + esc(projectRowLabel_(act[i])) +
         (isCurrent ? ' <span class="fh-mng-cur">' + esc(COPY.MNG_CURRENT) + '</span>' : '') + '</div>' +
-        (act.length > 1
-          ? '<button class="fh-btn fh-secondary fh-mng-archive" data-pid="' + esc(String(act[i].projectId)) + '">' + esc(COPY.MNG_ARCHIVE_BTN) + '</button>'
-          : '') +
+        '<div class="fh-mng-btns">' +
+          '<button class="fh-btn fh-secondary fh-mng-rename" data-pid="' + esc(String(act[i].projectId)) + '" data-label="' + esc(projectRowLabel_(act[i])) + '">' + esc(COPY.MNG_RENAME_BTN) + '</button>' +
+          (act.length > 1
+            ? '<button class="fh-btn fh-secondary fh-mng-archive" data-pid="' + esc(String(act[i].projectId)) + '">' + esc(COPY.MNG_ARCHIVE_BTN) + '</button>'
+            : '') +
+        '</div>' +
         '</div>';
     }
     var arch = state.archived || [];
@@ -1097,6 +1117,50 @@
       state.forcedPhase = null;
       route();
     });
+    // Round 20: rename — the label is navigation furniture, separate from
+    // the UB (the method's words). The row swaps to an inline editor; a
+    // manual rename locks the label server-side against UB-driven writes.
+    var rbtns2 = document.querySelectorAll('#freedom-home .fh-mng-rename');
+    for (var rn = 0; rn < rbtns2.length; rn++) {
+      rbtns2[rn].addEventListener('click', function () {
+        var pid = this.getAttribute('data-pid');
+        var curLabel = this.getAttribute('data-label');
+        var row = document.querySelector('#freedom-home .fh-arch-row[data-rowpid="' + pid + '"]');
+        if (!row) return;
+        row.innerHTML = '<input type="text" class="fh-mng-rename-input" value="' + esc(curLabel) + '" maxlength="60" />' +
+          '<div class="fh-mng-btns">' +
+            '<button class="fh-btn fh-mng-rename-save">' + esc(COPY.MNG_RENAME_SAVE) + '</button>' +
+            '<button class="fh-btn fh-secondary fh-mng-rename-cancel">' + esc(COPY.MNG_RENAME_CANCEL) + '</button>' +
+          '</div>';
+        var inp = row.querySelector('.fh-mng-rename-input');
+        inp.focus();
+        try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {}
+        row.querySelector('.fh-mng-rename-cancel').addEventListener('click', function () {
+          renderManageProjects();
+        });
+        row.querySelector('.fh-mng-rename-save').addEventListener('click', function () {
+          var newLabel = inp.value.trim();
+          if (!newLabel) { inp.focus(); return; }
+          var saveBtn = this;
+          saveBtn.disabled = true;
+          saveBtn.textContent = COPY.MNG_RENAMING;
+          callGateway({ action: 'renameProject', projectId: pid, label: newLabel }).then(function (data) {
+            if (!data || !data.ok) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = COPY.MNG_RENAME_SAVE;
+              return;
+            }
+            state.projects = data.projects || state.projects;
+            state.archived = data.archived || state.archived;
+            writeStateCache();
+            renderManageProjects();
+          }).catch(function () {
+            saveBtn.disabled = false;
+            saveBtn.textContent = COPY.MNG_RENAME_SAVE;
+          });
+        });
+      });
+    }
     var abtns = document.querySelectorAll('#freedom-home .fh-mng-archive');
     for (var b = 0; b < abtns.length; b++) {
       abtns[b].addEventListener('click', function () {
@@ -1779,9 +1843,11 @@
         .then(function (data) {
           if (data.ok && data.day) { state.phDay = data.day; }
           state.forcedPhase = null;
-          renderPowerHour(firstUntickedTool(state.phDay));
+          // Round 20: land on the Power Hour PAGE, framed and oriented —
+          // never thrown straight into tool 1's chat (rule 5).
+          renderPowerHourRail();
         })
-        .catch(function () { renderPowerHour(0); });
+        .catch(function () { renderPowerHourRail(); });
     });
   }
 
@@ -1801,8 +1867,140 @@
     return html + '</div></div>';
   }
 
+  /* ============================================================
+   * POWER HOUR RAIL (round 20) — the day-1 walk as ONE stepped page,
+   * the daily rhythm's pattern language: done steps collapse to ✓
+   * rows, the current step is the one expanded card, upcoming steps
+   * sit visible but quiet (the map grandpa reached for when he tried
+   * tapping pips). The tool opens on HIS tap (rule 5), preloaded with
+   * the contract sentence on fresh sessions.
+   * ============================================================ */
+  function phBlurb_(bot) { return COPY['PH_BLURB_' + bot] || ''; }
+  function openPhTool_(idx) {
+    var tool = TOOLS.powerHour[idx];
+    var key = scopedSessionKey_(tool.bot, 'ph-' + tool.bot);
+    var fresh = !sessionHasUserTurn_(tool.bot, key);
+    mountTool(tool.bot, { sessionKey: key });
+    if (fresh && state.setup && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
+      // The wizard's contract sentence, visible as his first message — the
+      // tool opens already personalized (each PH bot's Screen 1 treats the
+      // first message as the behavior answer; harness-proven per bot).
+      window.AgtWidget.send(document.getElementById('fh-tool-stub'),
+        COPY.WIZ_CTX_PREFIX + state.setup.ub);
+    }
+    var openBtn = document.getElementById('fh-ph-open');
+    if (openBtn) {
+      if (FS.mode) { openBtn.textContent = COPY.PH_OPEN_RESUME; }
+      else { openBtn.style.display = 'none'; }   // desktop: the tool is right here
+    }
+    if (!FS.mode) {
+      var stub = document.getElementById('fh-tool-stub');
+      if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+    }
+  }
+  function renderPowerHourRail() {
+    state._phWalk = true;
+    scrollTopNow_();
+    var phDay = (state.currentDay === 1) ? state.day : state.phDay;
+    var current = firstUntickedTool(phDay);            // -1 = all four ticked
+    var scoresDone = !!(state.completion && state.completion[1]);
+    var html = phStripHtml(current) +
+      '<p class="fh-sub fh-ph-note">' + esc(COPY.PH_RESUME_NOTE) + '</p>';
+    for (var i = 0; i < TOOLS.powerHour.length; i++) {
+      var t = TOOLS.powerHour[i];
+      var done = !!fieldVal(phDay, t.fieldKey);
+      if (done) {
+        html += '<div class="fh-phstep fh-phstep-done">✓ ' + esc(t.name) + '</div>';
+      } else if (i === current) {
+        var key = scopedSessionKey_(t.bot, 'ph-' + t.bot);
+        var hasSession = sessionHasUserTurn_(t.bot, key);
+        html += '<div class="fh-card">' +
+          '<h3>' + esc(COPY.PH_TOOL_OF.replace('{I}', String(i + 1)).replace('{NAME}', t.name)) + '</h3>' +
+          '<p class="fh-sub">' + esc(phBlurb_(t.bot)) + '</p>' +
+          '<div id="fh-tool"></div>' +
+          '<button class="fh-btn" id="fh-ph-open">' + esc(hasSession ? COPY.PH_OPEN_RESUME : COPY.PH_OPEN) + '</button>' +
+          (FS.mode ? '<p class="fh-sub fh-ph-teach">' + esc(COPY.PH_TEACH_MIN) + '</p>' : '') +
+          '<button class="fh-btn fh-secondary" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
+          '<div class="fh-msg" id="fh-ph-msg"></div>' +
+        '</div>';
+      } else {
+        html += '<div class="fh-phstep">' + (i + 1) + ' · ' + esc(t.name) + '</div>';
+      }
+    }
+    // Step 5, the ★: after-Power-Hour scores.
+    if (current === -1 && !scoresDone) {
+      var hideConf = !!(state.confidence && state.confidence.optedOut);
+      html += '<div class="fh-card">' +
+        '<h3>' + esc(COPY.PH_SCORES_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.PH_SCORES_SUB) + '</p>' +
+        scoreInputHtml('easy', 'fh-aps-', null) +
+        scoreInputHtml('enjoy', 'fh-aps-', null) +
+        (hideConf ? '' : scoreInputHtml('conf', 'fh-aps-', null)) +
+        '<button class="fh-btn" id="fh-aps-save">' + esc(COPY.PH_SCORES_BTN) + '</button>' +
+        '<div class="fh-msg" id="fh-aps-msg"></div>' +
+      '</div>';
+    } else {
+      html += '<div class="fh-phstep' + (scoresDone ? ' fh-phstep-done' : '') + '">' +
+        (scoresDone ? '✓ ' : '★ · ') + esc(COPY.PH_SCORES_ROW) + '</div>';
+    }
+    renderShell(html);
+    var openBtn = document.getElementById('fh-ph-open');
+    if (openBtn) openBtn.addEventListener('click', function () { openPhTool_(current); });
+    var doneBtn = document.getElementById('fh-ph-done');
+    if (doneBtn) doneBtn.addEventListener('click', function () {
+      var tool = TOOLS.powerHour[current];
+      doneBtn.disabled = true;
+      doneBtn.textContent = COPY.PH_DONE_SAVING;
+      var fields = {};
+      fields[tool.fieldKey] = true;
+      callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: fields })
+        .then(function (data) {
+          if (!data.ok) {
+            doneBtn.disabled = false; doneBtn.textContent = COPY.PH_DONE_BTN;
+            return setMsg('fh-ph-msg', data.error, false);
+          }
+          if (typeof data.currentDay === 'number') state.currentDay = data.currentDay;
+          if (state.currentDay === 1) { state.day = data.day || state.day; }
+          else { state.phDay = data.day || state.phDay; }
+          if (data.completion) state.completion = data.completion;
+          writeStateCache();
+          route();
+        })
+        .catch(function (err) {
+          doneBtn.disabled = false; doneBtn.textContent = COPY.PH_DONE_BTN;
+          setMsg('fh-ph-msg', String(err), false);
+        });
+    });
+    var apsBtn = document.getElementById('fh-aps-save');
+    if (apsBtn) apsBtn.addEventListener('click', function () {
+      var hideConf2 = !!(state.confidence && state.confidence.optedOut);
+      var keys = hideConf2 ? ['easy', 'enjoy'] : ['easy', 'enjoy', 'conf'];
+      var dayScores = {};
+      for (var k = 0; k < keys.length; k++) {
+        var v = document.getElementById('fh-aps-' + keys[k]).value;
+        if (!validScore(v)) return setMsg('fh-aps-msg', COPY.SCORE_ERROR, false);
+        dayScores[keys[k]] = Number(v);
+      }
+      setMsg('fh-aps-msg', COPY.SAVING, true);
+      callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: {}, dayScores: dayScores })
+        .then(function (data) {
+          if (!data.ok) return setMsg('fh-aps-msg', data.error, false);
+          if (typeof data.currentDay === 'number') state.currentDay = data.currentDay;
+          if (state.currentDay === 1) { state.day = data.day || state.day; }
+          else { state.phDay = data.day || state.phDay; }
+          if (data.completion) state.completion = data.completion;
+          writeStateCache();
+          route();
+        })
+        .catch(function (err) { setMsg('fh-aps-msg', String(err), false); });
+    });
+  }
+
+  // Single-tool view — REVISITS only now (More help / celebrate picker):
+  // the student explicitly chose this tool, so mounting on render is the
+  // invited case. The day-1 walk uses renderPowerHourRail above.
   function renderPowerHour(idx) {
-    if (idx < 0 || idx >= TOOLS.powerHour.length) return renderAfterScores();
+    if (idx < 0 || idx >= TOOLS.powerHour.length) return renderPowerHourRail();
     state._phWalk = true;   // the walk IS Day 1, even before the first tick stamps it
     var tool = TOOLS.powerHour[idx];
     renderShell(
@@ -1844,42 +2042,8 @@
     });
   }
 
-  function renderAfterScores() {
-    state._phWalk = true;
-    var hideConf = !!(state.confidence && state.confidence.optedOut);
-    renderShell(
-      phStripHtml(-1) +
-      '<div class="fh-card">' +
-        '<h3>' + esc(COPY.PH_SCORES_TITLE) + '</h3>' +
-        '<p class="fh-sub">' + esc(COPY.PH_SCORES_SUB) + '</p>' +
-        scoreInputHtml('easy', 'fh-aps-', null) +
-        scoreInputHtml('enjoy', 'fh-aps-', null) +
-        (hideConf ? '' : scoreInputHtml('conf', 'fh-aps-', null)) +
-        '<button class="fh-btn" id="fh-aps-save">' + esc(COPY.PH_SCORES_BTN) + '</button>' +
-        '<div class="fh-msg" id="fh-aps-msg"></div>' +
-      '</div>');
-    document.getElementById('fh-aps-save').addEventListener('click', function () {
-      var keys = hideConf ? ['easy', 'enjoy'] : ['easy', 'enjoy', 'conf'];
-      var dayScores = {};
-      for (var i = 0; i < keys.length; i++) {
-        var v = document.getElementById('fh-aps-' + keys[i]).value;
-        if (!validScore(v)) return setMsg('fh-aps-msg', COPY.SCORE_ERROR, false);
-        dayScores[keys[i]] = Number(v);
-      }
-      setMsg('fh-aps-msg', COPY.SAVING, true);
-      callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: {}, dayScores: dayScores })
-        .then(function (data) {
-          if (!data.ok) return setMsg('fh-aps-msg', data.error, false);
-          if (typeof data.currentDay === 'number') state.currentDay = data.currentDay;
-          if (state.currentDay === 1) { state.day = data.day || state.day; }
-          else { state.phDay = data.day || state.phDay; }
-          if (data.completion) state.completion = data.completion;
-          writeStateCache();
-          route();
-        })
-        .catch(function (err) { setMsg('fh-aps-msg', String(err), false); });
-    });
-  }
+  // (renderAfterScores retired round 20 — the scores form lives as the
+  // rail's fifth step inside renderPowerHourRail.)
 
   function renderDay1Done() {
     state._phWalk = true;
@@ -3032,7 +3196,14 @@
       '#freedom-home .fh-arch-label{font-size:14.5px;color:#2f4a68;min-width:0;overflow:hidden;text-overflow:ellipsis;}' +
       '#freedom-home .fh-arch-row .fh-btn{width:auto;margin:0;padding:9px 14px;flex:none;}' +
       '#freedom-home .fh-mng-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#5b7797;margin:14px 0 4px;}' +
+      // Round 20: the Power Hour rail's step rows (done / upcoming) + notes.
+      '#freedom-home .fh-phstep{background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:10px 12px;font-size:14px;color:#7d92a9;margin:0 0 8px;}' +
+      '#freedom-home .fh-phstep-done{color:#2f4a68;border-color:#c9d9ec;}' +
+      '#freedom-home .fh-ph-note{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
+      '#freedom-home .fh-ph-teach{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
       '#freedom-home .fh-mng-cur{font-size:11.5px;font-weight:700;color:#2f6df6;background:#e7effd;border-radius:9px;padding:2px 8px;margin-left:6px;}' +
+      '#freedom-home .fh-mng-btns{display:flex;gap:6px;flex:none;}' +
+      '#freedom-home .fh-mng-rename-input{flex:1;min-width:0;font-size:14px;padding:8px;}' +
       '#freedom-home .fh-label em{font-style:italic;font-weight:700;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;white-space:nowrap;}' +
       // min-width:0 is what actually lets the SELECT shrink below its
