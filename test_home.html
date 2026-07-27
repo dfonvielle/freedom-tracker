@@ -184,17 +184,34 @@
     return c;
   }
   function stateResp() {
+    var plist = M.projects || [{ projectId: '1', label: 'Test project' }];
+    var pid = String(M.activeId || plist[0].projectId);
+    // Desync-fix ratchet (2026-07-27): per-project day + ub, SAME rule the
+    // coach stub uses (first project = M.currentDay, others = Day 2) — the
+    // real Gateway serves both surfaces from one state action, so the
+    // harness must never show the rail one project's numbers and the coach
+    // another's. Non-multi scenarios (no M.projects) are untouched.
+    var cur = null;
+    for (var si = 0; si < plist.length; si++) {
+      if (String(plist[si].projectId) === pid) { cur = plist[si]; }
+    }
+    // Unknown project (stale pin from another scenario): behave like the
+    // real Gateway — fall back to a project that exists, and SAY so via
+    // activeProjectId, never echo a ghost id with someone else's data.
+    if (!cur) { cur = plist[0]; pid = String(cur.projectId); M.activeId = pid; }
+    var cday = (String(cur.projectId) === String(plist[0].projectId)) ? M.currentDay : 2;
+    var ub = (M.projects && cur.label) ? cur.label : M.ub;
     return { ok: true, firstName: 'Testy', token: 'mock-token',
-      projects: M.projects || [{ projectId: '1', label: 'Test project' }],
-      activeProjectId: M.activeId || ((M.projects && M.projects[0]) ? M.projects[0].projectId : '1'),
-      projectType: 'ACCELERATOR', currentDay: M.currentDay, maxDay: 7, maxTrackedDay: 400,
+      projects: plist,
+      activeProjectId: pid,
+      projectType: 'ACCELERATOR', currentDay: cday, maxDay: 7, maxTrackedDay: 400,
       writable: true, unlimited: !!M.canCreate, canCreateProject: !!M.canCreate,
       archived: M.archivedList || [],
       confidence: { optedOut: false, since: '' },
       milestoneDecision: M.nblcd || null,
-      setup: { stage: M.stage, ub: M.ub, jumpstart: M.jumpstart },
+      setup: { stage: M.stage, ub: ub, jumpstart: M.jumpstart },
       scoreQuestions: SCORE_QUESTIONS, prompts: {}, uiCopy: {},
-      day: (M.stage >= 4 ? dayResp(M.currentDay) : null), completion: (M.stage >= 4 ? completionMap() : null) };
+      day: (M.stage >= 4 ? dayResp(cday) : null), completion: (M.stage >= 4 ? completionMap() : null) };
   }
 
   // REAL coach.v3 UI, driven by a fetch stub (pattern lifted from
@@ -224,14 +241,39 @@
   };
   function coachRoute(p) {
     if (p.action === 'state') {
-      // Three projects on purpose: the picker row is part of what overflowed
-      // Dave's real phone (round-3 composer-off-screen bug) — keep it tall.
-      return { ok: true, activeProjectId: '1', firstName: 'Testy', currentDay: M.currentDay, maxDay: 7,
+      // Desync-fix ratchet (2026-07-27): this stub used to pin
+      // activeProjectId '1' no matter what the coach asked for — which is
+      // exactly why twenty rounds of harness walks never caught the
+      // rail↔coach project desync. It now behaves like the real Gateway:
+      // echo the requested project, fall back to the rail mock's shared
+      // M.activeId, and serve the SAME project list the rail sees when the
+      // scenario defines one (multi). Non-multi scenarios keep the tall
+      // 3-project picker (the round-3 phone-overflow regression guard).
+      var plist = (M.projects ||
+        [{ projectId: '1', label: 'late-night doomscrolling' },
+         { projectId: '2', label: 'sugar after dinner' },
+         { projectId: '3', label: 'cruise-ship eating' }]
+      ).map(function (pr, pi) {
+        // The real Gateway ships currentDay + day0Date per project (the
+        // coach picker's "Project N (Day D)" naming depends on both).
+        return { projectId: pr.projectId, label: pr.label,
+          currentDay: (pi === 0 ? M.currentDay : 2),
+          day0Date: '2026-07-0' + (pi + 1) };
+      });
+      var pid = String(p.projectId || M.activeId || plist[0].projectId);
+      var known = null;
+      for (var ci = 0; ci < plist.length; ci++) {
+        if (String(plist[ci].projectId) === pid) { known = plist[ci]; }
+      }
+      if (!known) { pid = String(plist[0].projectId); known = plist[0]; }
+      // Per-project day so a desynced coach is VISIBLE in the harness
+      // (subline says Day 5 on project 1, Day 2 on any other).
+      var cday = known.currentDay;
+      logLine('   coach scoped to project ' + pid);
+      return { ok: true, activeProjectId: pid, firstName: 'Testy', currentDay: cday, maxDay: 7,
         writable: true,
-        projects: [{ projectId: '1', label: 'late-night doomscrolling' },
-                   { projectId: '2', label: 'sugar after dinner' },
-                   { projectId: '3', label: 'cruise-ship eating' }],
-        setup: { ub: M.ub || 'late-night doomscrolling' }, uiCopy: {} };
+        projects: plist,
+        setup: { ub: known.label || M.ub || 'late-night doomscrolling' }, uiCopy: {} };
     }
     if (p.action === 'recover') { return { ok: true, token: 'tok-harness' }; }
     if (p.action === 'coachRecommend') {

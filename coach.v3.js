@@ -172,6 +172,11 @@
       busy: false,
       booted: false,
       _recoverTried: false,
+      // Bumped on every project change; async continuations (chat replies,
+      // help-menu fetches) capture it at call time and drop their result if
+      // the scope moved while they were in flight — one project's reply can
+      // never land in another project's conversation.
+      _scopeGen: 0,
       // guided flow
       helpOpen: false,
       helpMenu: null,        // {ub, canLog, feelings:[...]}
@@ -221,6 +226,14 @@
       injectStyles();
       captureMagicLinkToken();
       state.token = readLS(LS.token);
+      // Freedom Home (2026-07-27 desync fix): the rail owns WHICH project.
+      // Adopt its current selection before any paint or state call, so the
+      // coach can never boot scoped to the tracker cache's (or the server
+      // default's) idea of the project while the page header says another.
+      // The rail announces later switches via the fh:project event below.
+      if (window.FREEDOM_HOME === true && window.FREEDOM_HOME_PROJECT != null) {
+        state.activeProjectId = String(window.FREEDOM_HOME_PROJECT);
+      }
       rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
 
       // FAST PAINT: the tracker and the coach share a device and a token, so
@@ -228,9 +241,13 @@
       // instantly from it, then refresh in the background via loadState(). The
       // coaching itself (recommend / chat / help) is always computed live when
       // the student taps, so nothing here is ever served stale.
+      // Skipped when the snapshot is for a different project than the rail's
+      // pick — a wrong-project flash is the exact bug this guards against;
+      // loadState paints the right one moments later.
       if (state.token) {
         var snap = coachReadTrackerCache_();
-        if (snap && snap.activeProjectId) {
+        if (snap && snap.activeProjectId &&
+            (state.activeProjectId == null || String(snap.activeProjectId) === String(state.activeProjectId))) {
           if (snap.uiCopy) { state.uiCopy = snap.uiCopy; applyUiCopy(snap.uiCopy); }
           state.firstName = snap.firstName || '';
           state.projects = snap.projects || [];
@@ -289,11 +306,16 @@
 
     // Bootstrap from the existing 'state' action (no new endpoint needed).
     function loadState() {
-      var payload = { action: 'state', projectId: state.activeProjectId };
+      var requested = state.activeProjectId;
+      var gen = state._scopeGen;
+      var payload = { action: 'state', projectId: requested };
       // Coach Refresh forces the Gateway to bypass its server caches too.
       if (state._forceFresh) { payload.fresh = true; state._forceFresh = false; }
       return callGateway(payload)
         .then(function (data) {
+          // The scope moved while this was in flight — a newer loadState
+          // owns the screen now; adopting this reply would re-desync.
+          if (gen !== state._scopeGen) { return; }
           if (!data.ok) {
             if (!state._recoverTried) { return attemptRecover(); }
             return renderNoProject();
@@ -304,6 +326,13 @@
           state.firstName = data.firstName || '';
           state.projects = data.projects || [];
           state.activeProjectId = data.activeProjectId;
+          // Home context: if the Gateway overrode the requested project
+          // (archived out from under us, etc.), the rail must follow —
+          // the page never shows two ideas of "current" again.
+          if (window.FREEDOM_HOME === true && requested != null &&
+              String(data.activeProjectId) !== String(requested)) {
+            fcDispatch('fc:project', { projectId: String(data.activeProjectId) });
+          }
           state.currentDay = data.currentDay || 0;
           state.maxDay = data.maxDay || 7;
           state.writable = (data.writable === false) ? false : true;
@@ -454,13 +483,22 @@
     function onProjectChange(newId) {
       if (!newId || String(newId) === String(state.activeProjectId)) { return; }
       state.activeProjectId = newId;
+      state._scopeGen++;         // in-flight replies from the old project die on landing
       state.messages = [];
       state.helpOpen = false;
       state.helpMenu = null;     // help menu is localized per project, so refetch
+      state._helpMenuFetching = false;   // an in-flight fetch is stale now — let the new project refetch
       state.helpFeeling = null;
       state.promptActive = false;
       lastPromptBox = null;
       state.busy = false;
+      // Freedom Home (2026-07-27 desync fix): the page has ONE current
+      // project. A pick in this dropdown re-scopes the whole rail (top
+      // picker, tools, saves) — never just this card. The rail's same-id
+      // guard makes the echo terminate.
+      if (window.FREEDOM_HOME === true) {
+        fcDispatch('fc:project', { projectId: String(newId) });
+      }
       rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
       loadState();
     }
@@ -655,8 +693,13 @@
       setBusy(true);
       var pending = pushCoach(COPY.THINKING, { pending: true });
 
+      var gen = state._scopeGen;
       callGateway({ action: 'coachChat', projectId: state.activeProjectId, home: true, messages: chatPayload() })
         .then(function (data) {
+          // Project switched while this reply was in flight: the old
+          // project's answer must never land in the new conversation
+          // (onProjectChange already cleared the transcript and busy).
+          if (gen !== state._scopeGen) { return; }
           removeBubble(pending);
           if (!data.ok) { pushCoach(data.error || COPY.ERROR_GENERIC); return; }
           if (data.distress) { pushCoach(data.message || '', { care: true }); return; }
@@ -665,10 +708,11 @@
           pushCoach(data.message || '', { prompt: data.prompt, tool: data.tool, proposal: data.proposal || null });
         })
         .catch(function () {
+          if (gen !== state._scopeGen) { return; }
           removeBubble(pending);
           pushCoach(COPY.ERROR_GENERIC);
         })
-        .then(function () { setBusy(false); });
+        .then(function () { if (gen === state._scopeGen) { setBusy(false); } });
     }
 
     // The transcript the Gateway expects: roles coach|student + text.
@@ -715,14 +759,19 @@
       if (state._helpMenuFetching) { if (state.helpOpen) { helpMsg(COPY.HELP_LOADING); } return; }
       state._helpMenuFetching = true;
       if (state.helpOpen) { helpMsg(COPY.HELP_LOADING); }
+      var gen = state._scopeGen;
       callGateway({ action: 'coachHelpMenu', projectId: state.activeProjectId })
         .then(function (data) {
+          // Stale scope: this menu belongs to the previous project — the
+          // switch already reset _helpMenuFetching for the new one.
+          if (gen !== state._scopeGen) { return; }
           state._helpMenuFetching = false;
           if (!data.ok) { if (state.helpOpen) { helpMsg(data.error || COPY.ERROR_GENERIC); } return; }
           state.helpMenu = data;
           if (state.helpOpen) { renderHelpPanel(); }
         })
         .catch(function () {
+          if (gen !== state._scopeGen) { return; }
           state._helpMenuFetching = false;
           if (state.helpOpen) { helpMsg(COPY.ERROR_GENERIC); }
         });
@@ -991,6 +1040,20 @@
     window.FreedomCoach = {
       ask: function (text) { onSend(String(text || '')); }
     };
+
+    // Freedom Home (2026-07-27 desync fix): the rail announces every move
+    // of the page's current project — picker switch, create landing,
+    // archive landing on the default, restore. Follow it. onProjectChange
+    // no-ops on an id we already hold (that's how the echo terminates)
+    // and re-echoes fc:project otherwise, which the rail's own same-id
+    // guard absorbs. Standalone embeds never see this event.
+    if (window.FREEDOM_HOME === true) {
+      document.addEventListener('fh:project', function (ev) {
+        if (!rootEl) { return; }   // never booted — nothing to re-scope
+        var pid = (ev && ev.detail) ? ev.detail.projectId : null;
+        if (pid != null) { onProjectChange(String(pid)); }
+      });
+    }
 
     // Dispatch a Freedom Home handoff event (ES5-safe CustomEvent).
     function fcDispatch(name, detail) {

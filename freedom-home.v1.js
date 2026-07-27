@@ -613,6 +613,32 @@
     } catch (e) {}
   }
 
+  // ONE current project per page (2026-07-27, Dave's live-demo find: the
+  // top picker said one project while the embedded coach read and wrote
+  // another). The rail's activeProjectId is the store every embedded
+  // surface follows. Announced two ways: a global for embeds that boot
+  // later than this call (coach.v3 is injected lazily), and a document
+  // event for embeds already alive. The coach echoes fc:project when ITS
+  // dropdown moves; both sides no-op on an id they already hold, so the
+  // pair can never loop.
+  function fhDispatch_(name, detail) {
+    try {
+      var ev;
+      if (typeof window.CustomEvent === 'function') {
+        ev = new CustomEvent(name, { detail: detail || {} });
+      } else {
+        ev = document.createEvent('CustomEvent');
+        ev.initCustomEvent(name, false, false, detail || {});
+      }
+      document.dispatchEvent(ev);
+    } catch (e) {}
+  }
+  function fhAnnounceProject_() {
+    if (state.activeProjectId == null) return;
+    window.FREEDOM_HOME_PROJECT = String(state.activeProjectId);
+    fhDispatch_('fh:project', { projectId: String(state.activeProjectId) });
+  }
+
   function hydrateFromCache(snap) {
     state.projects = snap.projects || [];
     state.activeProjectId = snap.activeProjectId;
@@ -626,6 +652,7 @@
     state.scoreQuestions = snap.scoreQuestions || null;
     state.completion = snap.completion || null;
     state.day = snap.day || null;
+    fhAnnounceProject_();   // the coach (booting later) must find the pinned project, not a default
   }
 
   /* ============================================================
@@ -670,6 +697,10 @@
     // Round 11: remember the project + its finished-setup fact durably,
     // and let a confirmed stage-4 state re-arm the wizard guard.
     writePin_();
+    // Server-confirmed truth — every path that moves the current project
+    // (picker switch, create landing, archive landing on the default,
+    // restore) funnels through here, so the coach re-scopes on ALL of them.
+    fhAnnounceProject_();
     if (state.setup && state.setup.stage >= 4) { state._wizardRetried = false; }
   }
 
@@ -1005,21 +1036,7 @@
         route();
         return;
       }
-      // Round 11: an explicit pick may legitimately land in a wizard
-      // (new or unfinished project) — tell the guard to stand down.
-      state._explicitProjectPick = true;
-      state.progressCache = null;   // per-project — never show another project's numbers
-      state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
-      state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
-      // Round 17 (Dave's haunted-bubble find): unmount BEFORE blanking.
-      // unmountTool() looks the stub up in the DOM — blanking first orphaned
-      // the widget instance, and its parent-document launcher followed the
-      // student into the next project's wizard, reopening the OLD project's
-      // conversation.
-      unmountTool();
-      rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
-      state.activeProjectId = v;
-      loadState(false);
+      switchProject_(v);
     });
     var gl = document.getElementById('fh-goal-line');
     if (gl) gl.addEventListener('click', function () {
@@ -2687,6 +2704,34 @@
     state.toolMountedBot = '';
   }
 
+  // The ONE way the current project changes on a live page — the top
+  // picker and the coach's fc:project echo both land here, so every
+  // per-project surface (tool sessions, progress cache, the coach) is
+  // re-scoped in one move, never piecemeal.
+  function switchProject_(v) {
+    clearSetupPoll_();
+    // Round 11: an explicit pick may legitimately land in a wizard
+    // (new or unfinished project) — tell the guard to stand down.
+    state._explicitProjectPick = true;
+    state.progressCache = null;   // per-project — never show another project's numbers
+    state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+    state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+    // Round 17 (Dave's haunted-bubble find): unmount BEFORE blanking.
+    // unmountTool() looks the stub up in the DOM — blanking first orphaned
+    // the widget instance, and its parent-document launcher followed the
+    // student into the next project's wizard, reopening the OLD project's
+    // conversation.
+    unmountTool();
+    state.activeProjectId = v;
+    // Announce before the round trip: the coach starts re-scoping in
+    // parallel instead of sitting on the old project while we load.
+    // adoptState announces again with the server-confirmed id (no-op
+    // at the coach unless the server overrode the pick).
+    fhAnnounceProject_();
+    rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
+    loadState(false);
+  }
+
   function mountDailyTool(botId, promptText) {
     var hint = document.getElementById('fh-tool-hint');
     var direct = document.getElementById('fh-tool-direct');
@@ -2795,6 +2840,16 @@
         setMsg('fh-day-msg', COPY.COACH_LOGGED, true);
       })
       .catch(function () { setMsg('fh-day-msg', COPY.COACH_LOGGED, true); });
+  });
+
+  // 2026-07-27 (Dave's live-demo desync find): a pick in the coach's own
+  // dropdown steers the PAGE, not just the coach card — same switch the
+  // top picker runs, so tools and progress re-scope with it. The same-id
+  // guard is what makes the rail↔coach echo terminate.
+  document.addEventListener('fc:project', function (ev) {
+    var pid = (ev && ev.detail) ? ev.detail.projectId : null;
+    if (pid == null || String(pid) === String(state.activeProjectId)) { return; }
+    switchProject_(String(pid));
   });
 
   /* ============================================================
