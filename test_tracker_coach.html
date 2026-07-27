@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>loader.v7 + coach.v3 — standalone picker-sync harness</title>
+<style>
+  body { font: 14px/1.5 -apple-system, sans-serif; margin: 0; background: #eef1f5; }
+  .bar { background: #1d2733; color: #fff; padding: 10px 14px; font-size: 13px; }
+  .stage { max-width: 760px; margin: 18px auto; padding: 0 12px; }
+  .stage h3 { font-size: 14px; color: #46586c; margin: 22px 0 8px; }
+  #stub-log { background: #101418; color: #9fe0a8; font: 12px/1.5 ui-monospace, monospace;
+       border-radius: 10px; padding: 12px; max-height: 240px; overflow: auto;
+       white-space: pre-wrap; margin: 18px 0; }
+</style>
+</head>
+<body>
+<div class="bar">STANDALONE lesson harness (no FREEDOM_HOME) — loader.v7 + coach.v3 co-mounted,
+all Gateway calls stubbed, 2 projects. The picker-sync contract under test: switching EITHER
+dropdown must move the whole page; reload must restore ONE project on both. Coach script loads
+FIRST on purpose (script order must not matter).</div>
+
+<div class="stage">
+  <h3>Standalone tracker (loader.v7)</h3>
+  <div id="freedom-tracker" data-view="full"></div>
+  <h3>Standalone coach (coach.v3)</h3>
+  <div id="freedom-coach"></div>
+  <pre id="stub-log">stub log —\n</pre>
+</div>
+
+<script>
+(function () {
+  // NO window.FREEDOM_HOME here — this is the standalone surface.
+  try { localStorage.setItem('ag_ft_token', 'tok-standalone'); } catch (e) {}
+  // ag_ft_cache_v6 is deliberately LEFT ALONE: the reload-coherence case
+  // depends on it (loader restores the last project from it; a cache from
+  // other harnesses is ignored via the token mismatch).
+
+  function logLine(s) {
+    var el = document.getElementById('stub-log');
+    el.textContent += s + '\n';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ONE mock store for BOTH surfaces — the same rule the home harness uses:
+  // first project = Day 5, others = Day 2; ub = the project's label. Echo the
+  // requested projectId; snap ghosts to the first project like the real
+  // Gateway; a state call with no projectId gets the "server default" (p1).
+  var PROJECTS = [
+    { projectId: '1', label: 'late-night doomscrolling', currentDay: 5, day0Date: '2026-07-01' },
+    { projectId: '2', label: 'sugar after dinner', currentDay: 2, day0Date: '2026-07-02' }
+  ];
+  var nextPid = 3;
+  var SCORE_QUESTIONS = {
+    easy: 'How EASY is it to not do your UB? (0-10)',
+    enjoy: 'How ENJOYABLE is it to not do your UB? (0-10)',
+    conf: 'How CONFIDENT are you that you can rewire your brain? (0-10)'
+  };
+  function findProject(pid) {
+    for (var i = 0; i < PROJECTS.length; i++) {
+      if (String(PROJECTS[i].projectId) === String(pid)) return PROJECTS[i];
+    }
+    return null;
+  }
+  function dayResp(day) {
+    return { day: day, title: 'Day ' + day + ': Daily Check-In', fields: [
+      { key: 'jumpstart', label: 'I did my Happiness & Success Jumpstart', type: 'check', value: false },
+      { key: 'rbf', label: 'Rewiring minutes', type: 'number', value: '' },
+      { key: 'wins', label: 'Wins', type: 'textarea', value: '' }
+    ], scores: { label: 'Day ' + day + ' Freedom Scores', questions: SCORE_QUESTIONS, values: {} } };
+  }
+  function stateResp(p) {
+    var pr = findProject(p.projectId) || PROJECTS[0];
+    logLine('   state scoped to project ' + pr.projectId);
+    return { ok: true, firstName: 'Testy', token: 'tok-standalone',
+      projects: PROJECTS,
+      activeProjectId: pr.projectId,
+      currentDay: pr.currentDay, maxDay: 7, maxTrackedDay: 400,
+      writable: true, canCreateProject: true,
+      confidence: { optedOut: false, since: '' },
+      setup: { stage: 4, ub: pr.label, jumpstart: '7am, while my coffee brews' },
+      scoreQuestions: SCORE_QUESTIONS, prompts: {}, uiCopy: {},
+      day: dayResp(pr.currentDay), completion: {} };
+  }
+  function route(p) {
+    // The two loaders share one Gateway; tell their calls apart by shape
+    // (coach actions are prefixed coach*; its state call is identical, so
+    // both get the honest per-project treatment either way).
+    if (p.action === 'state') { return stateResp(p); }
+    if (p.action === 'recover') { return { ok: true, token: 'tok-standalone' }; }
+    if (p.action === 'getDay') { return { ok: true, day: dayResp(p.day) }; }
+    if (p.action === 'createProject') {
+      var pid = String(nextPid++);
+      PROJECTS.push({ projectId: pid, label: '', currentDay: 0, day0Date: '2026-07-0' + pid });
+      logLine('   created project ' + pid);
+      return { ok: true, projects: PROJECTS, activeProjectId: pid };
+    }
+    if (p.action === 'coachHelpMenu') {
+      var pr2 = findProject(p.projectId) || PROJECTS[0];
+      return { ok: true, ub: pr2.label || 'your behavior', canLog: true, feelings: [] };
+    }
+    if (p.action === 'coachChat') {
+      var pr3 = findProject(p.projectId) || PROJECTS[0];
+      return { ok: true, message: 'Reply for project ' + pr3.projectId + ' — tell me more.' };
+    }
+    if (p.action === 'scores') { return { ok: true, baseline: {}, days: [] }; }
+    if (p.action === 'progressReview') { return { ok: true, hasData: false }; }
+    if (p.action === 'save' || p.action === 'saveScores') { return { ok: true, day: dayResp(p.day || 2) }; }
+    return { ok: false, error: 'stub: unhandled ' + p.action };
+  }
+
+  var realFetch = window.fetch;
+  window.fetch = function (url, opts) {
+    var u = String(url);
+    if (u.indexOf('script.google.com') >= 0) {
+      var p = {};
+      try { p = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
+      logLine('→ ' + p.action + (p.projectId != null ? ' pid=' + p.projectId : ''));
+      var resp = route(p);
+      return Promise.resolve({ ok: true, json: function () { return Promise.resolve(resp); } });
+    }
+    if (u.indexOf('/api/') >= 0) { return Promise.reject(new Error('no identity in harness')); }
+    return realFetch.apply(window, arguments);
+  };
+
+  // Coach FIRST, loader second — the ordering least favorable to the sync
+  // (the coach must still find the host via boot-time flag checks + the
+  // unconditionally-registered fh:project listener).
+  var c = document.createElement('script');
+  c.src = './coach.v3.js?ts=' + Date.now();
+  document.body.appendChild(c);
+  var t = document.createElement('script');
+  t.src = './loader.v7.js?ts=' + Date.now();
+  document.body.appendChild(t);
+})();
+</script>
+</body>
+</html>

@@ -71,6 +71,10 @@
   // Must be true BEFORE coach.v3 renders any prompt box (we also inject
   // that script ourselves, so the ordering is guaranteed).
   window.FREEDOM_HOME = true;
+  // Separate from the UI-mode flag above: "this page owns WHICH project is
+  // current" (2026-07-27 picker-sync contract, shared with loader.v7 —
+  // standalone lesson pages announce the same way without becoming Home).
+  window.FREEDOM_PROJECT_HOST = true;
 
   var CONFIG = {
     GATEWAY_URL: 'https://script.google.com/macros/s/AKfycbxokJhAPaX6PvvQDJPQAJZa2NFQ1F5_bwz22yZQoqPclSPCO4GPhzESsB18AidstYmQ/exec',
@@ -635,7 +639,7 @@
   }
   function fhAnnounceProject_() {
     if (state.activeProjectId == null) return;
-    window.FREEDOM_HOME_PROJECT = String(state.activeProjectId);
+    window.FREEDOM_PROJECT = String(state.activeProjectId);
     fhDispatch_('fh:project', { projectId: String(state.activeProjectId) });
   }
 

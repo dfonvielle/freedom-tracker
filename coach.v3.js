@@ -226,13 +226,16 @@
       injectStyles();
       captureMagicLinkToken();
       state.token = readLS(LS.token);
-      // Freedom Home (2026-07-27 desync fix): the rail owns WHICH project.
-      // Adopt its current selection before any paint or state call, so the
-      // coach can never boot scoped to the tracker cache's (or the server
-      // default's) idea of the project while the page header says another.
-      // The rail announces later switches via the fh:project event below.
-      if (window.FREEDOM_HOME === true && window.FREEDOM_HOME_PROJECT != null) {
-        state.activeProjectId = String(window.FREEDOM_HOME_PROJECT);
+      // Picker-sync (2026-07-27): a hosting page that owns WHICH project is
+      // current (freedom-home rail, or loader.v7 on a standalone lesson)
+      // declares FREEDOM_PROJECT_HOST. Adopt its selection before any paint
+      // or state call, so the coach can never boot scoped to the tracker
+      // cache's (or the server default's) idea of the project while the
+      // page says another. Later switches arrive via the fh:project event.
+      // Evaluated here at boot (DOMContentLoaded), so lesson script order
+      // can't beat the host to its flag.
+      if (window.FREEDOM_PROJECT_HOST === true && window.FREEDOM_PROJECT != null) {
+        state.activeProjectId = String(window.FREEDOM_PROJECT);
       }
       rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
 
@@ -326,10 +329,10 @@
           state.firstName = data.firstName || '';
           state.projects = data.projects || [];
           state.activeProjectId = data.activeProjectId;
-          // Home context: if the Gateway overrode the requested project
-          // (archived out from under us, etc.), the rail must follow —
+          // Hosted context: if the Gateway overrode the requested project
+          // (archived out from under us, etc.), the host must follow —
           // the page never shows two ideas of "current" again.
-          if (window.FREEDOM_HOME === true && requested != null &&
+          if (window.FREEDOM_PROJECT_HOST === true && requested != null &&
               String(data.activeProjectId) !== String(requested)) {
             fcDispatch('fc:project', { projectId: String(data.activeProjectId) });
           }
@@ -492,11 +495,11 @@
       state.promptActive = false;
       lastPromptBox = null;
       state.busy = false;
-      // Freedom Home (2026-07-27 desync fix): the page has ONE current
-      // project. A pick in this dropdown re-scopes the whole rail (top
-      // picker, tools, saves) — never just this card. The rail's same-id
-      // guard makes the echo terminate.
-      if (window.FREEDOM_HOME === true) {
+      // Picker-sync (2026-07-27): the page has ONE current project. A pick
+      // in this dropdown re-scopes the whole hosting surface (Home rail or
+      // standalone tracker: its picker, tools, saves) — never just this
+      // card. The host's same-id guard makes the echo terminate.
+      if (window.FREEDOM_PROJECT_HOST === true) {
         fcDispatch('fc:project', { projectId: String(newId) });
       }
       rootEl.innerHTML = '<div class="fc-card fc-center">' + esc(COPY.LOADING) + '</div>';
@@ -1041,19 +1044,19 @@
       ask: function (text) { onSend(String(text || '')); }
     };
 
-    // Freedom Home (2026-07-27 desync fix): the rail announces every move
-    // of the page's current project — picker switch, create landing,
-    // archive landing on the default, restore. Follow it. onProjectChange
-    // no-ops on an id we already hold (that's how the echo terminates)
-    // and re-echoes fc:project otherwise, which the rail's own same-id
-    // guard absorbs. Standalone embeds never see this event.
-    if (window.FREEDOM_HOME === true) {
-      document.addEventListener('fh:project', function (ev) {
-        if (!rootEl) { return; }   // never booted — nothing to re-scope
-        var pid = (ev && ev.detail) ? ev.detail.projectId : null;
-        if (pid != null) { onProjectChange(String(pid)); }
-      });
-    }
+    // Picker-sync (2026-07-27): a hosting page (freedom-home rail, or
+    // loader.v7 on a standalone lesson) announces every move of the page's
+    // current project — picker switch, create landing, archive landing on
+    // the default, restore. Follow it. onProjectChange no-ops on an id we
+    // already hold (that's how the echo terminates) and re-echoes
+    // fc:project otherwise, which the host's own same-id guard absorbs.
+    // Registered UNCONDITIONALLY so lesson-HTML script order can't matter:
+    // a page with no announcing host simply never fires this event.
+    document.addEventListener('fh:project', function (ev) {
+      if (!rootEl) { return; }   // never booted — nothing to re-scope
+      var pid = (ev && ev.detail) ? ev.detail.projectId : null;
+      if (pid != null) { onProjectChange(String(pid)); }
+    });
 
     // Dispatch a Freedom Home handoff event (ES5-safe CustomEvent).
     function fcDispatch(name, detail) {

@@ -55,6 +55,11 @@
     STATE_CACHE_HOURS: 48
   };
 
+  // This page owns WHICH project is current (2026-07-27 picker-sync fix,
+  // same contract as freedom-home): coach.v3 on the same lesson page syncs
+  // to us instead of keeping a private selection. See ftAnnounceProject_.
+  window.FREEDOM_PROJECT_HOST = true;
+
   /**
    * ============================================================
    * COPY — EDIT ALL LOADER-SIDE STUDENT-FACING TEXT HERE.
@@ -360,7 +365,60 @@
     state._dayCache = snap.days || {};
     if (state.viewingDay == null) state.viewingDay = state.currentDay;
     state.dayData = state._dayCache[state.currentDay] || null;
+    ftAnnounceProject_();   // a coach booting later must find the cached project, not a default
   }
+
+  // ONE current project per page (2026-07-27 picker-sync fix, mirrored from
+  // freedom-home): this loader is the store on standalone lesson pages; a
+  // coach.v3 sharing the page follows via the global (late-boot seed) +
+  // fh:project event (live re-scope), and echoes its own dropdown back as
+  // fc:project. Same-id guards on both sides terminate the echo. Pages
+  // without a coach just announce into the void — harmless.
+  function ftDispatch_(name, detail) {
+    try {
+      var ev;
+      if (typeof window.CustomEvent === 'function') {
+        ev = new CustomEvent(name, { detail: detail || {} });
+      } else {
+        ev = document.createEvent('CustomEvent');
+        ev.initCustomEvent(name, false, false, detail || {});
+      }
+      document.dispatchEvent(ev);
+    } catch (e) {}
+  }
+  function ftAnnounceProject_() {
+    if (state.activeProjectId == null) return;
+    window.FREEDOM_PROJECT = String(state.activeProjectId);
+    ftDispatch_('fh:project', { projectId: String(state.activeProjectId) });
+  }
+
+  // The ONE way the current project changes on a live page — the ft-project
+  // dropdown and the coach's fc:project echo both land here, so the day
+  // caches, the snapshot, and a same-page coach re-scope in one move.
+  function switchProject_(v) {
+    state._creatingSelected = false;
+    state.activeProjectId = v;
+    // Announce before the round trip: the coach starts re-scoping in
+    // parallel; loadState announces again with the server-confirmed id.
+    ftAnnounceProject_();
+    state.viewingDay = null;
+    state.viewingWeek = null;
+    state.dayData = null;
+    state._dayCache = {};
+    clearStateCache();
+    rootEl.innerHTML = '<div class="ft-card ft-center">' + COPY.LOADING + '</div>';
+    loadState(false);
+  }
+
+  // A pick in a same-page coach's dropdown steers the PAGE, not just the
+  // coach card. The same-id guard is what makes the rail↔coach echo
+  // terminate.
+  document.addEventListener('fc:project', function (ev) {
+    if (!rootEl) return;   // never booted — nothing to re-scope
+    var pid = (ev && ev.detail) ? ev.detail.projectId : null;
+    if (pid == null || String(pid) === String(state.activeProjectId)) { return; }
+    switchProject_(String(pid));
+  });
   function cacheDay(dayData) {
     if (!dayData) return;
     state._dayCache = state._dayCache || {};
@@ -648,6 +706,10 @@
         if (data.day) { cacheDay(data.day); if (!background || !state.dayData) state.dayData = data.day; }
         if (state.viewingDay == null) state.viewingDay = state.currentDay;
         writeStateCache();
+        // Server-confirmed truth: every path that moves the current project
+        // (picker switch, create landing, server default pick) adopts here,
+        // so a same-page coach re-scopes on ALL of them.
+        ftAnnounceProject_();
         var after = JSON.stringify([state.setup, state.completion, state.currentDay, data.day || state.dayData, state.writable]);
         if (!background) return route();
         if (before !== after && safeToRerender()) {
@@ -1029,6 +1091,7 @@
             state._creatingSelected = false;   // we are now ON the new project
             state.projects = data.projects || state.projects;
             state.activeProjectId = data.activeProjectId || state.activeProjectId;
+            ftAnnounceProject_();   // a same-page coach re-scopes now, not a round trip later
             state.viewingDay = null;
             state.viewingWeek = null;
             state.dayData = null;
@@ -1119,15 +1182,7 @@
           enterCreateMode();
           return;
         }
-        state._creatingSelected = false;
-        state.activeProjectId = this.value;
-        state.viewingDay = null;
-        state.viewingWeek = null;
-        state.dayData = null;
-        state._dayCache = {};
-        clearStateCache();
-        rootEl.innerHTML = '<div class="ft-card ft-center">' + COPY.LOADING + '</div>';
-        loadState(false);
+        switchProject_(this.value);
       });
     }
     var refreshBtn = document.getElementById('ft-refresh');
