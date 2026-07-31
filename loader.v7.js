@@ -580,6 +580,13 @@
 
   // Same student? Prefer the permanent accountId; fall back to email. When
   // there isn't enough to compare, treat as a match (never nuke on ambiguity).
+  // UNVERIFIED(systeme): the final `return true` makes ABSENCE OF EVIDENCE mean
+  // "same person". It is a deliberate choice (never nuke a student's cache on
+  // ambiguity) but it is unverified in the one case that matters: two students
+  // on a shared device where the identity fetch degrades. Then the second
+  // student inherits the first one's cached token and paint. Probe: clear
+  // cookies mid-session so both endpoints 401, and watch what the second login
+  // sees (API_MAP #2).
   function identityMatches_(a, b) {
     a = a || {}; b = b || {};
     var aid = String(a.accountId || ''), bid = String(b.accountId || '');
@@ -588,6 +595,14 @@
     if (ae && be) { return ae === be; }
     return true;
   }
+  // UNVERIFIED(systeme): `/api/user/user-data` and `/api/settings/profile` are
+  // Systeme.io's INTERNAL member-area endpoints — undocumented, unversioned,
+  // and not part of the public API this fleet's other code uses. They are the
+  // only thing binding a logged-in student to their tracker. A shape change
+  // (id moved, profile nested differently) yields an identity with empty
+  // accountId + email, which sameIdentity() below treats as "same person".
+  // Probe: log both raw responses once from a live student session and store
+  // the shapes next to this file (API_MAP #1).
   function fetchSystemeIdentity() {
     return Promise.all([
       fetch('/api/user/user-data', { credentials: 'same-origin' }).then(asJson),
