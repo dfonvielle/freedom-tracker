@@ -600,7 +600,8 @@
   // and not part of the public API this fleet's other code uses. They are the
   // only thing binding a logged-in student to their tracker. A shape change
   // (id moved, profile nested differently) yields an identity with empty
-  // accountId + email, which sameIdentity() below treats as "same person".
+  // accountId + email, which identityMatches_ (just above) treats as the
+  // same person.
   // Probe: log both raw responses once from a live student session and store
   // the shapes next to this file (API_MAP #1).
   function fetchSystemeIdentity() {
