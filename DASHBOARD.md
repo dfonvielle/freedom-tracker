@@ -30,6 +30,7 @@ flowchart LR
 | **Round 10 — chrome + exclusivity + handoff revert** | 🟢 shipped 2026-07-20 evening, harness-verified desktop+375: solid "Freedom Accelerator" bar (floating – gone, labeled ↻ Refresh back), one-line goal box + step-1 "My moment", coach head de-duped ("Your Freedom AI Coach" sheet bar; Day · Refresh · picker line), chat hint = composer label, doors exclusive + "Start over with the freedom coach", coachHelpMenu **prefetched** (instant panel), warm greeting deleted (prompt lands visibly + "— no questions." tail, /fear/i-gated), step-1 get-help preloads minplan with the goal line on fresh sessions; **bh_rbf Screen-1 no-questions fast-track added in ai_tools (was promised in greeting, implemented nowhere) — proven in harness (Screen 2 skipped), promoted LIVE** | plan doc 9.9 round 10 |
 | 9.7 polish (auto-log chips w/ undo, de-trackered copy) | 🟢 done | git log |
 | Test harnesses | 🟢 in repo | [test_coach_home.html](test_coach_home.html) · [test_home.html](test_home.html) |
+| **Stress test 2026-08** — 6 personas played against the whole student path (harness + live draft engine, zero live records) | 🟠 findings delivered 2026-08-05: 2 red (tool-1 re-ask on terse UBs, "my UB" privacy has no tool contract), 4 yellow, polish list, PROPOSED plan A-D; structure judged already lean | [STRESS_TEST_2026-08.md](STRESS_TEST_2026-08.md) |
 
 ## Progress
 
