@@ -62,10 +62,13 @@
     if (a.getAttribute('href') === '?s=' + scenario) a.className = 'on';
   });
 
+  // Synced to the Gateway's baked COPY.SCORE_QUESTIONS (stress test 2026-08
+  // finding 9: the mock had drifted cleaner than production, so walks were
+  // proofing different daily words than students get — §4.5 rule).
   var SCORE_QUESTIONS = {
-    easy: 'How EASY is it to not do your UB? (0-10)',
-    enjoy: 'How ENJOYABLE is it to not do your UB? (0-10)',
-    conf: 'How CONFIDENT are you that you can rewire your brain? (0-10)'
+    easy: 'How easy / no-big-deal is it right now to NOT do your UB? (0-10)',
+    enjoy: 'How enjoyable is it right now to not do it / be free from it? (0-10)',
+    conf: 'How confident are you that you can rewire your brain for greater freedom? (0-10)'
   };
   var DAY1_LABELS = {
     d1_t1: 'No-Brainer Willpower Eliminator', d1_t2: 'Minimalist Plan',
@@ -426,7 +429,7 @@
         }
         return { ok: true, stage: M.stage, ub: M.ub };
       }
-      if (p.step === 'baseline') { M.stage = Math.max(M.stage, 2); return { ok: true, stage: M.stage }; }
+      if (p.step === 'baseline') { M.baseline = p.scores || null; M.stage = Math.max(M.stage, 2); return { ok: true, stage: M.stage }; }
       if (p.step === 'jumpstart') { M.jumpstart = p.jumpstart; M.stage = Math.max(M.stage, 3); return { ok: true, stage: M.stage, jumpstart: M.jumpstart }; }
       if (p.step === 'complete') { M.stage = 4; return { ok: true, stage: 4, currentDay: M.currentDay, day: dayResp(M.currentDay), completion: completionMap() }; }
     }
@@ -434,7 +437,25 @@
       var day = Number(p.day);
       if (day === 1) {
         Object.keys(p.fields || {}).forEach(function (k) { if (k in M.day1) M.day1[k] = !!p.fields[k]; });
-        if (p.dayScores && (p.dayScores.easy != null)) M.afterPh = true;
+        if (p.dayScores && (p.dayScores.easy != null)) {
+          M.afterPh = true;
+          // Phase 2 (fable polish): the real Gateway's progressReview carries
+          // baseline + the just-saved after-PH scores — mirror it so the
+          // celebrate card's delta line is forceable (§4.9). A walk that
+          // never saved a baseline (day1_scores scenario) builds no deltas,
+          // and the card renders no line — that absence is the other case.
+          var fb = {};
+          ['easy', 'enjoy', 'conf'].forEach(function (k) {
+            var b = M.baseline ? M.baseline[k] : null;
+            var c = p.dayScores[k];
+            if (b != null && c != null) fb[k] = { from: b, to: c, change: c - b };
+          });
+          M.progress = { ok: true, currentDay: M.currentDay || 1, hasData: true,
+            baseline: M.baseline || { easy: null, enjoy: null, conf: null }, baselineLabel: 'Baseline',
+            current: p.dayScores, currentLabel: 'After Power Hour',
+            fromBaseline: fb,
+            wins: { items: [], total: 0 }, exps: { items: [], total: 0 } };
+        }
         // Round 17 (mirror the real Gateway): the FIRST day-1 save stamps
         // day1Date server-side — currentDay flips 0 → 1 and the save
         // response carries currentDay so the chip updates immediately.

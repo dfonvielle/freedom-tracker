@@ -114,6 +114,9 @@
     WIZ1_ERROR: 'Name the behavior. "My UB" is fine if you’d rather keep it private.',
     WIZ_CTX_HEAD: 'My Unwanted Behavior (UB)',
     WIZ_CTX_PREFIX: 'I want to make it easier and more enjoyable to be free from: ',
+    // Stress test 2026-08 finding 3: the wizard's own "my UB" privacy offer
+    // now travels with every preload, so no tool ever interrogates it.
+    PRELOAD_PRIVATE_TAIL: ' I’d rather not name the behavior. Please work with it as "my UB" and don’t ask what it is.',
     WIZ_EDIT_SAVE: 'Save my change →',
     WIZ2_TITLE: 'Your baseline Freedom Scores before any rewiring',
     WIZ2_SUB: 'You’ll look back at these numbers to see proof of change. There are no bad scores (all zeros are fine)! Low initial scores only make the improvement more satisfying.',
@@ -121,8 +124,10 @@
     SCORE_ERROR: 'Scores must be whole numbers from 0 to 10.',
     WIZ_BASELINE_SAVED: 'Your baseline scores from step 2 are saved ✓',
     WIZ_EDIT_BACK: '← Back (nothing changes)',
-    WIZ3_TITLE: 'Pick your daily rewiring moment',
-    WIZ3_SUB: 'Each morning you’ll do 30 seconds to 2 minutes of rewiring (the Happiness & Success Jumpstart). It makes it easier and more enjoyable to not do your UB.',
+    // Stress test 2026-08 finding 7: ONE surface name for the practice
+    // ("morning rewiring"); the proper noun appears once, "H&S" never.
+    WIZ3_TITLE: 'Pick your morning rewiring moment',
+    WIZ3_SUB: 'Each morning you’ll do 30 seconds to 2 minutes of rewiring, called the Happiness & Success Jumpstart. It makes staying free easier and more enjoyable.',
     // Round 19: "mindless" is load-bearing for the method (a jumpstart
     // during video games or work aims at nothing) — rendered emphasized,
     // so the three keys.
@@ -130,7 +135,7 @@
     WIZ3_ANCHOR_EM: 'mindless',
     WIZ3_ANCHOR_POST: ' you already do every morning. Pick one, or write your own:',
     WIZ3_CHIP_OTHER: 'Something else…',
-    WIZ3_LABEL: 'I’ll do my morning rewiring (the H&S Jumpstart) at this time and place:',
+    WIZ3_LABEL: 'I’ll do my morning rewiring at this time and place:',
     WIZ3_PLACEHOLDER: 'e.g. 7am, while my coffee brews',
     WIZ3_BUTTON: 'Continue →',
     WIZ3_ERROR: 'Pick a real time and place, like "7am, while my coffee brews".',
@@ -182,7 +187,12 @@
     PH_DONE_BTN: 'I finished this tool → Continue',
     PH_DONE_SAVING: 'Saving…',
     PH_SCORES_TITLE: 'One last thing: your Freedom Scores after the Power Hour',
-    PH_SCORES_SUB: 'Compare these to your baseline any time in your full tracker.',
+    // Stress test 2026-08 finding 6: point at THIS page's payoff, not the
+    // full-tracker door. Finding 5 pays it: the celebrate card shows the move.
+    PH_SCORES_SUB: 'Save them and you’ll see your movement right away.',
+    // Finding 5: the wizard promised "you'll look back at these numbers" —
+    // Day 1 now pays it. Rendered only when the review actually has data.
+    PH_DELTA_PRE: 'Your Freedom Scores already moved: ',
     PH_SCORES_BTN: 'Save my scores →',
     PH_RESUME_NOTE: 'Stop anytime. This page remembers exactly where you left off.',
     PH_CELEBRATE_TITLE: '🎉 Day 1 complete. Massive rewiring head start!',
@@ -251,7 +261,7 @@
     GOAL_LINE_PREFIX: 'I want freedom from: ',
     GOAL_TITLE: 'Your goal & plan',
     GOAL_UB_LABEL: 'I want to make it easier and more enjoyable to be free from:',
-    GOAL_JS_LABEL: 'My morning rewiring moment (the H&S Jumpstart):',
+    GOAL_JS_LABEL: 'My morning rewiring moment:',
     GOAL_SAVE: 'Save changes',
     GOAL_SAVED: 'Saved ✓ Your coach and tools use the new wording from now on.',
     GOAL_BACK: '← Back to my next step',
@@ -378,7 +388,9 @@
   var TOOLS = {
     powerHour: [
       { bot: 'bh_nbwe',    fieldKey: 'd1_t1', name: 'No-Brainer Willpower Eliminator' },
-      { bot: 'bh_minplan', fieldKey: 'd1_t2', name: 'Minimalist Plan' },
+      // Name matches the bot's own front-matter ("Minimalist Freedom Plan")
+      // so the rail card and the widget bar never disagree (finding 8).
+      { bot: 'bh_minplan', fieldKey: 'd1_t2', name: 'Minimalist Freedom Plan' },
       { bot: 'bh_feelgs',  fieldKey: 'd1_t3', name: 'Feel Good Start' },
       { bot: 'bh_cjc',     fieldKey: 'd1_t4', name: 'Create Joyous Chaos' }
     ],
@@ -760,6 +772,13 @@
               && !document.getElementById('fh-mile-open')) {
             route();
           }
+          // Finding 5: the Day-1 celebrate card may have painted before this
+          // review landed — surface the delta line once, same guards.
+          if (!state.toolMountedBot && !state.forcedPhase && safeToRerender()
+              && document.getElementById('fh-ph-review')
+              && !document.getElementById('fh-day1-delta')) {
+            route();
+          }
         }
       })
       .catch(function () { state._progressFetching = false; });
@@ -1009,7 +1028,10 @@
             '</button>'
           : '') +
         '<div id="fh-body">' + bodyHtml + '</div>' +
-        (state.fullTrackerUrl
+        // Finding 6 (stress test 2026-08): no door to an unexplained "full"
+        // surface while the student is still in setup or their first day —
+        // the footer earns its place once the daily rhythm exists.
+        ((state.fullTrackerUrl && state.currentDay >= 2)
           ? '<div class="fh-footer"><a href="' + esc(state.fullTrackerUrl) + '">' + esc(COPY.FOOTER_FULL_TRACKER) + '</a></div>'
           : '') +
       '</div>';
@@ -1469,7 +1491,7 @@
     mountTool('bh_minplan', { sessionKey: mpKey });
     if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
       window.AgtWidget.send(document.getElementById('fh-tool-stub'),
-        COPY.GOAL_LINE_PREFIX + state.setup.ub);
+        preloadUbText_(COPY.GOAL_LINE_PREFIX));
     }
     if (!FS.mode) {
       var helpStub = document.getElementById('fh-tool-stub');
@@ -1649,10 +1671,27 @@
         .catch(function (err) { setMsg('fh-wiz-msg', String(err), false); });
     });
   }
+  // Stress test 2026-08 finding 3/1 helper: a label the student chose to keep
+  // private (or never set) must never be substituted into copy or defended
+  // from tools as if it were the behavior's name.
+  function ubIsPlaceholder_(ub) {
+    var s = String(ub || '').trim().toLowerCase();
+    if (!s) { return true; }
+    return /^(my\s+ub|ub|private|personal|secret|rather\s+not\s+say|prefer\s+not\s+to\s+say)\.?$/.test(s);
+  }
+  // Finding 1: the score questions are the most-repeated copy in the product
+  // and said "your UB" forever. The student's own words replace the token when
+  // they are short and real; placeholder or long labels keep the generic
+  // wording (grammar risk only worth taking when the words actually fit).
   function scoreQuestion(key) {
     var q = state.scoreQuestions || {};
     var fallback = { easy: 'Easy (0-10)', enjoy: 'Enjoyable (0-10)', conf: 'Confidence (0-10)' };
-    return q[key] || fallback[key];
+    var text = String(q[key] || fallback[key]);
+    var ub = state.setup && String(state.setup.ub || '').trim();
+    if (ub && ub.length <= 40 && !ubIsPlaceholder_(ub)) {
+      text = text.replace(/your\s+UB\b/g, ub);
+    }
+    return text;
   }
   function scoreInputHtml(key, idPrefix, value) {
     return '<div class="fh-field"><label class="fh-label">' + esc(scoreQuestion(key)) + '</label>' +
@@ -1897,6 +1936,15 @@
    * the contract sentence on fresh sessions.
    * ============================================================ */
   function phBlurb_(bot) { return COPY['PH_BLURB_' + bot] || ''; }
+  // Finding 3 (stress test 2026-08): a placeholder-shaped UB means the
+  // student chose privacy — every preload says so out loud, so no tool ever
+  // interrogates the thing they declined to name.
+  function preloadUbText_(prefix) {
+    var ub = String((state.setup && state.setup.ub) || '').trim();
+    var text = prefix + ub;
+    if (ubIsPlaceholder_(ub)) { text += COPY.PRELOAD_PRIVATE_TAIL; }
+    return text;
+  }
   function openPhTool_(idx) {
     var tool = TOOLS.powerHour[idx];
     var key = scopedSessionKey_(tool.bot, 'ph-' + tool.bot);
@@ -1907,7 +1955,7 @@
       // tool opens already personalized (each PH bot's Screen 1 treats the
       // first message as the behavior answer; harness-proven per bot).
       window.AgtWidget.send(document.getElementById('fh-tool-stub'),
-        COPY.WIZ_CTX_PREFIX + state.setup.ub);
+        preloadUbText_(COPY.WIZ_CTX_PREFIX));
     }
     var openBtn = document.getElementById('fh-ph-open');
     if (openBtn) {
@@ -2011,6 +2059,10 @@
           else { state.phDay = data.day || state.phDay; }
           if (data.completion) state.completion = data.completion;
           writeStateCache();
+          // The after-PH scores just changed the review — re-pull so the
+          // celebrate card's delta line (finding 5) has the fresh numbers.
+          state.progressCache = null;
+          prefetchProgress_(true);
           route();
         })
         .catch(function (err) { setMsg('fh-aps-msg', String(err), false); });
@@ -2066,12 +2118,31 @@
   // (renderAfterScores retired round 20 — the scores form lives as the
   // rail's fifth step inside renderPowerHourRail.)
 
+  // Finding 5 (stress test 2026-08): the wizard promised "you'll look back at
+  // these numbers to see proof of change" and Day 1 never paid it. The
+  // celebrate card now shows the baseline → after-Power-Hour move, from the
+  // already-prefetched review. No data (legacy projects, review not landed
+  // yet) renders nothing — the card never guesses.
+  function day1DeltaHtml_() {
+    var p = state.progressCache;
+    if (!p || !p.hasData || !p.fromBaseline) { return ''; }
+    var names = { easy: 'Easy', enjoy: 'Enjoyable', conf: 'Confidence' };
+    var parts = [];
+    for (var k in names) {
+      if (!names.hasOwnProperty(k)) { continue; }
+      var d = p.fromBaseline[k];
+      if (d && d.from != null && d.to != null) { parts.push(names[k] + ' ' + d.from + '→' + d.to); }
+    }
+    if (!parts.length) { return ''; }
+    return '<p class="fh-sub fh-headline" id="fh-day1-delta">' + esc(COPY.PH_DELTA_PRE) + esc(parts.join(' · ')) + '</p>';
+  }
   function renderDay1Done() {
     state._phWalk = true;
     renderShell(
       phStripHtml(-1) +
       '<div class="fh-card fh-center">' +
         '<h3>' + esc(COPY.PH_CELEBRATE_TITLE) + '</h3>' +
+        day1DeltaHtml_() +
         '<p class="fh-sub">' + esc(COPY.PH_CELEBRATE_TEXT) + '</p>' +
         '<div class="fh-linkline"><a href="#" id="fh-ph-review">' + esc(COPY.PH_REVIEW_LINK) + '</a></div>' +
         '<div class="fh-linkline"><a href="#" id="fh-withdrawal-link">' + esc(COPY.WITHDRAWAL_LINK) + '</a></div>' +
@@ -2601,7 +2672,7 @@
         if (dv != null) parts.push(names[mks[j]] + ' ' + (dv > 0 ? '+' + dv : dv));
       }
       if (parts.length) {
-        html += '<p class="fh-sub">Last ~7 days (' + esc(data.last7.fromLabel || '') + '): ' + esc(parts.join(' · ')) + '</p>';
+        html += '<p class="fh-sub">Last ~7 days (since ' + esc(data.last7.fromLabel || '') + '): ' + esc(parts.join(' · ')) + '</p>';
       }
     }
     // The rolling wins stack — the pat on the back, in the student's own words.
