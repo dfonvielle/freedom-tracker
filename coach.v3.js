@@ -129,6 +129,13 @@
       ERROR_GENERIC: 'Something hiccuped on my end. Try that again in a moment.',
       NO_PROJECT_TITLE: 'Almost ready',
       NO_PROJECT_TEXT: 'Your access is still being set up on this device. Give it a moment, then refresh this page and I will be ready.',
+      // 2026-08-15 (Dave hit this live on Day 25): a transient Gateway
+      // failure must never wear the "being set up" card — a student with a
+      // working project reads that as "my project is gone". Hiccups get
+      // their own card, a working retry, and one quiet self-retry.
+      HICCUP_TITLE: 'One moment',
+      HICCUP_TEXT: 'I could not reach your project just now. Your work is safe. Tap the button and I will pick right back up.',
+      HICCUP_RETRY: '↻ Try again',
       READONLY_NOTE: 'Your editing window has closed. I can still talk things through, but I cannot save new entries for you.',
       // --- Phase 5: guided emotion-first flow ---
       MORE_HELP_BTN: 'Target what’s challenging today →',
@@ -321,7 +328,7 @@
           if (gen !== state._scopeGen) { return; }
           if (!data.ok) {
             if (!state._recoverTried) { return attemptRecover(); }
-            return renderNoProject();
+            return renderNoProject('error');
           }
           persistToken(data);
           if (!data.activeProjectId) { return renderNoProject(); }
@@ -352,7 +359,7 @@
           // three affordances: the composer ("How can I help?"), Recommend
           // (with its past-week caption), and More ways I can help.
         })
-        .catch(function () { renderNoProject(); });
+        .catch(function () { renderNoProject('error'); });
     }
 
     // ============================================================
@@ -476,9 +483,13 @@
       var html = '<select id="fc-project" class="fc-project">';
       for (var i = 0; i < byNewest.length; i++) {
         var p = byNewest[i];
+        // 2026-08-15 (Dave's live find): the same project must wear the same
+        // name on every surface — his "Drinking Alcohol" rendered here as
+        // "Project 4", and he read them as two different things. Label first,
+        // ordinal only as the fallback, exactly like the rail and the tracker.
         html += '<option value="' + esc(p.projectId) + '"' +
           (String(p.projectId) === String(state.activeProjectId) ? ' selected' : '') + '>' +
-          'Project ' + ordinalById[p.projectId] + ' (Day ' + p.currentDay + ')</option>';
+          esc((p.label || ('Project ' + ordinalById[p.projectId])) + ' (Day ' + p.currentDay + ')') + '</option>';
       }
       return html + '</select>';
     }
@@ -540,6 +551,10 @@
       state._refreshing = false;
       state._forceFresh = true;
       loadState();
+      // 2026-08-15 (Dave: one refresh should mean the page): tell the host
+      // to re-pull NOW, not on its next load. The host's listener only
+      // re-pulls and never re-dispatches, so the pair cannot loop.
+      fcDispatch('fc:refresh', {});
     }
 
     // ============================================================
@@ -547,6 +562,7 @@
     // ============================================================
     function renderCoach() {
       state.booted = true;
+      state._autoRetried = false;   // a successful render re-arms the hiccup card's one self-retry
       // Round 10: NO name-heading ("so-and-so's Freedom AI Coach" repeated
       // the sheet bar / the rail's step title). The head is ONE line —
       // Day · Refresh · project picker — the same line the rail trains.
@@ -1058,6 +1074,20 @@
       if (pid != null) { onProjectChange(String(pid)); }
     });
 
+    // The host's ↻ freshens this card too (2026-08-15, Dave: one refresh
+    // should mean the whole page). State only — an open conversation is
+    // kept, and nothing is re-dispatched, so host↔coach cannot loop. The
+    // boot guard: until identity or a token exists, boot's own first
+    // loadState is still in flight and must not be raced.
+    document.addEventListener('fh:refresh', function () {
+      if (!rootEl) { return; }
+      if (state._refreshing) { return; }
+      if (!state.token &&
+          !(state.identity && (state.identity.accountId || state.identity.email))) { return; }
+      state._forceFresh = true;
+      loadState();
+    });
+
     // Dispatch a Freedom Home handoff event (ES5-safe CustomEvent).
     function fcDispatch(name, detail) {
       try {
@@ -1419,12 +1449,48 @@
     // ============================================================
     // No-project / activate-first fallback
     // ============================================================
-    function renderNoProject() {
+    function renderNoProject(reason) {
+      // A student who already holds access is never told he is "being set
+      // up" (2026-08-15 — Dave, Day 25 of a real project, read exactly that
+      // during a transient failure and took it as his project being gone).
+      // The setup card is reserved for a device with no token and no known
+      // projects; every failure on an activated device is a hiccup instead.
+      var hadAccess = !!(state.token || (state.projects && state.projects.length));
+      if (reason === 'error' && hadAccess) { return renderHiccup(); }
       rootEl.innerHTML =
         '<div class="fc-card">' +
           '<h3>' + esc(COPY.NO_PROJECT_TITLE) + '</h3>' +
           '<p class="fc-sub">' + esc(COPY.NO_PROJECT_TEXT) + '</p>' +
         '</div>';
+    }
+    function renderHiccup() {
+      rootEl.innerHTML =
+        '<div class="fc-card">' +
+          '<h3>' + esc(COPY.HICCUP_TITLE) + '</h3>' +
+          '<p class="fc-sub">' + esc(COPY.HICCUP_TEXT) + '</p>' +
+          '<button id="fc-hiccup-retry" class="fc-recbtn">' + esc(COPY.HICCUP_RETRY) + '</button>' +
+        '</div>';
+      var btn = document.getElementById('fc-hiccup-retry');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          btn.textContent = COPY.REFRESH_DOING;
+          btn.disabled = true;
+          state._recoverTried = false;
+          state._forceFresh = true;
+          loadState();
+        });
+      }
+      // One quiet self-retry: most hiccups are a single slow or failed
+      // call, and the student should usually never have to tap at all.
+      if (!state._autoRetried) {
+        state._autoRetried = true;
+        setTimeout(function () {
+          if (document.getElementById('fc-hiccup-retry')) {
+            state._recoverTried = false;
+            loadState();
+          }
+        }, 4000);
+      }
     }
 
     // ============================================================

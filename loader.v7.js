@@ -419,6 +419,17 @@
     if (pid == null || String(pid) === String(state.activeProjectId)) { return; }
     switchProject_(String(pid));
   });
+
+  // 2026-08-15 (Dave: one refresh should mean the page): the coach's ↻
+  // announces itself as fc:refresh and the tracker re-pulls fresh in the
+  // background — loadState(true) keeps the screen on a failure and
+  // repaints only what changed. Never re-dispatched, so the pair cannot
+  // loop.
+  document.addEventListener('fc:refresh', function () {
+    if (!rootEl) return;
+    state._forceFresh = true;
+    loadState(true);
+  });
   function cacheDay(dayData) {
     if (!dayData) return;
     state._dayCache = state._dayCache || {};
@@ -776,6 +787,9 @@
     // which (because the caches are gone) re-fetches the day/scores/
     // reflections fresh. The student stays on their current tab and day.
     loadState(false);
+    // One refresh means the page (2026-08-15): a same-page coach re-pulls
+    // too. Its listener never re-dispatches, so the pair cannot loop.
+    ftDispatch_('fh:refresh', {});
   }
 
   // ============================================================

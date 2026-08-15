@@ -117,6 +117,11 @@
     // Stress test 2026-08 finding 3: the wizard's own "my UB" privacy offer
     // now travels with every preload, so no tool ever interrogates it.
     PRELOAD_PRIVATE_TAIL: ' I’d rather not name the behavior. Please work with it as "my UB" and don’t ask what it is.',
+    // The direct daily lane sends the same fast-track tail the coach lane
+    // has always appended (coach.v3 PROMPT_TAIL — the sentence bh_rbf.md
+    // documents as its skip-the-digging trigger, so the two must stay the
+    // same words). fa_faster finding 1b, 2026-08-15.
+    DAILY_PRELOAD_TAIL: ' Let’s start rewiring immediately. No questions.',
     WIZ_EDIT_SAVE: 'Save my change →',
     WIZ2_TITLE: 'Your baseline Freedom Scores before any rewiring',
     WIZ2_SUB: 'You’ll look back at these numbers to see proof of change. There are no bad scores (all zeros are fine)! Low initial scores only make the improvement more satisfying.',
@@ -1042,7 +1047,10 @@
       callGateway({ action: 'state', projectId: state.activeProjectId, fresh: true }).then(function (data) {
         if (data.ok) { adoptState(data); writeStateCache(); }
         route();
-      }).catch(function () { route(); });
+        // One refresh means the page (2026-08-15): the coach re-pulls too.
+        // Its listener never re-dispatches, so the pair cannot loop.
+        fhDispatch_('fh:refresh', {});
+      }).catch(function () { route(); fhDispatch_('fh:refresh', {}); });
     });
     var ps = document.getElementById('fh-proj');
     if (ps) ps.addEventListener('change', function () {
@@ -1945,6 +1953,16 @@
     if (ubIsPlaceholder_(ub)) { text += COPY.PRELOAD_PRIVATE_TAIL; }
     return text;
   }
+  // The direct lane's twin of the coach handoff (fa_faster finding 1b,
+  // 2026-08-15): the behavior context plus the documented "no questions"
+  // fast-track, so a direct open never re-asks a behavior the tracker has
+  // stored since Day 0. Sent ONLY into a session with no student turn — a
+  // resume stays a resume, and an empty prompt never rotates a key.
+  function dailyPreloadText_(botId) {
+    if (!(state.setup && String(state.setup.ub || '').trim())) { return ''; }
+    if (sessionHasUserTurn_(botId, activeToolKey_(botId))) { return ''; }
+    return preloadUbText_(COPY.WIZ_CTX_PREFIX) + COPY.DAILY_PRELOAD_TAIL;
+  }
   function openPhTool_(idx) {
     var tool = TOOLS.powerHour[idx];
     var key = scopedSessionKey_(tool.bot, 'ph-' + tool.bot);
@@ -2385,7 +2403,11 @@
       directBtn.addEventListener('click', function () {
         // Recompute at CLICK time (round 12): after a handoff the newest
         // session is the one to resume, not whatever existed at render.
-        mountDailyTool(todaysToolSession_() || TOOLS.dailyDefault, '');
+        // A FRESH open is preloaded like a coach handoff (fa_faster 1b);
+        // a resume gets '' exactly as before. noHint: the coach-worded
+        // hint line would be false here — nobody worked anything out.
+        var bot = todaysToolSession_() || TOOLS.dailyDefault;
+        mountDailyTool(bot, dailyPreloadText_(bot), true);
       });
     }
 
@@ -2503,7 +2525,7 @@
           var ph = el.getAttribute('data-mh-ph');
           var daily = el.getAttribute('data-mh-daily');
           if (ph) { mountTool(ph, { sessionKey: scopedSessionKey_(ph, 'ph-' + ph) }); }
-          else if (daily) { mountDailyTool(daily, ''); }
+          else if (daily) { mountDailyTool(daily, dailyPreloadText_(daily), true); }
           if (!FS.mode) {
             var stub = document.getElementById('fh-tool-stub');
             if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
@@ -2807,7 +2829,7 @@
     loadState(false);
   }
 
-  function mountDailyTool(botId, promptText) {
+  function mountDailyTool(botId, promptText, noHint) {
     var hint = document.getElementById('fh-tool-hint');
     var direct = document.getElementById('fh-tool-direct');
     // Round 12: a handoff into a session with real turns starts FRESH (the
@@ -2819,7 +2841,9 @@
     // Phones have no rail hint node — the WIDGET's inline note (which now
     // names the tool, round 12) sits in the card and does that job.
     if (hint) {
-      if (promptText) {
+      // noHint (direct-lane preloads): STEP2_TOOL_LOADED says "what you and
+      // your coach worked out", which is only true for a coach handoff.
+      if (promptText && !noHint) {
         hint.textContent = COPY.STEP2_TOOL_LOADED;
         hint.style.display = '';
       } else { hint.style.display = 'none'; }   // no stale "will open here" above a live tool
@@ -2925,6 +2949,22 @@
     var pid = (ev && ev.detail) ? ev.detail.projectId : null;
     if (pid == null || String(pid) === String(state.activeProjectId)) { return; }
     switchProject_(String(pid));
+  });
+
+  // 2026-08-15 (Dave: one refresh should mean the page): the coach's ↻
+  // announces itself as fc:refresh and the rail re-pulls fresh. Re-pull
+  // only, never re-dispatched, so host↔coach cannot loop. While a tool is
+  // live in the stub the fresh state is adopted silently and route() is
+  // skipped — a repaint would pull the screen out from under an open
+  // session (same reason the fh:project echo terminates on a held id).
+  document.addEventListener('fc:refresh', function () {
+    callGateway({ action: 'state', projectId: state.activeProjectId, fresh: true }).then(function (data) {
+      if (!data.ok) { return; }
+      adoptState(data);
+      writeStateCache();
+      var stub = document.getElementById('fh-tool-stub');
+      if (!(stub && stub.firstElementChild)) { route(); }
+    }).catch(function () {});
   });
 
   /* ============================================================
