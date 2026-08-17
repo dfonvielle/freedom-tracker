@@ -1,6 +1,28 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-07-27 (picker-sync fix) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-08-17 — refresh by invoking `/dave-core:dashboard` in this repo.*
+
+> ✅ **2026-08-17 — nothing was ever outstanding: all five 2026-08-05 safety fixes have been live
+> for students since 2026-08-05, 6:49pm Central.** The intervention doc's "Deployment state
+> (honest, as of writing)" section was written at 3:28pm *while that session was still working*,
+> and both commands it called permission-blocked ran the same evening — so the ⚠️ "2 live-channel
+> promotes await one Dave command" that this dashboard carried for twelve days was describing a
+> half-finished afternoon, not a real queue. **There is no command for Dave to run.** Measured
+> three independent ways at $0: the registry's promote fingerprint (live and draft versions
+> identical), the live channel's own first reply (names the symptoms back, carries the
+> medical-supervision line), and prompt-token parity across channels (3620 == 3620 for
+> byte-identical turns). A related worry is also retired as impossible: `publishShared` writes the
+> shared rules as ONE object per channel, so a publish carries **all five rules or none** — the
+> split this doc implied could never have existed, and two later write-ups spent effort narrowing
+> a state that was never reachable.
+>
+> 🔒 **2026-08-17 — a live engine URL and an `at_` key were world-readable on GitHub Pages since
+> 2026-07-18** (`fc7f4f2`, Fable). `test_home.html`'s `#freedom-home` stub carried them and Pages
+> serves this repo publicly by design. Scrubbed — the stub now ships EMPTY like the live
+> `/freedom/start` page, hand-filled locally when a live draft-bot mount is needed. Standing rules
+> written into [CLAUDE.md](CLAUDE.md): the repo must stay public (Pages serves the live loaders),
+> no live keys ever, and the loader `APP_KEY` is public by design so it is not the same class of
+> thing.
 
 **Mission:** the student-facing Freedom experience — tracker, AI coach, and the one-page **Freedom Home** rail (Dave's name: **Freedom Accelerator**) — served into Systeme.io lessons from GitHub Pages, grandpa-simple by doctrine.
 
@@ -32,7 +54,9 @@ flowchart LR
 | **Round 10 — chrome + exclusivity + handoff revert** | 🟢 shipped 2026-07-20 evening, harness-verified desktop+375: solid "Freedom Accelerator" bar (floating – gone, labeled ↻ Refresh back), one-line goal box + step-1 "My moment", coach head de-duped ("Your Freedom AI Coach" sheet bar; Day · Refresh · picker line), chat hint = composer label, doors exclusive + "Start over with the freedom coach", coachHelpMenu **prefetched** (instant panel), warm greeting deleted (prompt lands visibly + "— no questions." tail, /fear/i-gated), step-1 get-help preloads minplan with the goal line on fresh sessions; **bh_rbf Screen-1 no-questions fast-track added in ai_tools (was promised in greeting, implemented nowhere) — proven in harness (Screen 2 skipped), promoted LIVE** | plan doc 9.9 round 10 |
 | 9.7 polish (auto-log chips w/ undo, de-trackered copy) | 🟢 done | git log |
 | Test harnesses | 🟢 in repo | [test_coach_home.html](test_coach_home.html) · [test_home.html](test_home.html) |
-| **Stress test 2026-08 → Fable polish** — 6 personas vs the whole student path, then Dave's green light: fixes executed same day + RBF/F&A/Withdrawal deep-stressed (4 more live catches, fixed) | 🟢 shipped 2026-08-05, before/after boundary tagged (`before-fable-2026-08-05` / `after-fable-2026-08-05`, both repos); ⚠️ 2 live-channel promotes await one Dave command (see intervention doc) | [STRESS_TEST_2026-08.md](STRESS_TEST_2026-08.md) · [TOOL_DEEP_STRESS.md](stress_test_2026-08/TOOL_DEEP_STRESS.md) · [PLAN_fable_freedom_polish.md](PLAN_fable_freedom_polish.md) · [FABLE_INTERVENTION_2026-08-05.md](FABLE_INTERVENTION_2026-08-05.md) |
+| **Stress test 2026-08 → Fable polish** — 6 personas vs the whole student path, then Dave's green light: fixes executed same day + RBF/F&A/Withdrawal deep-stressed (4 more live catches, fixed) | 🟢 shipped 2026-08-05, before/after boundary tagged (`before-fable-2026-08-05` / `after-fable-2026-08-05`, both repos); ✅ **2026-08-17: all five fixes measured LIVE** — the "2 live-channel promotes await one Dave command" note was stale from the day it was written, nothing is owed | [STRESS_TEST_2026-08.md](STRESS_TEST_2026-08.md) · [TOOL_DEEP_STRESS.md](stress_test_2026-08/TOOL_DEEP_STRESS.md) · [PLAN_fable_freedom_polish.md](PLAN_fable_freedom_polish.md) · [FABLE_INTERVENTION_2026-08-05.md](FABLE_INTERVENTION_2026-08-05.md) |
+
+| 🗣 The re-ask defect (bots re-ask what the student already told them) | 🔴 **live on BOTH channels, deliberately NOT fixed** — the rule (`ASK ONLY WHAT'S MISSING`) is deployed and the model is disobeying it; a first fix was attempted under the review mandate and **reverted on evidence** (draft flow 0/8 vs live 8/8, and the medical-supervision line lost in 1 of 2 samples). A bot spec is a product change, so this is Dave's call, not a session's | [FABLE_INTERVENTION_2026-08-05.md](FABLE_INTERVENTION_2026-08-05.md) |
 
 ## Progress
 
@@ -42,6 +66,8 @@ flowchart LR
 - [ ] Phase 11 — September model bump (scheduled; before Gemini 2.5-Flash's Oct 16 deprecation)
 
 ## ✍️ Waiting on Dave
+
+0a. 🗣 **Your bots ask students two questions they already answered — do you want that fixed?** (2026-08-17) Found while measuring the live channel: on the first reply, both channels re-ask things the student's own opening sentence already said, and the bot's own state proves it heard them. The instruction telling them not to is already live; the model is ignoring it. **One attempt was made and pulled back** — the conditional-bullets wording stalled the screen advance entirely (0 of 8 vs 8 of 8 on the control) and dropped the medical-supervision safety line in one sample of two, so it was reverted and nothing live was ever touched. Editing a bot's script is a product change and the standing decision is that tools are never edited automatically, so this waits on your word. Leaving it costs a slightly clumsy first exchange, nothing unsafe.
 
 0. **Live-verify the picker-sync fix** (the desync from your coach demo): open a Freedom Home lesson on your real account → switch the TOP project dropdown → the coach card's dropdown and Day line must follow within a beat; then switch the COACH's dropdown → the top dropdown, day chip, and goal line must follow. Reload the page: both must come back on the same project. (Pages cache ~10 min after push.) **Standalone too:** on any old-style lesson that shows the tracker AND the coach on one page, run the same two switches + reload — same expectation, one project everywhere.
 1. ~~Gateway diag key~~ DONE — both diag channels verified live (the "Unauthorized." was diag.js missing the appKey, not Dave's paste; fixed). Claude reads registry + logs autonomously now.
