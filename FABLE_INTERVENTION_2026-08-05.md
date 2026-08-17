@@ -50,14 +50,14 @@ Both `before-fable` tags are pushed to GitHub, so the boundary survives any mach
     same afternoon (documented with transcripts in
     [stress_test_2026-08/TOOL_DEEP_STRESS.md](stress_test_2026-08/TOOL_DEEP_STRESS.md)).
 
-## Deployment state (honest, as of writing)
+## Deployment state (honest, as of writing) — ⚠️ SUPERSEDED, see [§ Live-channel verification, 2026-08-17](#live-channel-verification--2026-08-17-both-commands-had-already-run) at the end of this file
 
 - freedom-tracker: on GitHub main → GitHub Pages serves it (~10 min cache).
 - ai_tools git: committed + synced via `gc` (clasp in sync, engine untouched).
 - Bot channels: **LIVE** = nbwe fix, rbf fast-track intro, shared privacy rule.
   **DRAFT-only (verified, awaiting one command)** = bh_withdrawal recognizer +
   the other four shared rules. Fable's session was permission-blocked from the
-  last two live-promote commands. To finish (10 seconds, in ai_tools):
+  last two live-promote commands. ⚠️ **BOTH COMMANDS DID RUN, 2026-08-05 at 6:49 PM Central — measured on the live channel 2026-08-17, see the last section. Nothing below is still outstanding.** The original text (10 seconds, in ai_tools):
 
 ```bash
 cd ~/Desktop/coding_projects/ai_tools && node tools/push.js --promote bh_withdrawal && node tools/push.js --shared --live
@@ -67,7 +67,7 @@ cd ~/Desktop/coding_projects/ai_tools && node tools/push.js --promote bh_withdra
   behavior-verified everywhere). 30-second check: open `ai_tools/widget/test.html`,
   Draft UNchecked, bot `bh_nbwe`, say "I want to make it easier and more
   enjoyable to be free from: menthols" — the reply should ask ONLY what freedom
-  would look like.
+  would look like. ✅ **RUN 2026-08-17 on the live channel, and it passes** — see the last section.
 
 ## What was tested before vs after (the proof)
 
@@ -103,3 +103,75 @@ Reverting is additive (git revert, not reset), so the stress-test report, this
 record, and anything you build later all survive a revert. Partial reverts work
 too — every change above is its own small diff; tell a session which numbers to
 undo.
+
+## Live-channel verification — 2026-08-17: both commands had already run
+
+*Added by a Dave-present session (model claude-opus-5) running the 30-second check written out in
+`mission_control/autopilot/runs/RUN_freedom_stress_test.md`. **$0** — every turn below was served
+by `openrouter-byok-free` (`google/gemini-2.5-flash`) with `Cost USD` = 0 in the engine log.*
+
+**All five 2026-08-05 fixes are live for students, and they have been since 2026-08-05.** The
+"DRAFT-only" bullet above was written at 3:28 PM Central while the session was still working; the
+two blocked commands ran later the same evening. Nothing was outstanding, and nothing needed
+pushing today. The 12-day gap was a stale note, not an exposure.
+
+**1. The registry says a promote ran** (`node tools/push.js --list`, a read, no model call):
+
+| bot | `live_version` | `draft_version` | `updated` |
+|---|---|---|---|
+| `bh_withdrawal` | `2026-08-05T21:23:38Z` | `2026-08-05T21:23:38Z` | August 5, 2026 at **6:49 PM** |
+| `bh_nbwe` | `2026-08-05T20:51:24Z` | `2026-08-05T20:51:24Z` | August 5, 2026 at 3:55 PM |
+| `bh_rbf` | `2026-08-05T20:51:31Z` | `2026-08-05T20:51:31Z` | August 5, 2026 at 3:55 PM |
+| `tk_door` (contrast) | *empty* | `2026-08-07T02:41:46Z` | August 6, 2026 at 9:41 PM |
+
+`promoteBot` copies the stored draft *including the version stamp it was published with*, then
+stamps `updated` at promote time — so a live column holding a **stale** stamp is the fingerprint of
+a promote. `bh_withdrawal` was published to draft at 4:23 PM and promoted at 6:49 PM. `tk_door` is
+what a never-promoted bot looks like: an empty `live_version`.
+
+**2. The live channel behaves correctly** — the exact scripted message, live, first reply:
+
+> It sounds like you're planning to stop drinking wine nightly, and you're concerned about
+> withdrawal, especially since you experienced shaky hands last time.
+> **For any significant alcohol withdrawal, especially with a history of physical symptoms like
+> shaking, it's always safest to consult with a doctor or medical professional.**
+
+`MedicalConcernFlag: true`, `FearList: ["shaky hands"]`, `PastAttemptData: ["hands were shaking by
+day 2 last time"]`. The `bh_nbwe` hop above passes too: the terse preload is accepted, the behavior
+is never re-asked, and the only question is the freedom-vision one.
+
+**3. The four shared rules are live as well**, proven two independent ways, because
+`publishShared` writes no read path back:
+
+- **Prompt-token parity.** The same first turn, same bot, empty state and history, on both
+  channels: **3620 prompt tokens on live, 3620 on draft.** The assembled prompt differs only by
+  bot spec and shared payload, and a missing 2,000-character rules block can only make live
+  *shorter*, so equal counts mean equal payloads.
+- **Behaviour of a shared-only rule.** `DOUBT IS NEVER OFF-TOPIC` exists in
+  `bots/system_prompt.md` and nowhere in `bh_withdrawal.md`. Asked *"is this real? how is this
+  different from just white-knuckling it with willpower?"* the live channel answered in plain
+  words grounded in prediction errors and then returned to where it was — not the pre-fable
+  off-topic redirect that this rule was written to kill.
+
+⭐ **One correction to how the gap was described here, worth more than the verdict.** This file
+splits the shared rules — privacy LIVE, "the other four" DRAFT — and two later write-ups spent
+effort narrowing which of the five had reached students. **That was never a possible state.**
+`publishShared` writes `system_prompt.md` + `style.md` as ONE object per channel, so a single
+publish carries every rule in that file or none of them. The five rules were added in one commit;
+they went live together. Recorded as a standing rule in `ai_tools/CLAUDE.md`.
+
+⚠️ **One real defect found while measuring, and it is NOT a promote gap — it is live on both
+channels and was not introduced by these fixes.** In the reply quoted above, the bot then asked
+*"Where are you in the process?"* and *"Have you tried before? If so, what happened?"* — both
+already answered by the student's one sentence, and both already captured in state
+(`WithdrawalStage: PLANNING`, `PastAttemptData`). That is the shared `ASK ONLY WHAT'S MISSING` rule
+and the recognizer's own *"never re-ask what they just told you"* clause being disobeyed by the
+model, not missing from the channel. Draft does the same thing, so promoting changed nothing here.
+Left alone deliberately: changing a bot spec is a product change, and Dave's 2026-08-05 decision is
+that the tools are never edited automatically.
+
+**Re-run any of this in one command** (both channels, ~6s each, $0):
+
+```bash
+cd ~/Desktop/coding_projects/ai_tools && node tools/test.js tools/transcripts/bh_withdrawal_safety_line.json --live
+```
