@@ -170,6 +170,15 @@ model, not missing from the channel. Draft does the same thing, so promoting cha
 Left alone deliberately: changing a bot spec is a product change, and Dave's 2026-08-05 decision is
 that the tools are never edited automatically.
 
+**Update, later that day (the Fable review, Dave present):** a first fix WAS attempted under
+Dave's review mandate — and REVERTED on draft evidence: a conditional-bullets instruction stalled
+screen advance (the flow transcript went 0/8 on draft while live passed 8/8 as the control arm,
+same minute) and lost the medical-supervision line in 1 of 2 draft samples. Live was never
+touched; draft was re-proven equal to live before anything shipped. The defect stands as filed,
+the left-alone call above is re-affirmed for one-shot edits, and the law this earned is
+`ai_tools/CLAUDE.md` rule 5: spec edits to a live bot ship only through the flow transcript on
+draft + the safety fixture sampled ×3 + live as control.
+
 **Re-run any of this in one command** (both channels, ~6s each, $0):
 
 ```bash
