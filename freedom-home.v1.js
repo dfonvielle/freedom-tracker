@@ -161,6 +161,10 @@
     D0_FOCUS: 'Do it when you’re clear-headed and can focus. The better you can focus, the more powerful the rewiring.',
     D0_TEACH: 'The four tools teach you everything as you go. There’s nothing to study first.',
     D0_START_NOW: 'Start my Freedom Power Hour and Day 1 now →',
+    // Porch teardown: the tap answers INSTANTLY — Dave tapped, saw nothing,
+    // and scrolled around while the round trip ran. (Day 1 is also
+    // prefetched at render, so this label mostly never shows.)
+    D0_STARTING: 'Starting your Freedom Power Hour…',
     D0_PLAN_TOGGLE: 'I’ll do it later. Save a time and place →',
     // Round 19 (Dave: "it doesn't look like I did anything"): once a plan
     // exists, the collapsed line SHOWS it — a possession, not an invitation.
@@ -225,7 +229,12 @@
     // room keeps its contextual control too.
     PROJ_MANAGE: 'Manage projects…',
     MNG_TITLE: 'Manage your projects',
-    MNG_SUB: 'Archiving moves a project out of your menu. Nothing is deleted, and you can bring any of them back anytime.',
+    // Porch teardown (2026-08-19): three buttons beside every name read as
+    // a wall of text at 375px (Dave: "it doesn't look the best"). One
+    // Options button per row now, and the verbs drop below the name on tap.
+    MNG_SUB: 'Tap Options to rename a project, reset it to day one, or move it out of your menu. Nothing is ever deleted.',
+    MNG_OPTIONS: 'Options',
+    MNG_OPTIONS_CLOSE: 'Close',
     MNG_ACTIVE_H: 'Active',
     MNG_ARCH_H: 'Archived',
     MNG_CURRENT: 'current',
@@ -238,9 +247,10 @@
     ARCH_EMPTY: 'No archived projects right now.',
     ARCH_RESTORE: 'Bring it back →',
     ARCH_RESTORING: 'Bringing it back…',
-    ARCH_NOTE: 'Done with this project? Archiving moves it out of your menu. Nothing is deleted, and you can bring it back anytime.',
-    ARCH_BTN: 'Archive this project →',
-    ARCH_WORKING: 'Archiving…',
+    // Porch teardown: archiving the project on screen used to cut to the
+    // generic loading shell ("the whole screen just went blank") — this
+    // line says what just happened and what comes next.
+    ARCH_DONE_LOADING: 'Archived ✓. Opening your next project…',
     // 2026-08-19 (Dave's porch test): reset to day one — the STUDENT'S verb,
     // never the system's (strategy rule 16 still bans streak resets). The
     // server saves a History snapshot BEFORE clearing anything, the card
@@ -248,7 +258,13 @@
     // consequence (rule 15). Copy rule 17: no em dashes, no semicolons.
     MNG_RESET_BTN: 'Reset',
     RESET_TITLE: 'Reset to day one',
-    RESET_BODY: 'This starts {LABEL} over at day one. You keep your goal and your rewiring moment. Everything you logged so far is saved into your history first, and your day count starts over today. There is no undo.',
+    // Porch teardown: the card now leads with the UB in the student's own
+    // words (his ask: define "UB" right here, since the wizard that taught
+    // it is 70 days behind him), quotes the project name, and says out
+    // loud that day one means the Freedom Power Hour again.
+    RESET_UB_LEAD: 'Your Unwanted Behavior (UB) that you want freedom from:',
+    RESET_BODY: 'This starts "{LABEL}" over at day one. You keep your goal and your rewiring moment. Everything you logged so far is saved into your history first. Your day count starts over today on day one.',
+    RESET_PH_LINE: 'You will start back with the Freedom Power Hour on day one. There is no undo for a reset to day one.',
     RESET_BASELINE_H: 'First, where are you starting from today?',
     RESET_GO: 'Reset to day one →',
     RESET_WORKING: 'Saving your history and resetting…',
@@ -256,7 +272,7 @@
     RESET_ALT_LINK: 'Archive it and start a new project instead →',
     RESET_BACK: 'Never mind, take me back',
     RESET_DONE_TITLE: 'Reset done. Day one is ready.',
-    RESET_DONE_BODY: 'Your history is saved. Your goal and rewiring moment came with you. Your Freedom Power Hour starts your fresh day one.',
+    RESET_DONE_BODY: 'Your history is saved. Your goal and rewiring moment came with you. Your Freedom Power Hour starts fresh on day one.',
     RESET_CONGRATS: 'When this project began, your scores were {OLD}. Today you start at {NEW}. You are beginning from a better place than last time.',
     RESET_DONE_GO: 'Take me there →',
 
@@ -274,6 +290,11 @@
     // Round 10: the fullscreen rail gets the SAME solid-bar chrome as the
     // tool popups and the coach sheet — one pattern to get used to.
     FS_BAR_TITLE: 'Freedom Accelerator',
+    // Porch teardown: in a tool popup's bar the full name left no room for
+    // the tool's own name at 375px. Phones show "FA ›" (the widget's
+    // data-crumb-short lane). The coach sheet and the rail bar keep the
+    // full name, which is what teaches the letters. Dave's call.
+    FS_BAR_SHORT: 'FA',
     // (Round 5's WARM_GREETING — "Your coach filled me in" — is GONE, round
     // 10: a meta-message about our plumbing while the real prompt was still
     // in flight read as broken. The tool greets normally; the loaded prompt
@@ -1152,12 +1173,19 @@
     var html = '';
     var act = state.projects || [];
     html += '<div class="fh-mng-h">' + esc(COPY.MNG_ACTIVE_H) + '</div>';
+    // Porch teardown (2026-08-19): every active row is a name plus ONE
+    // Options button. The verbs (Rename / Reset / Archive) drop in below
+    // the name on tap — Dave's own design for the 375px wall-of-text row.
+    // One row open at a time keeps the room calm.
     for (var i = 0; i < act.length; i++) {
       var isCurrent = String(act[i].projectId) === String(state.activeProjectId);
-      html += '<div class="fh-arch-row" data-rowpid="' + esc(String(act[i].projectId)) + '">' +
-        '<div class="fh-arch-label">' + esc(projectRowLabel_(act[i])) +
-        (isCurrent ? ' <span class="fh-mng-cur">' + esc(COPY.MNG_CURRENT) + '</span>' : '') + '</div>' +
-        '<div class="fh-mng-btns">' +
+      html += '<div class="fh-arch-row fh-mng-row" data-rowpid="' + esc(String(act[i].projectId)) + '">' +
+        '<div class="fh-mng-line1">' +
+          '<div class="fh-arch-label">' + esc(projectRowLabel_(act[i])) +
+          (isCurrent ? ' <span class="fh-mng-cur">' + esc(COPY.MNG_CURRENT) + '</span>' : '') + '</div>' +
+          '<button class="fh-btn fh-secondary fh-mng-options" data-pid="' + esc(String(act[i].projectId)) + '">' + esc(COPY.MNG_OPTIONS) + '</button>' +
+        '</div>' +
+        '<div class="fh-mng-btns" style="display:none">' +
           '<button class="fh-btn fh-secondary fh-mng-rename" data-pid="' + esc(String(act[i].projectId)) + '" data-label="' + esc(projectRowLabel_(act[i])) + '">' + esc(COPY.MNG_RENAME_BTN) + '</button>' +
           '<button class="fh-btn fh-secondary fh-mng-reset" data-pid="' + esc(String(act[i].projectId)) + '" data-label="' + esc(projectRowLabel_(act[i])) + '">' + esc(COPY.MNG_RESET_BTN) + '</button>' +
           (act.length > 1
@@ -1189,6 +1217,26 @@
       state.forcedPhase = null;
       route();
     });
+    // Porch teardown: the Options toggle. Opening a row closes the others;
+    // the button label carries the state (Options ↔ Close).
+    var obtns = document.querySelectorAll('#freedom-home .fh-mng-options');
+    for (var ob = 0; ob < obtns.length; ob++) {
+      obtns[ob].addEventListener('click', function () {
+        var pid = this.getAttribute('data-pid');
+        var row = document.querySelector('#freedom-home .fh-mng-row[data-rowpid="' + pid + '"]');
+        if (!row) return;
+        var rack = row.querySelector('.fh-mng-btns');
+        var wasOpen = rack && rack.style.display !== 'none';
+        var allRacks = document.querySelectorAll('#freedom-home .fh-mng-row .fh-mng-btns');
+        for (var ar = 0; ar < allRacks.length; ar++) { allRacks[ar].style.display = 'none'; }
+        var allOpts = document.querySelectorAll('#freedom-home .fh-mng-options');
+        for (var ao = 0; ao < allOpts.length; ao++) { allOpts[ao].textContent = COPY.MNG_OPTIONS; }
+        if (!wasOpen && rack) {
+          rack.style.display = '';
+          this.textContent = COPY.MNG_OPTIONS_CLOSE;
+        }
+      });
+    }
     // Round 20: rename — the label is navigation furniture, separate from
     // the UB (the method's words). The row swaps to an inline editor; a
     // manual rename locks the label server-side against UB-driven writes.
@@ -1259,6 +1307,8 @@
           state.archived = data.archived || state.archived;
           if (String(pid) === String(state.activeProjectId)) {
             // Archived the project being viewed: land on the account default.
+            // Porch teardown: say what happened during the cut — the generic
+            // loading shell read as "the whole screen just went blank".
             state._explicitProjectPick = true;
             state.progressCache = null;
             state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
@@ -1266,7 +1316,7 @@
             state.activeProjectId = String(data.activeProjectId || '');
             unmountTool();
             clearStateCache();
-            rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
+            rootEl.innerHTML = shellLoading(COPY.ARCH_DONE_LOADING);
             loadState(false);
             return;
           }
@@ -1343,10 +1393,27 @@
     var pid = state._resetPid;
     var label = state._resetLabel || 'this project';
     if (!pid) { state.forcedPhase = 'manageprojects'; return route(); }
+    // Porch teardown: lead with the UB in the student's OWN words — "your
+    // UB" in the baseline questions was unreadable 70 days after the wizard
+    // that defined it. We only hold the UB for the project on screen (it
+    // lives on each tracker sheet, and pulling it for every row would cost
+    // a sheet-open per project); other rows keep the quoted label and the
+    // neutral question wording. A privacy placeholder is never echoed.
+    var ubWords = '';
+    if (String(pid) === String(state.activeProjectId)) {
+      ubWords = String((state.setup && state.setup.ub) || '').trim();
+      if (ubIsPlaceholder_(ubWords)) { ubWords = ''; }
+    }
+    var ubBlock = ubWords
+      ? '<p class="fh-sub fh-reset-ub-lead">' + esc(COPY.RESET_UB_LEAD) + '</p>' +
+        '<div class="fh-reset-ub">' + esc(ubWords) + '</div>'
+      : '';
     renderShell(
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.RESET_TITLE) + '</h3>' +
+        ubBlock +
         '<p class="fh-sub">' + esc(COPY.RESET_BODY.replace('{LABEL}', label)) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.RESET_PH_LINE) + '</p>' +
         '<div class="fh-mng-h">' + esc(COPY.RESET_BASELINE_H) + '</div>' +
         scoreInputHtml('easy', 'fh-rs-', null, resetScoreQuestion_('easy', pid)) +
         scoreInputHtml('enjoy', 'fh-rs-', null, resetScoreQuestion_('enjoy', pid)) +
@@ -1639,7 +1706,7 @@
   function openMinplan_() {
     var mpKey = scopedSessionKey_('bh_minplan', 'ph-bh_minplan');
     var fresh = !sessionHasUserTurn_('bh_minplan', mpKey);
-    mountTool('bh_minplan', { sessionKey: mpKey });
+    mountTool('bh_minplan', { sessionKey: mpKey, restart: restartText_(COPY.GOAL_LINE_PREFIX, false) });
     if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
       window.AgtWidget.send(document.getElementById('fh-tool-stub'),
         preloadUbText_(COPY.GOAL_LINE_PREFIX));
@@ -1676,44 +1743,14 @@
         '<input type="text" id="fh-goal-js" value="' + esc(state.setup.jumpstart) + '" />' +
         '<button class="fh-btn" id="fh-goal-save">' + esc(COPY.GOAL_SAVE) + '</button>' +
         '<div class="fh-msg" id="fh-goal-msg"></div>' +
-        // Round 18: archive lives here — the project's own settings room —
-        // never as a destructive control on the picker. Rule 15: the sub
-        // line carries the consequence; only multi-project accounts see it
-        // (the server refuses the last active project regardless).
-        (((state.projects || []).length > 1)
-          ? '<div class="fh-divider"></div>' +
-            '<p class="fh-sub">' + esc(COPY.ARCH_NOTE) + '</p>' +
-            '<button class="fh-btn fh-secondary" id="fh-goal-archive">' + esc(COPY.ARCH_BTN) + '</button>' +
-            '<div class="fh-msg" id="fh-arch-msg"></div>'
-          : '') +
+        // Porch teardown (2026-08-19): the round-18 archive control is GONE
+        // from this room. Dave hit it right after saving his goal wording
+        // and read it as a non-sequitur ("why would I want to archive?").
+        // This room is for the project's WORDS; every lifecycle verb
+        // (rename, reset, archive, restore) lives in Manage projects, the
+        // one room the picker teaches.
         '<div class="fh-linkline fh-center"><a href="#" id="fh-goal-back">' + esc(COPY.GOAL_BACK) + '</a></div>' +
       '</div>');
-    var archBtn = document.getElementById('fh-goal-archive');
-    if (archBtn) archBtn.addEventListener('click', function () {
-      archBtn.disabled = true;
-      archBtn.textContent = COPY.ARCH_WORKING;
-      callGateway({ action: 'archiveProject', projectId: state.activeProjectId }).then(function (data) {
-        if (!data || !data.ok) {
-          archBtn.disabled = false;
-          archBtn.textContent = COPY.ARCH_BTN;
-          return setMsg('fh-arch-msg', (data && data.error) || 'Could not archive. Try again.', false);
-        }
-        // Land on the account default, exactly like switching projects.
-        state._explicitProjectPick = true;
-        state.progressCache = null;
-        state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
-        state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
-        state.activeProjectId = String(data.activeProjectId || '');
-        unmountTool();
-        clearStateCache();
-        rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
-        loadState(false);
-      }).catch(function (err) {
-        archBtn.disabled = false;
-        archBtn.textContent = COPY.ARCH_BTN;
-        setMsg('fh-arch-msg', String(err), false);
-      });
-    });
     document.getElementById('fh-goal-save').addEventListener('click', function () {
       var ub = document.getElementById('fh-goal-ub').value.trim();
       var js = document.getElementById('fh-goal-js').value.trim();
@@ -2059,7 +2096,34 @@
         renderDay0();
       }).catch(function (err) { setMsg('fh-d0-msg', String(err), false); });
     });
+    // Porch teardown (rule 13): prefetch Day 1 while the student reads the
+    // card, so the start tap is instant. Scoped to the project so a switch
+    // can never leak another project's day in — and NEVER stored in
+    // state.phDay before the tap: route() reads phDay's presence as "the
+    // Power Hour already started" and would skip this card.
+    if (!(state._phDayPrefetch && state._phDayPrefetch.pid === String(state.activeProjectId))) {
+      state._phDayPrefetch = null;
+      (function () {
+        var pfPid = String(state.activeProjectId);
+        callGateway({ action: 'getDay', projectId: pfPid, day: 1 })
+          .then(function (data) {
+            if (data.ok && data.day) { state._phDayPrefetch = { pid: pfPid, day: data.day }; }
+          })
+          .catch(function () {});
+      })();
+    }
     document.getElementById('fh-d0-start').addEventListener('click', function () {
+      var pf = state._phDayPrefetch;
+      if (pf && pf.pid === String(state.activeProjectId)) {
+        state.phDay = pf.day;
+        state.forcedPhase = null;
+        return renderPowerHourRail();
+      }
+      // Cold path (prefetch still in flight): the button answers the tap
+      // immediately — Dave tapped, saw nothing, and went looking.
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = COPY.D0_STARTING;
       callGateway({ action: 'getDay', projectId: state.activeProjectId, day: 1 })
         .then(function (data) {
           if (data.ok && data.day) { state.phDay = data.day; }
@@ -2116,11 +2180,27 @@
     if (sessionHasUserTurn_(botId, activeToolKey_(botId))) { return ''; }
     return preloadUbText_(COPY.WIZ_CTX_PREFIX) + COPY.DAILY_PRELOAD_TAIL;
   }
+  // Porch teardown: what the tool's own ↺ start-over re-sends — each lane's
+  // fresh preload, UNCONDITIONAL on session state (the restart only fires
+  // after the widget cleared the session). Empty when there is no UB yet.
+  // Only bots whose Screen 1 treats the first message as the behavior
+  // answer get one (harness-proven: the four Power Hour bots + the two
+  // daily tools; bh_withdrawal is not preload-verified and restarts bare).
+  function restartText_(prefix, dailyTail) {
+    if (!(state.setup && String(state.setup.ub || '').trim())) { return ''; }
+    return preloadUbText_(prefix) + (dailyTail ? COPY.DAILY_PRELOAD_TAIL : '');
+  }
+  function isPhBot_(botId) {
+    for (var i = 0; i < TOOLS.powerHour.length; i++) {
+      if (TOOLS.powerHour[i].bot === botId) { return true; }
+    }
+    return false;
+  }
   function openPhTool_(idx) {
     var tool = TOOLS.powerHour[idx];
     var key = scopedSessionKey_(tool.bot, 'ph-' + tool.bot);
     var fresh = !sessionHasUserTurn_(tool.bot, key);
-    mountTool(tool.bot, { sessionKey: key });
+    mountTool(tool.bot, { sessionKey: key, restart: restartText_(COPY.WIZ_CTX_PREFIX, false) });
     if (fresh && state.setup && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
       // The wizard's contract sentence, visible as his first message — the
       // tool opens already personalized (each PH bot's Screen 1 treats the
@@ -2677,7 +2757,7 @@
         el.addEventListener('click', function () {
           var ph = el.getAttribute('data-mh-ph');
           var daily = el.getAttribute('data-mh-daily');
-          if (ph) { mountTool(ph, { sessionKey: scopedSessionKey_(ph, 'ph-' + ph) }); }
+          if (ph) { mountTool(ph, { sessionKey: scopedSessionKey_(ph, 'ph-' + ph), restart: isPhBot_(ph) ? restartText_(COPY.WIZ_CTX_PREFIX, false) : '' }); }
           else if (daily) { mountDailyTool(daily, dailyPreloadText_(daily), true); }
           if (!FS.mode) {
             var stub = document.getElementById('fh-tool-stub');
@@ -2930,8 +3010,24 @@
     // 2026-08-19: the popup's bar reads "Freedom Accelerator › {tool}" and
     // tapping the left segment minimizes — the same trained move as the
     // coach sheet's crumb. Additive widget attribute; embeds without it
-    // (standalone lessons) render exactly as before.
+    // (standalone lessons) render exactly as before. Porch teardown: on
+    // phones the crumb collapses to "FA" so the TOOL name gets the space —
+    // the coach sheet keeps the full name, which teaches the letters.
     stub.setAttribute('data-crumb', COPY.FS_BAR_TITLE);
+    stub.setAttribute('data-crumb-short', COPY.FS_BAR_SHORT);
+    // Porch teardown: the ↺ start-over inside a tool used to land on a bare
+    // unpersonalized greeting — every preload here rides AgtWidget.send,
+    // which a widget-internal restart can't see. Each mount hands the
+    // widget the SAME preload its lane sends fresh (data-restart-message-
+    // from), so starting over gets the student rewiring again immediately.
+    if (opts.restart) {
+      var restartSrc = document.createElement('div');
+      restartSrc.id = 'fh-tool-restart-src';
+      restartSrc.style.display = 'none';
+      restartSrc.textContent = opts.restart;
+      stub.appendChild(restartSrc);
+      stub.setAttribute('data-restart-message-from', 'fh-tool-restart-src');
+    }
     // On phones the widget does its normal fullscreen popup OVER the
     // fullscreen rail — deliberately (Dave's phone round 2, 2026-07-20): a
     // chat squeezed into a card inside a scrolling page is exactly the
@@ -3024,7 +3120,7 @@
     // with its own greeting and the coach's prompt lands as the student's
     // visible first message (the prompt itself now ends with "No questions…",
     // which the tool honors by skipping its digging phase).
-    mountTool(botId, { sessionKey: key, waitTip: COPY.WAIT_TIP });
+    mountTool(botId, { sessionKey: key, waitTip: COPY.WAIT_TIP, restart: restartText_(COPY.WIZ_CTX_PREFIX, true) });
     // The prompt rides AgtWidget.send: it lands in fresh AND restored
     // sessions alike (the old only-on-fresh injection silently swallowed
     // handoffs into an already-open tool).
@@ -3541,10 +3637,19 @@
       '#freedom-home #fh-d0-planbox input{width:100%;box-sizing:border-box;font-size:15px;padding:10px;}' +
       // Round 18: archived-projects restore rows. Round 19: manage-room
       // section heads + current chip; the anchor label's em carries weight.
-      // 2026-08-19: rows may wrap — three buttons (Rename/Reset/Archive) no
-      // longer fit beside a name at 375px; the button rack drops below it.
+      // Porch teardown 2026-08-19: active rows fold their verbs behind ONE
+      // Options button (Dave: three buttons beside a name read as a wall of
+      // text at 375px); the rack drops in below the name on tap.
       '#freedom-home .fh-arch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;flex-wrap:wrap;}' +
+      '#freedom-home .fh-mng-row{display:block;}' +
+      '#freedom-home .fh-mng-line1{display:flex;align-items:center;justify-content:space-between;gap:10px;}' +
+      '#freedom-home .fh-mng-line1 .fh-btn{width:auto;margin:0;padding:9px 14px;flex:none;}' +
+      '#freedom-home .fh-mng-row .fh-mng-btns{margin:8px 0 0;flex-wrap:wrap;}' +
       '#freedom-home .fh-reset-gold{background:#fffdf5;border:1px solid #e8d49a;border-radius:10px;padding:10px 12px;font-size:14.5px;color:#7a5c00;margin:0 0 10px;}' +
+      // Porch teardown: the reset card quotes the student's own UB words in
+      // a quiet box (their words, not an action — gray family, rule 18).
+      '#freedom-home .fh-reset-ub-lead{font-weight:700;color:#2f4a68;margin-bottom:4px;}' +
+      '#freedom-home .fh-reset-ub{background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:10px 12px;font-size:14.5px;color:#2f4a68;margin:0 0 10px;}' +
       '#freedom-home .fh-arch-label{font-size:14.5px;color:#2f4a68;min-width:0;overflow:hidden;text-overflow:ellipsis;}' +
       '#freedom-home .fh-arch-row .fh-btn{width:auto;margin:0;padding:9px 14px;flex:none;}' +
       '#freedom-home .fh-mng-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#5b7797;margin:14px 0 4px;}' +

@@ -10,6 +10,36 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-08-19 (evening) · The teardown round: how the reset lane and its room speak
+
+**Decided (Dave's drunk-grandpa teardown of the porch build, same day):**
+- **The reset card defines the UB before it asks about it.** It leads with "Your
+  Unwanted Behavior (UB) that you want freedom from:" plus the student's own words,
+  quotes the project name, and says plainly that day one means the Freedom Power Hour
+  again and that there is no undo. The UB words render only for the project on screen
+  (the UB lives on each tracker sheet; pulling it for every row would cost a sheet-open
+  per project per state call — the speed architecture forbids it). Other rows keep the
+  quoted label and the neutral "this behavior" wording. A privacy placeholder is never
+  echoed back.
+- **Manage rows fold behind one Options button** (Dave's design, verbatim: "each one
+  only has one button, and it says Options... then Rename, Reset and Archive then
+  appear on the line below"). One row open at a time.
+- **The goal room offers no lifecycle verbs.** Its round-18 archive control ambushed a
+  goal edit ("I don't know why I was given the option to archive my project there").
+  Manage projects owns rename, reset, archive, restore. The goal room is for words.
+- **A start-over must land re-personalized.** The tool ↺ now re-sends the mounting
+  lane's own preload (the §1 re-entered-context seam, caught wearing a restart
+  costume). Gated to preload-verified bots; Withdrawal restarts bare.
+- **"FA" is the phone crumb.** Dave's call from the walk: the tool name deserves the
+  bar space, and one tap teaches what FA means. Full name stays at >480px, on the
+  coach sheet, and on the rail bar.
+
+**Would reopen it:** a real student reading "FA" as noise during watched walks, or the
+UB box needing to work for non-active rows badly enough to justify a Gateway change
+(per-project UB in the registry, or ub riding the projects list).
+
+---
+
 ## 2026-08-19 · A student can reset a project to day one, and it is HIS verb only
 
 **Decided:** the Manage Projects room offers Reset beside Rename and Archive. A reset

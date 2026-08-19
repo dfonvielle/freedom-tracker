@@ -37,13 +37,16 @@
 </div>
 
 <div class="stage">
-  <!-- Same stub a Systeme lesson carries. This repo is PUBLIC: the stub ships
-       EMPTY, like the live /freedom/start page. For live draft-bot mounting,
-       hand-fill data-engine/data-key locally and never commit the values
-       (Gateway calls stay mocked either way). -->
+  <!-- Same stub a Systeme lesson carries. This repo is PUBLIC — never commit
+       live values here. "mock-engine"/"mock" are SENTINELS, not credentials:
+       the fetch stub below intercepts every mock-engine call before any
+       network, so tools mount and answer offline (porch-teardown ratchet,
+       2026-08-19 — with the engine empty, every tool state was invisible:
+       mounts, crumbs, preloads, and the ↺ restart all unwalkable). For a
+       LIVE draft-bot walk, hand-fill real values locally and don't commit. -->
   <div id="freedom-home"
-       data-engine=""
-       data-key=""
+       data-engine="mock-engine"
+       data-key="mock"
        data-draft="1"
        data-full-tracker-url="https://example.com/full-tracker-lesson"></div>
   <pre id="mock-log">mock log —\n</pre>
@@ -224,9 +227,36 @@
   // the widget's engine calls (a different deployment id) pass through to
   // the live draft engine. Home's own calls use __FH_MOCK_CALL, not fetch.
   var GATEWAY_ID = 'AKfycbxokJhAPaX6';
+  // Porch-teardown ratchet (2026-08-19): a MOCK ENGINE, so the REAL widget
+  // mounts and answers offline. Shapes mirror the real engine exactly
+  // (§4.5): botMeta → {ok,name,greeting,start_screen}; chat →
+  // {ok,message,screen,state}. The reply ECHOES what the tool received,
+  // which is how a walk proves a preload or a ↺ restart actually landed.
+  var MOCK_BOT_NAMES = {
+    bh_rbf: 'Rapid Behavioral Freedom Tool', bh_fearanxiety: 'Fear & Anxiety Relief',
+    bh_nbwe: 'No-Brainer Willpower Eliminator', bh_minplan: 'Minimalist Freedom Plan',
+    bh_feelgs: 'Feel Good Start', bh_cjc: 'Create Joyous Chaos',
+    bh_withdrawal: 'Withdrawal Helper'
+  };
   var realFetch = window.fetch;
   window.fetch = function (url, opts) {
     var u = String(url);
+    if (u.indexOf('mock-engine') >= 0) {
+      var eb = {};
+      try { eb = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
+      var eresp;
+      if (eb.action === 'botMeta') {
+        eresp = { ok: true, name: MOCK_BOT_NAMES[eb.bot_id] || String(eb.bot_id || 'Tool'),
+          greeting: 'Mock greeting from ' + (MOCK_BOT_NAMES[eb.bot_id] || eb.bot_id) + '. No AI here — replies echo what the tool received.',
+          start_screen: 's1' };
+      } else {
+        var sent = String(eb.user_message || '');
+        logLine('→ engine ' + eb.bot_id + ' received: ' + sent.slice(0, 90));
+        eresp = { ok: true, message: 'Mock reply. This tool received: "' + sent.slice(0, 160) + '"',
+          screen: eb.screen || 's1', state: eb.state || {} };
+      }
+      return Promise.resolve({ ok: true, json: function () { return Promise.resolve(eresp); } });
+    }
     if (u.indexOf(GATEWAY_ID) >= 0) {
       var p = {};
       try { p = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
