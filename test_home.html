@@ -393,6 +393,27 @@
       M.activeId = String(p.projectId);
       return { ok: true, projects: M.projects, archived: M.archivedList, activeProjectId: M.activeId };
     }
+    if (p.action === 'resetProject') {
+      // 2026-08-19 mirror of handleResetProject_: REAL response shape is
+      // { ok, reset: { days, from, congrats: {before,after} | null } }.
+      // ?fail=reset forces the honest pre-wipe refusal (older format).
+      // The congrats object only exists when the new baseline SUM beats
+      // the old one — mirror that rule exactly, old baseline fixed 2/1/3.
+      if (qs.get('fail') === 'reset') {
+        return { ok: false,
+          error: 'This project uses an older format that can’t be reset. You can archive it and start a new project instead.',
+          detail: 'missing ranges: daily_easy, daily_enjoy' };
+      }
+      var oldBase = { easy: 2, enjoy: 1, conf: 3 };
+      var nb = p.baseline || {};
+      var oldSum = oldBase.easy + oldBase.enjoy + oldBase.conf;
+      var newSum = Number(nb.easy) + Number(nb.enjoy) + Number(nb.conf);
+      M.currentDay = 0;
+      M.day1 = { d1_t1: false, d1_t2: false, d1_t3: false, d1_t4: false, d1_withdrawal: false };
+      M.afterPh = false;
+      return { ok: true, reset: { days: 71, from: '2026-06-09T12:00:00Z',
+        congrats: (newSum > oldSum) ? { before: oldBase, after: { easy: Number(nb.easy), enjoy: Number(nb.enjoy), conf: Number(nb.conf) } } : null } };
+    }
     if (p.action === 'createProject') {
       // Round 18: ?fail=create forces the HONEST failure path (mirrors the
       // server's no-new-project-after-re-read error with its detail field).

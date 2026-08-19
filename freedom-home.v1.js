@@ -241,6 +241,24 @@
     ARCH_NOTE: 'Done with this project? Archiving moves it out of your menu. Nothing is deleted, and you can bring it back anytime.',
     ARCH_BTN: 'Archive this project →',
     ARCH_WORKING: 'Archiving…',
+    // 2026-08-19 (Dave's porch test): reset to day one — the STUDENT'S verb,
+    // never the system's (strategy rule 16 still bans streak resets). The
+    // server saves a History snapshot BEFORE clearing anything, the card
+    // collects the required fresh baseline, and the button carries the
+    // consequence (rule 15). Copy rule 17: no em dashes, no semicolons.
+    MNG_RESET_BTN: 'Reset',
+    RESET_TITLE: 'Reset to day one',
+    RESET_BODY: 'This starts {LABEL} over at day one. You keep your goal and your rewiring moment. Everything you logged so far is saved into your history first, and your day count starts over today. There is no undo.',
+    RESET_BASELINE_H: 'First, where are you starting from today?',
+    RESET_GO: 'Reset to day one →',
+    RESET_WORKING: 'Saving your history and resetting…',
+    RESET_ALT_LEAD: 'Want to keep this one as it is?',
+    RESET_ALT_LINK: 'Archive it and start a new project instead →',
+    RESET_BACK: 'Never mind, take me back',
+    RESET_DONE_TITLE: 'Reset done. Day one is ready.',
+    RESET_DONE_BODY: 'Your history is saved. Your goal and rewiring moment came with you. Your Freedom Power Hour starts your fresh day one.',
+    RESET_CONGRATS: 'When this project began, your scores were {OLD}. Today you start at {NEW}. You are beginning from a better place than last time.',
+    RESET_DONE_GO: 'Take me there →',
 
     // Daily rail
     DAILY_STRIP_TITLE: 'Today’s rhythm: three small steps',
@@ -252,6 +270,7 @@
     STEP2_SUB_POPUP: 'Tell your coach what’s going on. Your coach logs your wins and experiments for you, and when it hands you a loaded prompt, one tap opens your rewiring tool with it.',   // unused since round 5 (card diet — the coach's own greeting teaches)
     STEP2_COACH_OPEN: 'Talk to your coach →',
     COACH_SHEET_TITLE: 'Your Freedom AI Coach',
+    COACH_SHEET_TAIL: 'AI coach',
     // Round 10: the fullscreen rail gets the SAME solid-bar chrome as the
     // tool popups and the coach sheet — one pattern to get used to.
     FS_BAR_TITLE: 'Freedom Accelerator',
@@ -1113,6 +1132,7 @@
     if (step.phase === 'nblcd') return renderNblcd();
     if (step.phase === 'createconfirm') return renderCreateConfirm();
     if (step.phase === 'manageprojects') return renderManageProjects();
+    if (step.phase === 'resetconfirm') return renderResetConfirm();
     return renderDaily();
   }
 
@@ -1139,6 +1159,7 @@
         (isCurrent ? ' <span class="fh-mng-cur">' + esc(COPY.MNG_CURRENT) + '</span>' : '') + '</div>' +
         '<div class="fh-mng-btns">' +
           '<button class="fh-btn fh-secondary fh-mng-rename" data-pid="' + esc(String(act[i].projectId)) + '" data-label="' + esc(projectRowLabel_(act[i])) + '">' + esc(COPY.MNG_RENAME_BTN) + '</button>' +
+          '<button class="fh-btn fh-secondary fh-mng-reset" data-pid="' + esc(String(act[i].projectId)) + '" data-label="' + esc(projectRowLabel_(act[i])) + '">' + esc(COPY.MNG_RESET_BTN) + '</button>' +
           (act.length > 1
             ? '<button class="fh-btn fh-secondary fh-mng-archive" data-pid="' + esc(String(act[i].projectId)) + '">' + esc(COPY.MNG_ARCHIVE_BTN) + '</button>'
             : '') +
@@ -1212,6 +1233,15 @@
         });
       });
     }
+    var xbtns = document.querySelectorAll('#freedom-home .fh-mng-reset');
+    for (var x = 0; x < xbtns.length; x++) {
+      xbtns[x].addEventListener('click', function () {
+        state._resetPid = this.getAttribute('data-pid');
+        state._resetLabel = this.getAttribute('data-label');
+        state.forcedPhase = 'resetconfirm';
+        route();
+      });
+    }
     var abtns = document.querySelectorAll('#freedom-home .fh-mng-archive');
     for (var b = 0; b < abtns.length; b++) {
       abtns[b].addEventListener('click', function () {
@@ -1278,6 +1308,119 @@
         });
       });
     }
+  }
+
+  /* ============================================================
+   * RESET TO DAY ONE (2026-08-19, Dave's porch test) — the student's
+   * own restart verb. The server snapshots everything into a History
+   * tab BEFORE clearing (no snapshot, no wipe), keeps the goal and
+   * jumpstart moment, and requires a fresh baseline (this card's one
+   * job). Success lands on a small done-card whose gold line appears
+   * only when the new start beats the old one — a worse start says
+   * nothing, because the reset itself is the point.
+   * ============================================================ */
+  function clearProjectToolState_(pid) {
+    var escd = String(pid).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var pats = [
+      new RegExp('^fh_tool_key_p' + escd + '-d\\d'),
+      new RegExp('^fh_last_tool_p' + escd + '-d\\d'),
+      new RegExp('\\.kp' + escd + '-d\\d')
+    ];
+    try {
+      var doomed = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        for (var p = 0; p < pats.length; p++) {
+          if (pats[p].test(k)) { doomed.push(k); break; }
+        }
+      }
+      for (var d = 0; d < doomed.length; d++) { localStorage.removeItem(doomed[d]); }
+    } catch (e) {}
+  }
+  function renderResetConfirm() {
+    state._phWalk = false;
+    scrollTopNow_();
+    var pid = state._resetPid;
+    var label = state._resetLabel || 'this project';
+    if (!pid) { state.forcedPhase = 'manageprojects'; return route(); }
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.RESET_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.RESET_BODY.replace('{LABEL}', label)) + '</p>' +
+        '<div class="fh-mng-h">' + esc(COPY.RESET_BASELINE_H) + '</div>' +
+        scoreInputHtml('easy', 'fh-rs-', null, resetScoreQuestion_('easy', pid)) +
+        scoreInputHtml('enjoy', 'fh-rs-', null, resetScoreQuestion_('enjoy', pid)) +
+        scoreInputHtml('conf', 'fh-rs-', null, resetScoreQuestion_('conf', pid)) +
+        '<button class="fh-btn" id="fh-reset-go">' + esc(COPY.RESET_GO) + '</button>' +
+        '<div class="fh-msg" id="fh-reset-msg"></div>' +
+        '<p class="fh-sub">' + esc(COPY.RESET_ALT_LEAD) + ' <a href="#" id="fh-reset-alt">' + esc(COPY.RESET_ALT_LINK) + '</a></p>' +
+        '<div class="fh-linkline"><a href="#" id="fh-reset-back">' + esc(COPY.RESET_BACK) + '</a></div>' +
+      '</div>');
+    document.getElementById('fh-reset-alt').addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = 'manageprojects';
+      route();
+    });
+    document.getElementById('fh-reset-back').addEventListener('click', function (e) {
+      e.preventDefault();
+      state.forcedPhase = 'manageprojects';
+      route();
+    });
+    document.getElementById('fh-reset-go').addEventListener('click', function () {
+      var scores = {};
+      var keys = ['easy', 'enjoy', 'conf'];
+      for (var i = 0; i < keys.length; i++) {
+        var v = document.getElementById('fh-rs-' + keys[i]).value;
+        if (!validScore(v)) return setMsg('fh-reset-msg', COPY.SCORE_ERROR, false);
+        scores[keys[i]] = Number(v);
+      }
+      var btn = document.getElementById('fh-reset-go');
+      btn.disabled = true;
+      btn.textContent = COPY.RESET_WORKING;
+      callGateway({ action: 'resetProject', projectId: pid, baseline: scores }).then(function (data) {
+        if (!data || !data.ok) {
+          btn.disabled = false;
+          btn.textContent = COPY.RESET_GO;
+          var msg = (data && data.error) || 'Something went wrong. Please try again.';
+          if (data && data.detail) { msg += ' (' + data.detail + ')'; }
+          return setMsg('fh-reset-msg', msg, false);
+        }
+        renderResetDone_(pid, data.reset || {});
+      }).catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = COPY.RESET_GO;
+        setMsg('fh-reset-msg', String(err), false);
+      });
+    });
+  }
+  function renderResetDone_(pid, reset) {
+    var congrats = '';
+    if (reset && reset.congrats && reset.congrats.before && reset.congrats.after) {
+      var t = function (o) { return [o.easy, o.enjoy, o.conf].join(' / '); };
+      congrats = '<div class="fh-reset-gold">' +
+        esc(COPY.RESET_CONGRATS.replace('{OLD}', t(reset.congrats.before)).replace('{NEW}', t(reset.congrats.after))) +
+        '</div>';
+    }
+    renderShell(
+      '<div class="fh-card">' +
+        '<h3>' + esc(COPY.RESET_DONE_TITLE) + '</h3>' +
+        congrats +
+        '<p class="fh-sub">' + esc(COPY.RESET_DONE_BODY) + '</p>' +
+        '<button class="fh-btn" id="fh-reset-done-go">' + esc(COPY.RESET_DONE_GO) + '</button>' +
+      '</div>');
+    document.getElementById('fh-reset-done-go').addEventListener('click', function () {
+      clearProjectToolState_(pid);
+      state._explicitProjectPick = true;
+      state.progressCache = null;
+      state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
+      state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+      state._resetPid = null; state._resetLabel = null;
+      state.activeProjectId = String(pid);
+      unmountTool();
+      clearStateCache();
+      rootEl.innerHTML = shellLoading(COPY.LOADING_PROJECT);
+      loadState(false);
+    });
   }
 
   /* ============================================================
@@ -1701,9 +1844,19 @@
     }
     return text;
   }
-  function scoreInputHtml(key, idPrefix, value) {
-    return '<div class="fh-field"><label class="fh-label">' + esc(scoreQuestion(key)) + '</label>' +
+  function scoreInputHtml(key, idPrefix, value, labelText) {
+    return '<div class="fh-field"><label class="fh-label">' + esc(labelText || scoreQuestion(key)) + '</label>' +
       '<input type="number" min="0" max="10" step="1" id="' + idPrefix + key + '" placeholder="0-10" value="' + esc(value == null ? '' : value) + '" /></div>';
+  }
+  // Reset-card variant (2026-08-19): the card can reset a NON-active project,
+  // and scoreQuestion() personalizes with the ACTIVE project's UB — the walk
+  // caught it saying "late-night doomscrolling" on a "sugar after dinner"
+  // reset. Neutral wording for any project that is not the one on screen.
+  function resetScoreQuestion_(key, pid) {
+    if (String(pid) === String(state.activeProjectId)) return scoreQuestion(key);
+    var q = state.scoreQuestions || {};
+    var fallback = { easy: 'Easy (0-10)', enjoy: 'Enjoyable (0-10)', conf: 'Confidence (0-10)' };
+    return String(q[key] || fallback[key]).replace(/your\s+UB\b/g, 'this behavior');
   }
   function wizardStepBaseline() {
     scrollTopNow_();
@@ -2774,6 +2927,11 @@
     stub.setAttribute('data-engine', state.engine);
     stub.setAttribute('data-key', state.engineKey);
     if (state.draft) stub.setAttribute('data-draft', '1');
+    // 2026-08-19: the popup's bar reads "Freedom Accelerator › {tool}" and
+    // tapping the left segment minimizes — the same trained move as the
+    // coach sheet's crumb. Additive widget attribute; embeds without it
+    // (standalone lessons) render exactly as before.
+    stub.setAttribute('data-crumb', COPY.FS_BAR_TITLE);
     // On phones the widget does its normal fullscreen popup OVER the
     // fullscreen rail — deliberately (Dave's phone round 2, 2026-07-20): a
     // chat squeezed into a card inside a scrolling page is exactly the
@@ -3115,7 +3273,23 @@
     head.className = 'fh-sheet-head';
     var title = document.createElement('div');
     title.className = 'fh-sheet-title';
-    title.textContent = COPY.COACH_SHEET_TITLE;
+    // Breadcrumb bar (2026-08-19): "Freedom Accelerator › AI coach" — the
+    // left segment is tappable and goes back, same as the dash. The coach
+    // card below the bar still introduces itself as COACH_SHEET_TITLE.
+    var crumb = document.createElement('button');
+    crumb.type = 'button';
+    crumb.className = 'fh-sheet-crumb';
+    crumb.textContent = COPY.FS_BAR_TITLE;
+    crumb.setAttribute('aria-label', 'Back to your Freedom Accelerator');
+    crumb.onclick = function () { fsCoachOpen_(false); };
+    var sep = document.createElement('span');
+    sep.className = 'fh-sheet-crumbsep';
+    sep.textContent = '›';
+    var tail = document.createElement('span');
+    tail.textContent = COPY.COACH_SHEET_TAIL;
+    title.appendChild(crumb);
+    title.appendChild(sep);
+    title.appendChild(tail);
     var min = document.createElement('button');
     min.type = 'button';
     min.className = 'fh-sheet-min';
@@ -3297,7 +3471,12 @@
       '.fh-coach-sheet.fh-open{display:flex;}' +
       '.fh-sheet-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;' +
       'padding:10px 14px;background:#1f6f5c;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
-      '.fh-sheet-title{font-weight:700;font-size:16px;}' +
+      '.fh-sheet-title{font-weight:700;font-size:16px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+      // 2026-08-19 (Dave's porch test): the green bar reads as a breadcrumb —
+      // "Freedom Accelerator › AI coach" — and tapping the left segment goes
+      // back, same as the dash. One trained pattern: the left name is home.
+      '.fh-sheet-crumb{background:none;border:0;color:#cfe6de;font:inherit;font-size:13px;font-weight:600;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}' +
+      '.fh-sheet-crumbsep{opacity:0.7;margin:0 6px;font-weight:400;}' +
       '.fh-sheet-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
       '.fh-sheet-body{flex:1;min-height:0;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}' +
       '#freedom-home.fh-fs-hint > *{display:none !important;}' +
@@ -3362,7 +3541,10 @@
       '#freedom-home #fh-d0-planbox input{width:100%;box-sizing:border-box;font-size:15px;padding:10px;}' +
       // Round 18: archived-projects restore rows. Round 19: manage-room
       // section heads + current chip; the anchor label's em carries weight.
-      '#freedom-home .fh-arch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;}' +
+      // 2026-08-19: rows may wrap — three buttons (Rename/Reset/Archive) no
+      // longer fit beside a name at 375px; the button rack drops below it.
+      '#freedom-home .fh-arch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;flex-wrap:wrap;}' +
+      '#freedom-home .fh-reset-gold{background:#fffdf5;border:1px solid #e8d49a;border-radius:10px;padding:10px 12px;font-size:14.5px;color:#7a5c00;margin:0 0 10px;}' +
       '#freedom-home .fh-arch-label{font-size:14.5px;color:#2f4a68;min-width:0;overflow:hidden;text-overflow:ellipsis;}' +
       '#freedom-home .fh-arch-row .fh-btn{width:auto;margin:0;padding:9px 14px;flex:none;}' +
       '#freedom-home .fh-mng-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#5b7797;margin:14px 0 4px;}' +
@@ -3372,7 +3554,7 @@
       '#freedom-home .fh-ph-note{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
       '#freedom-home .fh-ph-teach{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
       '#freedom-home .fh-mng-cur{font-size:11.5px;font-weight:700;color:#2f6df6;background:#e7effd;border-radius:9px;padding:2px 8px;margin-left:6px;}' +
-      '#freedom-home .fh-mng-btns{display:flex;gap:6px;flex:none;}' +
+      '#freedom-home .fh-mng-btns{display:flex;gap:6px;flex:none;margin-left:auto;}' +
       '#freedom-home .fh-mng-rename-input{flex:1;min-width:0;font-size:14px;padding:8px;}' +
       '#freedom-home .fh-label em{font-style:italic;font-weight:700;}' +
       '#freedom-home .fh-refresh{width:auto;margin-top:0;white-space:nowrap;}' +
