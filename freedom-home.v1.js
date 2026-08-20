@@ -175,26 +175,45 @@
     D0_SAVE: 'Save my plan',
     D0_PLAN_NOTE: 'This page will be right here waiting. It remembers everything.',
 
-    // Power Hour (round 20 rebuild: a stepped page like the daily rhythm —
-    // all five steps visible, tools open on the student's TAP (rule 5:
-    // tools never appear uninvited; the old phone auto-popup was a fossil
-    // from the lesson-IS-the-tool era), fresh sessions preloaded with the
-    // contract sentence so every tool opens already personalized.)
+    // Power Hour (round 21 rebuild — Dave's 2026-08-20 walk: the order is a
+    // recommendation, never a cage. Every step row and pip is a door, done
+    // tools reopen, the ★ unlocks after the FIRST tool, and a receded skip
+    // door replaces the forcing. Round 20's bones stay: tools open on the
+    // student's TAP (rule 5), fresh sessions preloaded with the contract
+    // sentence. The round-20 teach line about the – button is GONE — a line
+    // explaining the UI is the UI failing; the crumb teaches itself.)
     PH_STRIP_TITLE: 'Day 1: Freedom Power Hour',
     PH_TOOL_OF: 'Tool {I} of 4: {NAME}',
     PH_OPEN: 'Open my rewiring session →',
     PH_OPEN_RESUME: 'Continue my rewiring session →',
-    PH_TEACH_MIN: 'The tool fills your screen. The – button at the top right brings you back to this page anytime.',
     PH_SCORES_ROW: 'Your Freedom Scores after the Power Hour',
     PH_BLURB_bh_nbwe: 'Dissolves the willpower fight before it starts. Tell it what you want freedom from and it does the rest.',
     PH_BLURB_bh_minplan: 'Builds your tiny daily plan and teaches the rewiring method using your own behavior.',
     PH_BLURB_bh_feelgs: 'Your first real taste of feeling genuinely good while looking straight at the behavior.',
     PH_BLURB_bh_cjc: 'The wildcard. Push it as far as you can. That is where the powerful rewiring happens.',
-    PH_INTRO: 'Four one-time power moves, each rewiring from a different angle. You do this once, today. Work with this tool below. When it wraps up, tap the button and the next tool appears right here.',
+    PH_INTRO: 'Four one-time power moves, each rewiring from a different angle. You do this once, today.',
     PH_CJC_TIP: 'Pro tip: push Create Joyous Chaos as far as you can. That’s where the powerful rewiring is.',
-    PH_INTRO_POPUP: 'Four one-time power moves, each rewiring from a different angle. You do this once, today. Your tool fills the screen. When it wraps up, close it with the – button, then tap Continue below and the next tool opens right away.',
     PH_DONE_BTN: 'I finished this tool → Continue',
     PH_DONE_SAVING: 'Saving…',
+    // A marked-done tool is a bookmark, never a lock (Dave's walk: he
+    // ticked tool 1 just to peek at tool 2, then hit a closed door).
+    PH_DONE_LINE: 'Done ✓ You can use this tool again anytime, as much as you want.',
+    PH_SCORES_LOCKED: 'Your scores unlock after your first tool. Use any tool above, then come back here and see your movement.',
+    PH_SCORES_PARTIAL: 'You can save them now, and the other tools will still be here for you. For the deepest rewiring, do all four.',
+    PH_SCORES_SAVED: 'Saved ✓ You’ll see your movement any time in your progress.',
+    // The skip door (never force — guide). Consequence in plain words,
+    // comeback promise out loud, and the confirm button carries the verb.
+    PH_SKIP_LINK: 'I want to skip the Freedom Power Hour ›',
+    PH_SKIP_LINK_PARTIAL: 'I’m done with my Power Hour for now ›',
+    PH_SKIP_EXPLAIN: 'Skipping is not recommended. One focused hour rewires a lot and sets you up for every day after. But this is your journey. The four tools stay right here, and you can come back to them anytime.',
+    PH_SKIP_EXPLAIN_PARTIAL: 'You can stop here. The tools you have not used stay right here, and you can come back to them anytime.',
+    PH_SKIP_SCORES_NUDGE: 'If you have a few seconds first, save your Freedom Scores above so today’s movement gets counted.',
+    PH_SKIP_GO: 'Skip it for now →',
+    PH_SKIP_GO_PARTIAL: 'I’m done for now →',
+    PH_SKIP_SAVING: 'Saving…',
+    PH_SKIPPED_TITLE: 'Skipped for now. Nothing is lost.',
+    PH_SKIPPED_BODY: 'Your Day 1 counts from today. Tomorrow this page starts your daily rhythm. It takes 7 to 22 minutes a day. The four Power Hour tools stay yours, and you can come back to them anytime.',
+    PH_SKIPPED_BACK: 'Take me back to my Power Hour →',
     PH_SCORES_TITLE: 'One last thing: your Freedom Scores after the Power Hour',
     // Stress test 2026-08 finding 6: point at THIS page's payoff, not the
     // full-tracker door. Finding 5 pays it: the celebrate card shows the move.
@@ -464,6 +483,7 @@
     day: null,          // current-day data from the Gateway (readDay_ shape)
     phDay: null,        // day-1 data while running the Power Hour from Day 0
     phIndex: null,      // explicit Power Hour position (null = derive)
+    _phView: null,      // rail card the student TAPPED open (null = router's pick)
     forcedPhase: null,  // student navigation override ('power_hour' from Day 0 / review)
     coachLoaded: false, // coach.v3 script injected?
     toolMountedBot: '', // bot currently mounted in #fh-tool
@@ -670,6 +690,30 @@
       if (state.setup && state.setup.stage >= 4 && state.activeProjectId != null) {
         p.done[String(state.activeProjectId)] = 1;
       }
+      localStorage.setItem(LS.pin, JSON.stringify(p));
+    } catch (e) {}
+  }
+
+  // 2026-08-20 (Dave's Power Hour walk): the student's OWN skip choice,
+  // per project, on the pin (account-keyed, survives cache expiry). Only
+  // meaningful while currentDay <= 1 — from Day 2 the daily rhythm takes
+  // over regardless, so a same-day skip on another device just shows the
+  // rail again until midnight (self-healing, never data loss). The flag is
+  // set only AFTER the Day-1 stamp save succeeds (rule: user-triggered
+  // writes report failure, engineering doctrine 10).
+  function phSkippedFor_(pid) {
+    var p = readPin_();
+    return !!(p && p.phskip && pid != null && p.phskip[String(pid)]);
+  }
+  function setPhSkip_(on, pid) {
+    if (pid == null) { pid = state.activeProjectId; }
+    if (pid == null) { return; }
+    try {
+      var p = readPin_() || { who: pinWho_(), done: {} };
+      p.who = pinWho_();
+      p.phskip = p.phskip || {};
+      if (on) { p.phskip[String(pid)] = 1; }
+      else { delete p.phskip[String(pid)]; }
       localStorage.setItem(LS.pin, JSON.stringify(p));
     } catch (e) {}
   }
@@ -973,10 +1017,14 @@
     if (!state.setup || state.setup.stage < 4) return { phase: 'wizard' };
     if (state.currentDay <= 1) {
       var phDay = (state.currentDay === 1) ? state.day : state.phDay;
-      if (state.currentDay === 0 && !phDay) return { phase: 'day0' };
+      // The student's own skip (2026-08-20) parks the walk without ever
+      // locking it: a finished Day 1 still celebrates, and from Day 2 the
+      // daily rhythm wins regardless of the flag.
+      var skipped = phSkippedFor_(state.activeProjectId);
+      if (state.currentDay === 0 && !phDay && !skipped) return { phase: 'day0' };
       var idx = firstUntickedTool(phDay);
-      if (idx >= 0) return { phase: 'power_hour', index: idx };
-      if (!(state.completion && state.completion[1])) return { phase: 'after_scores' };
+      if (idx >= 0) return skipped ? { phase: 'ph_skipped' } : { phase: 'power_hour', index: idx };
+      if (!(state.completion && state.completion[1])) return skipped ? { phase: 'ph_skipped' } : { phase: 'after_scores' };
       return { phase: 'day1_done' };
     }
     return { phase: 'daily' };
@@ -1147,6 +1195,7 @@
     if (step.phase === 'day0') return renderDay0();
     if (step.phase === 'power_hour') return renderPowerHourRail();
     if (step.phase === 'after_scores') return renderPowerHourRail();
+    if (step.phase === 'ph_skipped') return renderPhSkipped();
     if (step.phase === 'day1_done') return renderDay1Done();
     if (step.phase === 'goalplan') return renderGoalPlan();
     if (step.phase === 'howworks') return renderHowItWorks();
@@ -1452,6 +1501,9 @@
           if (data && data.detail) { msg += ' (' + data.detail + ')'; }
           return setMsg('fh-reset-msg', msg, false);
         }
+        // A reset revives (rule 33): a stale student skip from a previous
+        // Day 0/1 must never park the reborn project on the skipped card.
+        setPhSkip_(false, pid);
         renderResetDone_(pid, data.reset || {});
       }).catch(function (err) {
         btn.disabled = false;
@@ -1480,7 +1532,7 @@
       state._explicitProjectPick = true;
       state.progressCache = null;
       state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
-      state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+      state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false; state._phView = null;
       state._resetPid = null; state._resetLabel = null;
       state.activeProjectId = String(pid);
       unmountTool();
@@ -2070,7 +2122,11 @@
           '<p class="fh-sub">' + esc(COPY.D0_PLAN_NOTE) + '</p>' +
           '<div class="fh-msg" id="fh-d0-msg"></div>' +
         '</div>' +
+        // Round 21: the skip door lives here too — the get-ready card was
+        // the one screen with no way around the Power Hour at all.
+        phSkipDoorHtml_(0, false) +
       '</div>');
+    bindPhSkipDoor_();
     document.getElementById('fh-d0-plan-toggle').addEventListener('click', function () {
       state._d0PlanOpen = !state._d0PlanOpen;
       var box = document.getElementById('fh-d0-planbox');
@@ -2139,17 +2195,37 @@
   /* ============================================================
    * POWER HOUR — the 4 tools inline, in order, with done-ticks
    * ============================================================ */
-  function phStripHtml(activeIdx) {
+  function phStripHtml(activeView) {
+    // Round 21: every pip is a DOOR (Dave tried tapping them on his first
+    // walk and nothing happened — that silence is gone; bindPhNav_ wires
+    // them wherever the strip renders). activeView: index | 'scores' | -1.
     var phDay = (state.currentDay === 1) ? state.day : state.phDay;
     var html = '<div class="fh-strip"><div class="fh-strip-title">' + esc(COPY.PH_STRIP_TITLE) + '</div><div class="fh-strip-steps">';
     for (var i = 0; i < TOOLS.powerHour.length; i++) {
       var done = !!fieldVal(phDay, TOOLS.powerHour[i].fieldKey);
-      var cls = done ? 'fh-pip fh-pip-done' : (i === activeIdx ? 'fh-pip fh-pip-now' : 'fh-pip');
-      html += '<span class="' + cls + '">' + (done ? '✓' : (i + 1)) + '</span>';
+      var cls = done ? 'fh-pip fh-pip-done' : (i === activeView ? 'fh-pip fh-pip-now' : 'fh-pip');
+      html += '<span class="' + cls + ' fh-pip-tap" data-ph-pip="' + i + '">' + (done ? '✓' : (i + 1)) + '</span>';
     }
-    var scoresDone = !!(state.completion && state.completion[1]);
-    html += '<span class="' + (scoresDone ? 'fh-pip fh-pip-done' : 'fh-pip') + '">' + (scoresDone ? '✓' : '★') + '</span>';
+    var scoresDone = phScoresSaved_(phDay);
+    var scls = scoresDone ? 'fh-pip fh-pip-done' : (activeView === 'scores' ? 'fh-pip fh-pip-now' : 'fh-pip');
+    html += '<span class="' + scls + ' fh-pip-tap" data-ph-pip="scores">' + (scoresDone ? '✓' : '★') + '</span>';
     return html + '</div></div>';
+  }
+  // How many Power Hour tools carry a tick, and whether the after-PH scores
+  // are saved. The scores signal reads the day's OWN values (readDay_ ships
+  // them for Day 1) so a partial walk — one tool, scores saved, rest later —
+  // shows the truth; completion[1] alone only flips when all four are done.
+  function phTickedCount_(phDay) {
+    var n = 0;
+    for (var i = 0; i < TOOLS.powerHour.length; i++) {
+      if (fieldVal(phDay, TOOLS.powerHour[i].fieldKey)) n++;
+    }
+    return n;
+  }
+  function phScoresSaved_(phDay) {
+    var v = phDay && phDay.scores && phDay.scores.values;
+    if (v && ((v.easy != null && v.easy !== '') || (v.enjoy != null && v.enjoy !== ''))) return true;
+    return !!(state.completion && state.completion[1]);
   }
 
   /* ============================================================
@@ -2218,57 +2294,199 @@
       if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
     }
   }
+  // A row/pip tap re-renders the rail around the tapped card. Unmount
+  // FIRST — blanking a live widget stub orphans its parent-side furniture
+  // (the round-17 haunted-bubble lesson).
+  function phRerender_(view) {
+    unmountTool();
+    state._phView = view;
+    renderPowerHourRail();
+  }
+  // Wires every [data-ph-row] and [data-ph-pip] wherever a strip or quiet
+  // row renders (the rail, the celebrate card, revisits, the picker).
+  function bindPhNav_() {
+    var doors = rootEl.querySelectorAll('[data-ph-row], [data-ph-pip]');
+    for (var d = 0; d < doors.length; d++) {
+      (function (el) {
+        el.addEventListener('click', function () {
+          var v = el.getAttribute('data-ph-row');
+          if (v == null) { v = el.getAttribute('data-ph-pip'); }
+          state.forcedPhase = null;
+          phRerender_(v === 'scores' ? 'scores' : Number(v));
+        });
+      })(doors[d]);
+    }
+  }
+  function phSkipExplain_(ticked, scoresDone) {
+    if (ticked > 0) {
+      var s = COPY.PH_SKIP_EXPLAIN_PARTIAL;
+      if (!scoresDone) { s += ' ' + COPY.PH_SKIP_SCORES_NUDGE; }
+      return s;
+    }
+    return COPY.PH_SKIP_EXPLAIN;
+  }
+  // The receded skip door, shared by the Day-0 card and the rail. Same ids
+  // both places (only one renders at a time).
+  function phSkipDoorHtml_(ticked, scoresDone) {
+    return '<div class="fh-linkline"><a href="#" id="fh-ph-skip-toggle">' +
+        esc(ticked > 0 ? COPY.PH_SKIP_LINK_PARTIAL : COPY.PH_SKIP_LINK) + '</a></div>' +
+      '<div id="fh-ph-skipbox" style="display:none">' +
+        '<p class="fh-sub">' + esc(phSkipExplain_(ticked, scoresDone)) + '</p>' +
+        '<button class="fh-btn fh-secondary" id="fh-ph-skip-go">' +
+          esc(ticked > 0 ? COPY.PH_SKIP_GO_PARTIAL : COPY.PH_SKIP_GO) + '</button>' +
+        '<div class="fh-msg" id="fh-ph-skip-msg"></div>' +
+      '</div>';
+  }
+  function bindPhSkipDoor_() {
+    var toggle = document.getElementById('fh-ph-skip-toggle');
+    if (toggle) toggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      var box = document.getElementById('fh-ph-skipbox');
+      if (box) { box.style.display = (box.style.display === 'none') ? '' : 'none'; }
+    });
+    var go = document.getElementById('fh-ph-skip-go');
+    if (go) go.addEventListener('click', function () { phSkipNow_(go); });
+  }
+  // Skipping stamps Day 1 (an empty day-1 save starts the calendar server-
+  // side; a no-op once Day 1 has begun) and remembers the choice on this
+  // device. The flag is set only after the save succeeds — a failed skip
+  // says so right here (engineering rule 10), and the tap answers in the
+  // same frame (rule 34).
+  function phSkipNow_(btn) {
+    var was = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = COPY.PH_SKIP_SAVING;
+    callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: {} })
+      .then(function (data) {
+        if (!data.ok) {
+          btn.disabled = false; btn.textContent = was;
+          return setMsg('fh-ph-skip-msg', data.error, false);
+        }
+        if (typeof data.currentDay === 'number') state.currentDay = data.currentDay;
+        if (state.currentDay === 1) { state.day = data.day || state.day; }
+        else { state.phDay = data.day || state.phDay; }
+        if (data.completion) state.completion = data.completion;
+        writeStateCache();
+        setPhSkip_(true);
+        state._phView = null;
+        state.forcedPhase = null;
+        route();
+      })
+      .catch(function (err) {
+        btn.disabled = false; btn.textContent = was;
+        setMsg('fh-ph-skip-msg', String(err), false);
+      });
+  }
+  // The student parked the Power Hour on purpose. Nothing is lost, nothing
+  // is locked: the one blue button walks straight back in, and from Day 2
+  // the daily rhythm takes over on its own.
+  function renderPhSkipped() {
+    state._phWalk = false;
+    scrollTopNow_();
+    renderShell(
+      '<div class="fh-card fh-center">' +
+        '<h3>' + esc(COPY.PH_SKIPPED_TITLE) + '</h3>' +
+        '<p class="fh-sub">' + esc(COPY.PH_SKIPPED_BODY) + '</p>' +
+        '<button class="fh-btn" id="fh-ph-unskip">' + esc(COPY.PH_SKIPPED_BACK) + '</button>' +
+      '</div>');
+    document.getElementById('fh-ph-unskip').addEventListener('click', function () {
+      setPhSkip_(false);
+      state._phView = null;
+      state.forcedPhase = null;
+      route();
+    });
+  }
   function renderPowerHourRail() {
     state._phWalk = true;
     scrollTopNow_();
     var phDay = (state.currentDay === 1) ? state.day : state.phDay;
     var current = firstUntickedTool(phDay);            // -1 = all four ticked
-    var scoresDone = !!(state.completion && state.completion[1]);
-    var html = phStripHtml(current) +
+    var ticked = phTickedCount_(phDay);
+    var scoresDone = phScoresSaved_(phDay);
+    // ONE expanded card at a time: an explicit tap wins, otherwise the
+    // router's pick — so the student who just follows the blue buttons
+    // never notices anything changed, and the curious one can open any
+    // door (round 21: the order is a recommendation, never a cage).
+    var view = state._phView;
+    if (typeof view === 'number' && (view < 0 || view >= TOOLS.powerHour.length)) { view = null; }
+    if (view == null) { view = (current >= 0) ? current : 'scores'; }
+    var html = phStripHtml(view) +
       '<p class="fh-sub fh-ph-note">' + esc(COPY.PH_RESUME_NOTE) + '</p>';
     for (var i = 0; i < TOOLS.powerHour.length; i++) {
       var t = TOOLS.powerHour[i];
       var done = !!fieldVal(phDay, t.fieldKey);
-      if (done) {
-        html += '<div class="fh-phstep fh-phstep-done">✓ ' + esc(t.name) + '</div>';
-      } else if (i === current) {
+      if (view === i) {
         var key = scopedSessionKey_(t.bot, 'ph-' + t.bot);
         var hasSession = sessionHasUserTurn_(t.bot, key);
         html += '<div class="fh-card">' +
           '<h3>' + esc(COPY.PH_TOOL_OF.replace('{I}', String(i + 1)).replace('{NAME}', t.name)) + '</h3>' +
           '<p class="fh-sub">' + esc(phBlurb_(t.bot)) + '</p>' +
+          (done ? '<p class="fh-sub fh-ph-doneline">' + esc(COPY.PH_DONE_LINE) + '</p>' : '') +
           '<div id="fh-tool"></div>' +
           '<button class="fh-btn" id="fh-ph-open">' + esc(hasSession ? COPY.PH_OPEN_RESUME : COPY.PH_OPEN) + '</button>' +
-          (FS.mode ? '<p class="fh-sub fh-ph-teach">' + esc(COPY.PH_TEACH_MIN) + '</p>' : '') +
-          '<button class="fh-btn fh-secondary" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
+          (done ? '' : '<button class="fh-btn fh-secondary" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>') +
           '<div class="fh-msg" id="fh-ph-msg"></div>' +
         '</div>';
       } else {
-        html += '<div class="fh-phstep">' + (i + 1) + ' · ' + esc(t.name) + '</div>';
+        html += '<div class="fh-phstep' + (done ? ' fh-phstep-done' : '') + ' fh-phstep-tap" data-ph-row="' + i + '">' +
+          '<span>' + (done ? '✓ ' : (i + 1) + ' · ') + esc(t.name) + '</span>' +
+          '<span class="fh-phstep-chev">›</span></div>';
       }
     }
-    // Step 5, the ★: after-Power-Hour scores.
-    if (current === -1 && !scoresDone) {
-      var hideConf = !!(state.confidence && state.confidence.optedOut);
-      html += '<div class="fh-card">' +
-        '<h3>' + esc(COPY.PH_SCORES_TITLE) + '</h3>' +
-        '<p class="fh-sub">' + esc(COPY.PH_SCORES_SUB) + '</p>' +
-        scoreInputHtml('easy', 'fh-aps-', null) +
-        scoreInputHtml('enjoy', 'fh-aps-', null) +
-        (hideConf ? '' : scoreInputHtml('conf', 'fh-aps-', null)) +
-        '<button class="fh-btn" id="fh-aps-save">' + esc(COPY.PH_SCORES_BTN) + '</button>' +
-        '<div class="fh-msg" id="fh-aps-msg"></div>' +
-      '</div>';
+    // The ★ step. Unlocked by the FIRST tool, never the fourth (Dave's
+    // call: scores mean something once at least one tool ran, and a
+    // one-tool day still deserves its numbers).
+    if (view === 'scores') {
+      if (scoresDone) {
+        html += '<div class="fh-card">' +
+          '<h3>' + esc(COPY.PH_SCORES_ROW) + '</h3>' +
+          day1DeltaHtml_() +
+          '<p class="fh-sub">' + esc(COPY.PH_SCORES_SAVED) + '</p>' +
+        '</div>';
+      } else if (ticked === 0) {
+        html += '<div class="fh-card">' +
+          '<h3>' + esc(COPY.PH_SCORES_ROW) + '</h3>' +
+          '<p class="fh-sub">' + esc(COPY.PH_SCORES_LOCKED) + '</p>' +
+        '</div>';
+      } else {
+        var hideConf = !!(state.confidence && state.confidence.optedOut);
+        html += '<div class="fh-card">' +
+          '<h3>' + esc(ticked === TOOLS.powerHour.length ? COPY.PH_SCORES_TITLE : COPY.PH_SCORES_ROW) + '</h3>' +
+          '<p class="fh-sub">' + esc(COPY.PH_SCORES_SUB) +
+            (ticked < TOOLS.powerHour.length ? ' ' + esc(COPY.PH_SCORES_PARTIAL) : '') + '</p>' +
+          scoreInputHtml('easy', 'fh-aps-', null) +
+          scoreInputHtml('enjoy', 'fh-aps-', null) +
+          (hideConf ? '' : scoreInputHtml('conf', 'fh-aps-', null)) +
+          '<button class="fh-btn" id="fh-aps-save">' + esc(COPY.PH_SCORES_BTN) + '</button>' +
+          '<div class="fh-msg" id="fh-aps-msg"></div>' +
+        '</div>';
+      }
     } else {
-      html += '<div class="fh-phstep' + (scoresDone ? ' fh-phstep-done' : '') + '">' +
-        (scoresDone ? '✓ ' : '★ · ') + esc(COPY.PH_SCORES_ROW) + '</div>';
+      html += '<div class="fh-phstep' + (scoresDone ? ' fh-phstep-done' : '') + ' fh-phstep-tap" data-ph-row="scores">' +
+        '<span>' + (scoresDone ? '✓ ' : '★ · ') + esc(COPY.PH_SCORES_ROW) + '</span>' +
+        '<span class="fh-phstep-chev">›</span></div>';
+    }
+    // Everything finished: a quiet way back to the celebrate card.
+    if (current === -1 && scoresDone) {
+      html += '<div class="fh-linkline"><a href="#" id="fh-ph-back">' + esc(COPY.GOAL_BACK) + '</a></div>';
+    } else {
+      html += phSkipDoorHtml_(ticked, scoresDone);
     }
     renderShell(html);
+    bindPhNav_();
+    bindPhSkipDoor_();
+    var backLink = document.getElementById('fh-ph-back');
+    if (backLink) backLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      unmountTool();
+      state._phView = null;
+      route();
+    });
     var openBtn = document.getElementById('fh-ph-open');
-    if (openBtn) openBtn.addEventListener('click', function () { openPhTool_(current); });
+    if (openBtn) openBtn.addEventListener('click', function () { openPhTool_(view); });
     var doneBtn = document.getElementById('fh-ph-done');
     if (doneBtn) doneBtn.addEventListener('click', function () {
-      var tool = TOOLS.powerHour[current];
+      var tool = TOOLS.powerHour[view];
       doneBtn.disabled = true;
       doneBtn.textContent = COPY.PH_DONE_SAVING;
       var fields = {};
@@ -2284,6 +2502,7 @@
           else { state.phDay = data.day || state.phDay; }
           if (data.completion) state.completion = data.completion;
           writeStateCache();
+          state._phView = null;   // let the router pick the next door
           route();
         })
         .catch(function (err) {
@@ -2314,6 +2533,7 @@
           // celebrate card's delta line (finding 5) has the fresh numbers.
           state.progressCache = null;
           prefetchProgress_(true);
+          state._phView = null;   // let the router pick the next door
           route();
         })
         .catch(function (err) { setMsg('fh-aps-msg', String(err), false); });
@@ -2327,16 +2547,22 @@
     if (idx < 0 || idx >= TOOLS.powerHour.length) return renderPowerHourRail();
     state._phWalk = true;   // the walk IS Day 1, even before the first tick stamps it
     var tool = TOOLS.powerHour[idx];
+    // Round 21: an already-ticked revisit says "back", not "Continue" — the
+    // button routes back either way, and its label tells the truth.
+    var phDay = (state.currentDay === 1) ? state.day : state.phDay;
+    var already = !!fieldVal(phDay, tool.fieldKey);
+    var doneLabel = already ? COPY.WITHDRAWAL_DONE : COPY.PH_DONE_BTN;
     renderShell(
       phStripHtml(idx) +
       '<div class="fh-card">' +
         '<h3>' + esc(COPY.PH_TOOL_OF.replace('{I}', String(idx + 1)).replace('{NAME}', tool.name)) + '</h3>' +
-        '<p class="fh-sub">' + esc(FS.mode ? COPY.PH_INTRO_POPUP : COPY.PH_INTRO) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
+        '<p class="fh-sub">' + esc(COPY.PH_INTRO) + ' ' + esc(COPY.PH_RESUME_NOTE) + '</p>' +
         (tool.bot === 'bh_cjc' ? '<p class="fh-sub"><strong>' + esc(COPY.PH_CJC_TIP) + '</strong></p>' : '') +
         '<div id="fh-tool"></div>' +
-        '<button class="fh-btn" id="fh-ph-done">' + esc(COPY.PH_DONE_BTN) + '</button>' +
+        '<button class="fh-btn" id="fh-ph-done">' + esc(doneLabel) + '</button>' +
         '<div class="fh-msg" id="fh-ph-msg"></div>' +
       '</div>');
+    bindPhNav_();
     mountTool(tool.bot, { sessionKey: scopedSessionKey_(tool.bot, 'ph-' + tool.bot) });
     document.getElementById('fh-ph-done').addEventListener('click', function () {
       var btn = document.getElementById('fh-ph-done');
@@ -2347,7 +2573,7 @@
       callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: fields })
         .then(function (data) {
           if (!data.ok) {
-            btn.disabled = false; btn.textContent = COPY.PH_DONE_BTN;
+            btn.disabled = false; btn.textContent = doneLabel;
             return setMsg('fh-ph-msg', data.error, false);
           }
           // Round 17: the first tick stamps day1Date server-side and the
@@ -2360,7 +2586,7 @@
           route();
         })
         .catch(function (err) {
-          btn.disabled = false; btn.textContent = COPY.PH_DONE_BTN;
+          btn.disabled = false; btn.textContent = doneLabel;
           setMsg('fh-ph-msg', String(err), false);
         });
     });
@@ -2398,6 +2624,7 @@
         '<div class="fh-linkline"><a href="#" id="fh-ph-review">' + esc(COPY.PH_REVIEW_LINK) + '</a></div>' +
         '<div class="fh-linkline"><a href="#" id="fh-withdrawal-link">' + esc(COPY.WITHDRAWAL_LINK) + '</a></div>' +
       '</div>');
+    bindPhNav_();
     document.getElementById('fh-ph-review').addEventListener('click', function (e) {
       e.preventDefault();
       state.forcedPhase = null;
@@ -2423,6 +2650,7 @@
         '<button class="fh-btn fh-secondary" id="fh-wd-done">' + esc(COPY.WITHDRAWAL_DONE) + '</button>' +
         '<div class="fh-msg" id="fh-wd-msg"></div>' +
       '</div>');
+    bindPhNav_();
     mountTool('bh_withdrawal', { sessionKey: scopedSessionKey_('bh_withdrawal', 'ph-bh_withdrawal') });
     document.getElementById('fh-wd-done').addEventListener('click', function () {
       callGateway({ action: 'save', projectId: state.activeProjectId, day: 1, fields: { d1_withdrawal: true } })
@@ -2447,6 +2675,7 @@
     html += '<button class="fh-btn fh-secondary" id="fh-pick-wd">' + esc(COPY.WITHDRAWAL_TITLE) + '</button>';
     html += '</div>';
     renderShell(html);
+    bindPhNav_();
     var picks = rootEl.querySelectorAll('.fh-toolpick');
     for (var p = 0; p < picks.length; p++) {
       picks[p].addEventListener('click', function () {
@@ -3066,7 +3295,7 @@
     state._explicitProjectPick = true;
     state.progressCache = null;   // per-project — never show another project's numbers
     state.forcedPhase = null; state.day = null; state.phDay = null; state.phIndex = null;
-    state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false;
+    state._phWalk = false; state._wizEdit = null; state._d0PlanOpen = false; state._phView = null;
     // Round 17 (Dave's haunted-bubble find): unmount BEFORE blanking.
     // unmountTool() looks the stub up in the DOM — blanking first orphaned
     // the widget instance, and its parent-document launcher followed the
@@ -3571,7 +3800,9 @@
       // 2026-08-19 (Dave's porch test): the green bar reads as a breadcrumb —
       // "Freedom Accelerator › AI coach" — and tapping the left segment goes
       // back, same as the dash. One trained pattern: the left name is home.
-      '.fh-sheet-crumb{background:none;border:0;color:#cfe6de;font:inherit;font-size:13px;font-weight:600;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}' +
+      // Round 21 (Dave's walk): the crumb is as WHITE as the tool name —
+      // faded reads as furniture, and grandpa never finds a door he can't see.
+      '.fh-sheet-crumb{background:none;border:0;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}' +
       '.fh-sheet-crumbsep{opacity:0.7;margin:0 6px;font-weight:400;}' +
       '.fh-sheet-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
       '.fh-sheet-body{flex:1;min-height:0;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}' +
@@ -3655,9 +3886,14 @@
       '#freedom-home .fh-mng-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#5b7797;margin:14px 0 4px;}' +
       // Round 20: the Power Hour rail's step rows (done / upcoming) + notes.
       '#freedom-home .fh-phstep{background:#eef3f9;border:1px solid #d9e4f0;border-radius:10px;padding:10px 12px;font-size:14px;color:#7d92a9;margin:0 0 8px;}' +
+      // Round 21: every quiet row is a door — flex for the chevron, a
+      // pointer so desktop says so, and the pips get the same invitation.
+      '#freedom-home .fh-phstep-tap{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;}' +
+      '#freedom-home .fh-phstep-chev{color:#9fb0c3;font-weight:700;flex:none;}' +
+      '#freedom-home .fh-pip-tap{cursor:pointer;}' +
+      '#freedom-home .fh-ph-doneline{color:#2c9a4b;font-weight:600;}' +
       '#freedom-home .fh-phstep-done{color:#2f4a68;border-color:#c9d9ec;}' +
       '#freedom-home .fh-ph-note{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
-      '#freedom-home .fh-ph-teach{font-size:12.5px;color:#7d92a9;margin:2px 0 10px;}' +
       '#freedom-home .fh-mng-cur{font-size:11.5px;font-weight:700;color:#2f6df6;background:#e7effd;border-radius:9px;padding:2px 8px;margin-left:6px;}' +
       '#freedom-home .fh-mng-btns{display:flex;gap:6px;flex:none;margin-left:auto;}' +
       '#freedom-home .fh-mng-rename-input{flex:1;min-width:0;font-size:14px;padding:8px;}' +

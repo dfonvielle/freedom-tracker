@@ -24,6 +24,7 @@
   <a href="?s=wizard">wizard</a>
   <a href="?s=day0">day0 ready</a>
   <a href="?s=day1_fresh">day1 fresh</a>
+  <a href="?s=day1_partial">day1 partial</a>
   <a href="?s=day1_scores">day1 scores</a>
   <a href="?s=day5">day5 daily</a>
   <a href="?s=day9">day9 progress</a>
@@ -102,6 +103,9 @@
   // day1Date anchor (currentDay stays 0 until the first day-1 save).
   if (scenario === 'day0') { M.currentDay = 0; M.day1 = { d1_t1:false,d1_t2:false,d1_t3:false,d1_t4:false,d1_withdrawal:false }; M.afterPh = false; }
   if (scenario === 'day1_fresh') { M.currentDay = 1; M.day1 = { d1_t1:false,d1_t2:false,d1_t3:false,d1_t4:false,d1_withdrawal:false }; M.afterPh = false; }
+  // Round 21: one tool ticked, three to go, no scores yet — forces the
+  // partial-★ card (unlocked by the FIRST tool) and the partial skip door.
+  if (scenario === 'day1_partial') { M.currentDay = 1; M.day1 = { d1_t1:true,d1_t2:false,d1_t3:false,d1_t4:false,d1_withdrawal:false }; M.afterPh = false; }
   if (scenario === 'day1_scores') { M.currentDay = 1; M.afterPh = false; }
   if (scenario === 'day5') { M.currentDay = 5; }
   if (scenario === 'day9') {
@@ -175,8 +179,10 @@
       Object.keys(M.day1).forEach(function (k) {
         fields.push({ key: k, label: DAY1_LABELS[k], type: 'check', value: M.day1[k] });
       });
+      // Round 21 mirror: the REAL readDay_ ships the saved after-PH scores
+      // in scores.values — the rail's partial-walk truth reads them.
       return { day: 1, title: 'Day 1: Freedom Power Hour Check-In', fields: fields,
-        scores: { label: 'After Power Hour', questions: SCORE_QUESTIONS, values: {} } };
+        scores: { label: 'After Power Hour', questions: SCORE_QUESTIONS, values: M.afterPhScores || {} } };
     }
     var d = M.daily[day] || {};
     Object.keys(DAILY_LABELS).forEach(function (k) {
@@ -492,6 +498,7 @@
         Object.keys(p.fields || {}).forEach(function (k) { if (k in M.day1) M.day1[k] = !!p.fields[k]; });
         if (p.dayScores && (p.dayScores.easy != null)) {
           M.afterPh = true;
+          M.afterPhScores = p.dayScores;   // readDay_ mirror (round 21)
           // Phase 2 (fable polish): the real Gateway's progressReview carries
           // baseline + the just-saved after-PH scores — mirror it so the
           // celebrate card's delta line is forceable (§4.9). A walk that

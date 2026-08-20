@@ -10,6 +10,49 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-08-20 · The Power Hour guides, it never forces (round 21)
+
+**Decided (Dave's Eating Poorly V2 porch walk, executed on his green light "use your
+intuition, do whatever you think is best"):**
+- **Every step row and every pip on the Day-1 rail is a tappable door.** One card
+  expands at a time; with no tap the router's pick expands, so the follow-the-blue-
+  button path is unchanged. Browsing the four tools before committing is legitimate
+  use, and out-of-order use is allowed.
+- **A marked-done tool stays open forever.** Dave ticked tool 1 just to see tool 2 and
+  hit a locked door ("as drunk grandpa, I made a serious mistake"). The fix is not an
+  un-mark flow: the tick is a bookmark, and the reopened card says "Done ✓ You can use
+  this tool again anytime, as much as you want." Nothing to undo, nothing to support.
+- **The after-Power-Hour scores unlock at the FIRST tool, not the fourth.** Dave's
+  call: "we will only track your freedom scores... if you have used at least one of
+  the tools." Partial saves count (the ★ reads the day's own saved values, not just
+  completion), and the copy still sells all four.
+- **A receded skip door on Day 0 and the rail.** Gray link, then the fold: "Skipping
+  is not recommended... But this is your journey. The four tools stay right here."
+  Confirming stamps Day 1 with an empty day-1 save (no Gateway change — handleSave_
+  already stamps day1Date on any first day-1 save), remembers the choice per project
+  on the device pin, and lands on "Skipped for now. Nothing is lost." with one blue
+  button back in. From Day 2 the daily rhythm wins regardless, so the flag self-heals
+  across devices at midnight. A reset clears it (a reset revives, rule 33).
+- **The UI-explainer lines are CUT.** "The tool fills your screen. The – button..."
+  died; the breadcrumb teaches itself now that it is bold white (widget `.agt-crumb`
+  opacity 1 / weight 700, coach sheet crumb white to match) — Dave: if we have to
+  explain the functionality, "we have failed if we have not made it intuitive."
+
+**Why:** people use things the way they feel like using them, not the way we planned.
+Guidance must live in defaults and order, never in disabled taps — "we want drunk
+grandpa guided in the most powerful direction possible without feeling forced or
+obligated, where he resents the process." Doctrine: DRUNK_GRANDPA_STRATEGY rule 35.
+
+**What Dave considered and dropped:** a start-over button beside "Continue my rewiring
+session" — the widget's own ↺ (with its confirm line) already does it; his words:
+"maybe that reset button is enough for now."
+
+**Would reopen it:** real students wandering the doors instead of rewiring during
+watched walks (the router's default expansion is the counterweight), or partial-scores
+data proving so noisy it misleads the progress story.
+
+---
+
 ## 2026-08-19 (evening) · The teardown round: how the reset lane and its room speak
 
 **Decided (Dave's drunk-grandpa teardown of the porch build, same day):**
