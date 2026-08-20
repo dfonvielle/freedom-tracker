@@ -10,6 +10,62 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-08-20 (pm) · The end of Day 1 teaches tomorrow, and the day boundary is not a cage (round 22)
+
+**Decided (Dave's second walk of the round-21 build, a full brain dump ending "trust your
+intuition, create the plan and execute it"):**
+
+- **The Withdrawal Helper is step 5 of the Freedom Power Hour, and it is optional.** Dave's
+  framing: the Power Hour is one-time power moves, and the Withdrawal Helper is a one-time
+  power move — some behaviors need it, most do not. It renders as "5 · Withdrawal Helper"
+  with a gray *optional* tag, opens and bookmarks like the other four, and requires nothing:
+  completion, the ★ scores unlock, the skip-door phrasing, and the router's guidance all
+  still count only the four core tools. Deliberate, not an oversight — "all four" copy,
+  completion[1], and the scores threshold keep one meaning. The Gateway needed nothing: its
+  day-1 spec has carried `d1_withdrawal` with `optionalCheck: true` since v6.3. The safety
+  line ships with the tool here exactly as it does in More-help.
+- **The Minimalist Freedom Plan wears its importance.** A small blue "core daily plan" pill
+  (blue = do) on its row and card, and the blurb says why it outranks its siblings: from
+  Day 2 on, that tiny plan is the student's core daily move. Dave's worry was grandpa
+  skipping the ONE tool the rest of the program depends on.
+- **Whether he used every tool or none, the end of Day 1 answers tomorrow.** Both end cards
+  (skipped and celebrate) carry the same "What happens next" card: Day 2 starts tomorrow
+  morning, the 30-second-to-2-minute rewiring at the student's own saved moment (quoted word
+  for word), the promise that the Minimalist Plan tool stays here as a refresher, and the
+  coach + 7-to-22-minutes line. Clarity on the path is peace of mind — grandpa's exact
+  questions ("when does day 2 start for me? what exactly am I going to do?") get answered
+  before he asks them.
+- **The recommended schedule gets a receded early door (rule 35 crossing the day
+  boundary).** "I want to start my daily rhythm early ›" under both end cards, with the
+  not-recommended case in plain words and the comeback promise. Dave's reasoning: someone
+  scared and stressed who just finished the Power Hour and wants to keep working with the
+  AI coach tonight should never have that momentum killed by a midnight gate. Confirming is
+  purely local (Day 1 is already stamped) and lands on **the early daily rail**: the talk
+  card with the real coach, progress, More-help, and one link back to the Power Hour.
+- **The early rail is the talk step only — steps 1 and 3 stay tomorrow's.** The morning
+  rewiring has had no morning yet, and Day 1's scores already live in the Power Hour's ★
+  step. Rendering those steps early would invite writes that fight the day-1 row and teach
+  a false rhythm. What the early student actually wants — Dave's words — is "access to the
+  AI coach early," and that is exactly what the door opens.
+
+**What Dave floated and this round dropped, with the why:**
+- **Showing the unlock time or letting grandpa edit his timezone.** The day already rolls at
+  the student's local midnight from his browser's own timezone, silently and correctly.
+  "Tomorrow morning" is the entire honest answer; a clock or a timezone editor adds a
+  concept and a decision for a mechanism grandpa should never have to know exists. Dave
+  himself was on the fence ("I don't know if that's good or not") — the doctrine's
+  subtraction test settled it.
+- **The full daily rhythm on Day 1.** Considered as the early door's landing; dropped
+  because steps 1 and 3 are dishonest on Day 1 (above) and the daily grid's day-1 writes
+  would need the Gateway's `variant: 'daily'` lane threaded through the rail's save paths
+  for no student benefit.
+
+**Would reopen it:** real students reading the optional fifth step as an obligation during
+watched walks, the early door pulling students away from finishing the four core tools, or
+the What-happens-next card reading as a wall of text on a phone.
+
+---
+
 ## 2026-08-20 · The Power Hour guides, it never forces (round 21)
 
 **Decided (Dave's Eating Poorly V2 porch walk, executed on his green light "use your
