@@ -1,6 +1,8 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-08-20 pm — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-09-16 (round 23: the tools are the hosted doors) — refresh by invoking `/dave-core:dashboard` in this repo.*
+
+> 🚪 **2026-09-16 — ROUND 23: THE TOOLS ARE THE HOSTED DOORS NOW.** Freedom Home opens the seven pinned HTML shell tools at `go.alwaysgreater.com/tool/<id>/` in a full-screen door frame with the program's bar, instead of mounting the old engine widget. The student's email and their own Gateway token ride the address (the door's money gate asks the Gateway, token only, and covers the program's year), the running start is the same contract sentence, sessions are named per project (`#session=`), ↺ is a new session name, Resume is what the door reports back. `?tools=widget` keeps the old widget for one visit. Harness-walked on the mock (`test_door_stub.html`); ⏳ **your first live walk is the proof for a real token** (open Eating Poorly V2 on your phone, Day 1, tap a tool). Decision record: [DECISIONS.md](DECISIONS.md) round 23. ⚠️ Pages cache ~10 min after the push.
 
 > ✅ **2026-08-17 — nothing was ever outstanding: all five 2026-08-05 safety fixes have been live
 > for students since 2026-08-05, 6:49pm Central.** The intervention doc's "Deployment state
@@ -57,6 +59,7 @@ flowchart LR
 | Loader chain (v7 + #freedom-home route) | 🟢 live via Pages | [loader.v7.js](loader.v7.js) |
 | Coach v3 (fc:prompt events, send-to-tool) | 🟢 built | [coach.v3.js](coach.v3.js) |
 | Freedom Home one-page rail | 🟡 built + mock-harness green, awaiting live test | [freedom-home.v1.js](freedom-home.v1.js) |
+| **Round 23 — the hosted doors** (2026-09-16) | 🟡 shipped to Pages, harness-walked; the seven pinned tools open as `go.alwaysgreater.com/tool/<id>/` in the door frame, covered by the student's Gateway token; awaiting Dave's live walk with a real token | [DECISIONS.md](DECISIONS.md) round 23 · [test_door_stub.html](test_door_stub.html) |
 | Mobile fullscreen takeover (9.8) | 🟢 **proven on Dave's iPhone** (2026-07-20); rounds 2–4 shipped same-day: tools popup fullscreen OVER the rail, minimized rail = hint card, one-bubble invariant, coach fullscreen sheet (round-4 fc-scroll fix: composer pinned, help never crushed) | [test_home_lesson.html](test_home_lesson.html) |
 | Grandpa polish 9.9 (rounds 5–9) | 🟢 shipped 2026-07-20: rounds 5–8 (greeting experiments, handoff diet, goal box, day-rollover tz, one-line header) + round 9 (two-door coach — Recommend removed, "Target what's challenging today →" primary); provider outage resolved (Dave set AI_PROVIDER=openrouter) | plan doc 9.9 notes |
 | **Round 10 — chrome + exclusivity + handoff revert** | 🟢 shipped 2026-07-20 evening, harness-verified desktop+375: solid "Freedom Accelerator" bar (floating – gone, labeled ↻ Refresh back), one-line goal box + step-1 "My moment", coach head de-duped ("Your Freedom AI Coach" sheet bar; Day · Refresh · picker line), chat hint = composer label, doors exclusive + "Start over with the freedom coach", coachHelpMenu **prefetched** (instant panel), warm greeting deleted (prompt lands visibly + "— no questions." tail, /fear/i-gated), step-1 get-help preloads minplan with the goal line on fresh sessions; **bh_rbf Screen-1 no-questions fast-track added in ai_tools (was promised in greeting, implemented nowhere) — proven in harness (Screen 2 skipped), promoted LIVE** | plan doc 9.9 round 10 |
@@ -74,6 +77,8 @@ flowchart LR
 - [ ] Phase 11 — September model bump (scheduled; before Gemini 2.5-Flash's Oct 16 deprecation)
 
 ## ✍️ Waiting on Dave
+
+00. 🚪 **Walk the hosted doors on your real account** (2026-09-16, round 23): open a Freedom Home lesson on your phone, Day 1, tap "Open my rewiring session" on any tool. Expected: the tool opens full screen under a blue "Freedom Accelerator › {tool}" bar, already personalized with your unwanted behavior, no key card and no bar asking for money (your program token covers it). If instead you see "This tool needs its AI messages paid for", the Gateway did not confirm your token: tell me the tool and the time and I will read the door's log. To compare with the old widget for one visit, add `?tools=widget` to the lesson address.
 
 0a. 🗣 **Your bots ask students two questions they already answered — do you want that fixed?** (2026-08-17) Found while measuring the live channel: on the first reply, both channels re-ask things the student's own opening sentence already said, and the bot's own state proves it heard them. The instruction telling them not to is already live; the model is ignoring it. **One attempt was made and pulled back** — the conditional-bullets wording stalled the screen advance entirely (0 of 8 vs 8 of 8 on the control) and dropped the medical-supervision safety line in one sample of two, so it was reverted and nothing live was ever touched. Editing a bot's script is a product change and the standing decision is that tools are never edited automatically, so this waits on your word. Leaving it costs a slightly clumsy first exchange, nothing unsafe.
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>door stub</title>
+<style>
+  body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 18px; background: #f7faf9; color: #1d2a33; }
+  code { background: #eef2f5; padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+  button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid #b9c6d2; background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<!-- THE DOOR STUB for the Freedom Home harness (2026-09-16). test_home.html points
+     window.__FH_DOOR_URL at this page, so a walk can see exactly what a hosted door would be
+     handed (the tool, the identity and program token in the query, the session name and the
+     running start in the hash) without touching go.alwaysgreater.com, and can press the one
+     message a real door posts back: "the student spoke in this session". No network, no keys. -->
+<h2>Door stub</h2>
+<p>tool: <code id="tool"></code></p>
+<p>query: <code id="query"></code></p>
+<p>hash: <code id="hash"></code></p>
+<p><button id="spoke" type="button">Simulate the student speaking (posts agdoor:session)</button></p>
+<p id="note"></p>
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var tool = qs.get('bot') || '';
+  document.getElementById('tool').textContent = tool;
+  document.getElementById('query').textContent = location.search;
+  document.getElementById('hash').textContent = location.hash;
+  var h = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
+  document.getElementById('spoke').addEventListener('click', function () {
+    var session = h.get('session') || '';
+    try { window.parent.postMessage({ agdoor: 'session', tool: tool, session: session, spoke: true }, '*'); } catch (e) {}
+    document.getElementById('note').textContent = 'posted agdoor:session for ' + session;
+  });
+})();
+</script>
+</body>
+</html>

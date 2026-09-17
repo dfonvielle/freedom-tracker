@@ -513,6 +513,153 @@
     }
   };
 
+  /* ============================================================
+   * THE HOSTED DOORS (2026-09-16, Dave's ask: the Freedom Accelerator
+   * gets the HTML shell experience for all its tools)
+   *
+   * Every tool below is served to students at its own address on Dave's
+   * own host, from the shell and document he pinned for it. Opening one
+   * here means opening THAT page, in a frame that owns the whole screen
+   * with the program's bar on top, instead of mounting the old engine
+   * widget. The page gets the student's email and their own program token
+   * (so the door's money gate can ask the program whether they are
+   * enrolled), a session name so a second project or a fresh start never
+   * resumes the wrong conversation, and the same running start the widget
+   * lane used to type in. The rail underneath is unchanged: done ticks,
+   * scores, Continue.
+   *
+   * Config gate (doctrine, engineering rule): `?tools=widget` on the lesson
+   * URL keeps the old widget lane for one visit, for comparison. Harness
+   * hooks: window.__FH_DOOR_BASE (another host) and window.__FH_DOOR_URL
+   * (a function building the whole url, the stub page in test_home).
+   * ============================================================ */
+  var DOORS = {
+    base: (typeof window.__FH_DOOR_BASE === 'string' && window.__FH_DOOR_BASE) || 'https://go.alwaysgreater.com',
+    tools: { bh_nbwe: 1, bh_minplan: 1, bh_feelgs: 1, bh_cjc: 1, bh_withdrawal: 1, bh_rbf: 1, bh_fearanxiety: 1 }
+  };
+  function useDoor_(botId) {
+    if (state._toolsLane === 'widget') return false;
+    return !!DOORS.tools[botId];
+  }
+  // The session name the door is asked to remember, with the start-over
+  // generation folded in: "Start over" bumps the generation, so the door
+  // opens a fresh conversation under a new name and the old one is simply
+  // no longer offered (the same rule the widget lane's rotation used).
+  function doorGen_(base) { try { return Number(localStorage.getItem('fh_door_gen_' + base) || 0) || 0; } catch (e) { return 0; } }
+  function doorSid_(botId, sessionKey) {
+    var base = String(sessionKey || (botId + '-default'));
+    var gen = doorGen_(base);
+    return gen ? base + '-r' + gen : base;
+  }
+  function doorSpoke_(sid) { try { return localStorage.getItem('fh_door_spoke_' + sid) === '1'; } catch (e) { return false; } }
+  function doorUrl_(botId, sid, say) {
+    var q = [];
+    if (state.identity && state.identity.email) q.push('access=' + encodeURIComponent(state.identity.email));
+    if (state.token) q.push('fa=' + encodeURIComponent(state.token));
+    var h = ['session=' + encodeURIComponent(sid)];
+    if (say) h.push('say=' + encodeURIComponent(say));
+    h.push('lock=1');
+    if (typeof window.__FH_DOOR_URL === 'function') return window.__FH_DOOR_URL(botId, q.join('&'), h.join('&'));
+    return DOORS.base + '/tool/' + encodeURIComponent(botId) + '/' + (q.length ? '?' + q.join('&') : '') + '#' + h.join('&');
+  }
+  function doorName_(botId) {
+    for (var i = 0; i < TOOLS.powerHour.length; i++) { if (TOOLS.powerHour[i].bot === botId) return TOOLS.powerHour[i].name; }
+    if (botId === TOOLS.withdrawal.bot) return TOOLS.withdrawal.name;
+    return toolDisplayName_(botId);
+  }
+  var DOOR = { el: null, frame: null, title: null, bot: '', base: '', say: '' };
+  function doorEnsure_() {
+    if (DOOR.el) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'fh-door';
+    var bar = document.createElement('div');
+    bar.className = 'fh-door-bar';
+    // The bar is the program's breadcrumb, the same trained move as the coach
+    // sheet's: "Freedom Accelerator › {tool}", the left name goes back.
+    var crumb = document.createElement('button');
+    crumb.type = 'button';
+    crumb.className = 'fh-door-crumb';
+    crumb.textContent = COPY.FS_BAR_TITLE;
+    crumb.setAttribute('aria-label', 'Back to your Freedom Accelerator');
+    crumb.onclick = function () { doorClose_(); };
+    var sep = document.createElement('span');
+    sep.className = 'fh-door-sep';
+    sep.textContent = '›';
+    var title = document.createElement('span');
+    title.className = 'fh-door-title';
+    var left = document.createElement('div');
+    left.className = 'fh-door-left';
+    left.appendChild(crumb); left.appendChild(sep); left.appendChild(title);
+    var over = document.createElement('button');
+    over.type = 'button';
+    over.className = 'fh-door-over';
+    over.textContent = '↺ Start over';
+    over.title = 'Start this tool over from the beginning';
+    over.onclick = function () { doorRestart_(); };
+    var min = document.createElement('button');
+    min.type = 'button';
+    min.className = 'fh-door-min';
+    min.innerHTML = '&#8211;';
+    min.title = 'Minimize';
+    min.setAttribute('aria-label', 'Back to your Freedom Accelerator');
+    min.onclick = function () { doorClose_(); };
+    var right = document.createElement('div');
+    right.className = 'fh-door-right';
+    right.appendChild(over); right.appendChild(min);
+    bar.appendChild(left); bar.appendChild(right);
+    var frame = document.createElement('iframe');
+    frame.className = 'fh-door-frame';
+    frame.setAttribute('allow', 'clipboard-write');
+    frame.title = 'Your tool';
+    wrap.appendChild(bar);
+    wrap.appendChild(frame);
+    document.body.appendChild(wrap);
+    DOOR.el = wrap; DOOR.frame = frame; DOOR.title = title;
+  }
+  function doorOpen_(botId, opts) {
+    opts = opts || {};
+    doorEnsure_();
+    var base = String(opts.sessionKey || (botId + '-default'));
+    var sid = doorSid_(botId, base);
+    DOOR.bot = botId; DOOR.base = base; DOOR.say = opts.say || '';
+    DOOR.title.textContent = doorName_(botId);
+    DOOR.frame.src = doorUrl_(botId, sid, DOOR.say);
+    DOOR.el.classList.add('fh-open');
+    document.body.classList.add('fh-door-lock');
+    try { localStorage.setItem('fh_door_seen_' + sid, '1'); } catch (e) {}
+    state.toolMountedBot = botId;
+  }
+  // hide without re-routing: what unmountTool needs mid-render
+  function doorHide_() {
+    if (!DOOR.el) return;
+    DOOR.el.classList.remove('fh-open');
+    document.body.classList.remove('fh-door-lock');
+    DOOR.frame.src = 'about:blank';
+    DOOR.bot = ''; DOOR.base = '';
+  }
+  // the student's way back: the rail redraws so a resumed session is labeled so
+  function doorClose_() {
+    doorHide_();
+    state.toolMountedBot = '';
+    try { route(); } catch (e) {}
+  }
+  function doorRestart_() {
+    if (!DOOR.bot) return;
+    var botId = DOOR.bot, base = DOOR.base, say = DOOR.say;
+    try { localStorage.setItem('fh_door_gen_' + base, String(doorGen_(base) + 1)); } catch (e) {}
+    doorOpen_(botId, { sessionKey: base, say: say });
+  }
+  // The door tells this page when the student has actually said something in
+  // it (the tool id, the session name, a yes: never a word of what was said),
+  // so the rail can offer Resume instead of Open next time. Only the frame this
+  // page opened is listened to.
+  window.addEventListener('message', function (e) {
+    var d = e && e.data;
+    if (!d || typeof d !== 'object' || d.agdoor !== 'session' || !d.session) return;
+    if (!DOOR.frame || e.source !== DOOR.frame.contentWindow) return;
+    if (d.spoke) { try { localStorage.setItem('fh_door_spoke_' + String(d.session).slice(0, 120), '1'); } catch (err) {} }
+  });
+
   // token + identity SHARED with loader.v7/coach.v3 (activate once, works
   // everywhere). Only the state snapshot cache is home-specific.
   var LS = { identity: 'ag_ft_identity_v6', token: 'ag_ft_token', cache: 'ag_fh_cache_v1', pin: 'ag_fh_pin_v1' };
@@ -1834,11 +1981,11 @@
     var mpKey = scopedSessionKey_('bh_minplan', 'ph-bh_minplan');
     var fresh = !sessionHasUserTurn_('bh_minplan', mpKey);
     mountTool('bh_minplan', { sessionKey: mpKey, restart: restartText_(COPY.GOAL_LINE_PREFIX, false) });
-    if (fresh && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
+    if (fresh && state.setup.ub && !useDoor_('bh_minplan') && window.AgtWidget && window.AgtWidget.send) {
       window.AgtWidget.send(document.getElementById('fh-tool-stub'),
         preloadUbText_(COPY.GOAL_LINE_PREFIX));
     }
-    if (!FS.mode) {
+    if (!FS.mode && !useDoor_('bh_minplan')) {
       var helpStub = document.getElementById('fh-tool-stub');
       if (helpStub && helpStub.scrollIntoView) { try { helpStub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
     }
@@ -2363,19 +2510,20 @@
     mountTool(tool.bot, wd
       ? { sessionKey: key }
       : { sessionKey: key, restart: restartText_(COPY.WIZ_CTX_PREFIX, false) });
-    if (!wd && fresh && state.setup && state.setup.ub && window.AgtWidget && window.AgtWidget.send) {
+    if (!wd && fresh && state.setup && state.setup.ub && !useDoor_(tool.bot) && window.AgtWidget && window.AgtWidget.send) {
       // The wizard's contract sentence, visible as his first message — the
       // tool opens already personalized (each PH bot's Screen 1 treats the
-      // first message as the behavior answer; harness-proven per bot).
+      // first message as the behavior answer; harness-proven per bot). A
+      // hosted door gets the same sentence as its running start in mountTool.
       window.AgtWidget.send(document.getElementById('fh-tool-stub'),
         preloadUbText_(COPY.WIZ_CTX_PREFIX));
     }
     var openBtn = document.getElementById('fh-ph-open');
     if (openBtn) {
-      if (FS.mode) { openBtn.textContent = COPY.PH_OPEN_RESUME; }
+      if (FS.mode || useDoor_(tool.bot)) { openBtn.textContent = COPY.PH_OPEN_RESUME; }
       else { openBtn.style.display = 'none'; }   // desktop: the tool is right here
     }
-    if (!FS.mode) {
+    if (!FS.mode && !useDoor_(tool.bot)) {
       var stub = document.getElementById('fh-tool-stub');
       if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
     }
@@ -3186,7 +3334,7 @@
           var daily = el.getAttribute('data-mh-daily');
           if (ph) { mountTool(ph, { sessionKey: scopedSessionKey_(ph, 'ph-' + ph), restart: isPhBot_(ph) ? restartText_(COPY.WIZ_CTX_PREFIX, false) : '' }); }
           else if (daily) { mountDailyTool(daily, dailyPreloadText_(daily), true); }
-          if (!FS.mode) {
+          if (!FS.mode && !useDoor_(ph || daily)) {
             var stub = document.getElementById('fh-tool-stub');
             if (stub && stub.scrollIntoView) { try { stub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {} }
           }
@@ -3206,6 +3354,9 @@
   // data-session-key. Round 10: generalized so the Step-1 minplan preload
   // can ask about its 'ph-' session too.
   function sessionHasUserTurn_(botId, sessionKey) {
+    // a hosted door keeps its own conversation on its own site; what this
+    // page knows is whether the student spoke in it (the door says so)
+    if (useDoor_(botId)) return doorSpoke_(doorSid_(botId, sessionKey));
     var key = 'ai_tools.v1.' + botId + (state.draft ? '.draft' : '') + '.k' + sessionKey;
     try {
       var raw = localStorage.getItem(key);
@@ -3421,6 +3572,16 @@
 
   function mountTool(botId, opts) {
     opts = opts || {};
+    // The hosted doors (2026-09-16): a pinned tool opens its own page in the
+    // door frame instead of the engine widget. The running start is the same
+    // sentence the widget lane sent first (or on ↺), so a fresh session opens
+    // already personalized; a remembered session ignores it by the door's own
+    // rule, so resuming never sends the words twice.
+    if (useDoor_(botId)) {
+      unmountTool();
+      doorOpen_(botId, { sessionKey: opts.sessionKey, say: opts.say || opts.restart || '' });
+      return;
+    }
     var holder = document.getElementById('fh-tool');
     if (!holder) return;
     if (!toolsConfigured()) {
@@ -3476,6 +3637,7 @@
     state.toolMountedBot = botId;
   }
   function unmountTool() {
+    doorHide_();
     var stub = document.getElementById('fh-tool-stub');
     if (stub && window.AgtWidget) { window.AgtWidget.unmount(stub); }
     if (stub && stub.parentNode) { stub.parentNode.removeChild(stub); }
@@ -3547,11 +3709,13 @@
     // with its own greeting and the coach's prompt lands as the student's
     // visible first message (the prompt itself now ends with "No questions…",
     // which the tool honors by skipping its digging phase).
-    mountTool(botId, { sessionKey: key, waitTip: COPY.WAIT_TIP, restart: restartText_(COPY.WIZ_CTX_PREFIX, true) });
+    // On a hosted door the coach's prompt is the running start itself (a
+    // handoff into a session with turns already rotated to a fresh name above).
+    mountTool(botId, { sessionKey: key, waitTip: COPY.WAIT_TIP, restart: restartText_(COPY.WIZ_CTX_PREFIX, true), say: promptText || '' });
     // The prompt rides AgtWidget.send: it lands in fresh AND restored
     // sessions alike (the old only-on-fresh injection silently swallowed
     // handoffs into an already-open tool).
-    if (promptText && window.AgtWidget && window.AgtWidget.send) {
+    if (promptText && !useDoor_(botId) && window.AgtWidget && window.AgtWidget.send) {
       window.AgtWidget.send(document.getElementById('fh-tool-stub'), promptText);
     }
   }
@@ -4155,7 +4319,22 @@
       '#freedom-home .fh-how-ing{margin:0 0 12px;padding-left:20px;text-align:left;font-size:14.5px;line-height:1.55;color:#2b3745;}' +
       '#freedom-home .fh-how-ing li{margin:6px 0;}' +
       '#freedom-home .fh-mh-safety{font-size:12.5px;margin-top:6px;}' +
-      '#fh-tool{margin-top:12px;}';
+      '#fh-tool{margin-top:12px;}' +
+      // The hosted door frame (2026-09-16): owns the whole screen above the rail
+      // (999990) and the coach sheet (999994), under nothing. fh- prefixed only,
+      // so nothing here can reach inside a mounted tool or the coach.
+      '.fh-door{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999998;display:none;flex-direction:column;background:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);}' +
+      '.fh-door.fh-open{display:flex;}' +
+      '.fh-door-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 6px 9px 14px;background:#2f6df6;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
+      '.fh-door-left{display:flex;align-items:center;gap:6px;min-width:0;}' +
+      '.fh-door-crumb{background:none;border:0;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}' +
+      '.fh-door-sep{opacity:0.7;}' +
+      '.fh-door-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+      '.fh-door-right{display:flex;align-items:center;gap:4px;flex:none;}' +
+      '.fh-door-over{background:rgba(255,255,255,0.16);border:0;color:#fff;font:inherit;font-size:12.5px;border-radius:8px;padding:5px 9px;cursor:pointer;white-space:nowrap;}' +
+      '.fh-door-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
+      '.fh-door-frame{flex:1;min-height:0;width:100%;border:0;background:#fff;}' +
+      'body.fh-door-lock{overflow:hidden;}';
     var style = document.createElement('style');
     style.id = 'fh-styles';
     style.textContent = css;
@@ -4173,6 +4352,9 @@
     state.engineKey = rootEl.getAttribute('data-key') || '';
     state.draft = rootEl.getAttribute('data-draft') === '1';
     state.fullTrackerUrl = rootEl.getAttribute('data-full-tracker-url') || '';
+    // ?tools=widget on the lesson url: the old engine widget for this visit only
+    // (the comparison door beside the hosted doors, never remembered)
+    state._toolsLane = (readParam('tools') === 'widget') ? 'widget' : 'door';
     if (!FS.mode) { setupFullscreen_(); }   // once per page load (boot re-runs on retry)
 
     // TEST HOOK — mock transport: skip identity entirely.

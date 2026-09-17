@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fh-harness",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/static_server.js"],
+      "port": 4383,
+      "autoPort": false
+    }
+  ]
+}

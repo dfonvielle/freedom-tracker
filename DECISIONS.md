@@ -10,6 +10,46 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-09-16 · The tools are the hosted doors now, and a student's own token is their key (round 23)
+
+**Decided (Dave, 2026-09-16, his ask: "I want to be able to use these tools with my Freedom
+Accelerator program and connect them to those... the integration hasn't happened... I want that
+all integrated as well"):**
+
+- **Freedom Home opens the seven pinned tools as hosted doors, not the engine widget.** Every
+  tool he has ruled official (`bh_nbwe`, `bh_minplan`, `bh_feelgs`, `bh_cjc`, `bh_withdrawal`,
+  `bh_rbf`, `bh_fearanxiety`) is served at `go.alwaysgreater.com/tool/<id>/` from the shell and
+  document he pinned. Opening one from the rail opens THAT page in a frame that owns the whole
+  screen, wearing the program's bar ("Freedom Accelerator › {tool}", the left name goes back,
+  ↺ Start over, –). The rail underneath is untouched: done ticks, ★ scores, Continue, the
+  skip door. His pin rulings all said "wherever the tool is offered, the Freedom Accelerator
+  included"; this is the surface that was still serving the old widget.
+- **The student's own program token is their key at the door.** The door's money gate asks
+  the Gateway whether the token is real (`state`, token only) and covers the program's year;
+  a buyer through the funnel is covered by that purchase first. Nothing is typed, nothing is
+  bought twice, and a stranger with an email alone gets nothing. Reopens if the Gateway ever
+  stops answering `state` with the projects list.
+- **A session is named per project, and Start over is a new name.** `#session=p<id>-ph-<bot>`
+  rides the door's launch hash, so a second project never resumes the first (the round-18
+  scoping, kept), and ↺ bumps a generation instead of clearing anything. Resume is what the
+  door reports back (one message: the tool, the session, "spoke"), never a guess.
+- **The old widget stays one visit away.** `?tools=widget` on the lesson URL keeps the engine
+  widget for that visit, for comparison; it is never remembered. The widget code stays in the
+  file. Reopens the day the doors are wrong for a class of student the widget served.
+- **What did not change, on purpose:** `d1_t1..d1_t4` ticks are still the student's own press
+  ("I finished this tool → Continue"), never a signal from the tool; the coach handoff still
+  rotates to a fresh session when the current one has turns; the Withdrawal Helper stays the
+  optional fifth step and opens bare.
+
+**Proof:** the mock harness (`test_home.html`, door stub `test_door_stub.html`) walked
+`day1_fresh`: Open → the frame's address carried the tool, the identity, the token, the
+project-scoped session name, the contract sentence and `lock=1`; the stub's "spoke" message
+flipped the rail's button to Continue; the crumb closed the frame; Start over reopened on
+`-r1`; `?tools=widget` mounted the old widget. ⏳ Not yet walked live: a real student token
+against the real doors (Dave's test account is the first walk).
+
+---
+
 ## 2026-08-20 (pm) · The end of Day 1 teaches tomorrow, and the day boundary is not a cage (round 22)
 
 **Decided (Dave's second walk of the round-21 build, a full brain dump ending "trust your

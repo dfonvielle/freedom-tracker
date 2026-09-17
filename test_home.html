@@ -62,6 +62,14 @@
   // this harness. The stub ignores token values.
   try { localStorage.setItem('ag_ft_token', 'tok-harness'); } catch (e) {}
 
+  // THE HOSTED DOORS (2026-09-16): the seven pinned tools open their own page in
+  // the door frame now. In this harness that page is test_door_stub.html, which
+  // shows what the door would be handed and can post the one message a real
+  // door sends back. `?tools=widget` on this url keeps the old widget lane.
+  window.__FH_DOOR_URL = function (bot, query, hash) {
+    return 'test_door_stub.html?bot=' + encodeURIComponent(bot) + (query ? '&' + query : '') + '#' + hash;
+  };
+
   var qs = new URLSearchParams(location.search);
   var scenario = qs.get('s') || 'wizard';
   document.querySelectorAll('.bar a').forEach(function (a) {
