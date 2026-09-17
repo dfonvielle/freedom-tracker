@@ -532,6 +532,14 @@
    * URL keeps the old widget lane for one visit, for comparison. Harness
    * hooks: window.__FH_DOOR_BASE (another host) and window.__FH_DOOR_URL
    * (a function building the whole url, the stub page in test_home).
+   *
+   * Round 24 (2026-09-17, Dave's drunk grandpa walk): ONE header. The door
+   * draws its own bar (🏠 · tool name · ⋯ · ✕), so the frame here draws none.
+   * The door tells this page what it wants with one message: agdoor 'home'
+   * (the 🏠 or the ✕) closes the frame the way the old bar's crumb did, and
+   * agdoor 'restart' (Start over, in the door's ⋯ menu, which the door offers
+   * because the frame locked it) bumps the session generation the way the old
+   * bar's ↺ did. Nothing else about the lane moved.
    * ============================================================ */
   var DOORS = {
     base: (typeof window.__FH_DOOR_BASE === 'string' && window.__FH_DOOR_BASE) || 'https://go.alwaysgreater.com',
@@ -567,54 +575,22 @@
     if (botId === TOOLS.withdrawal.bot) return TOOLS.withdrawal.name;
     return toolDisplayName_(botId);
   }
-  var DOOR = { el: null, frame: null, title: null, bot: '', base: '', say: '' };
+  var DOOR = { el: null, frame: null, bot: '', base: '', say: '' };
   function doorEnsure_() {
     if (DOOR.el) return;
     var wrap = document.createElement('div');
     wrap.className = 'fh-door';
-    var bar = document.createElement('div');
-    bar.className = 'fh-door-bar';
-    // The bar is the program's breadcrumb, the same trained move as the coach
-    // sheet's: "Freedom Accelerator › {tool}", the left name goes back.
-    var crumb = document.createElement('button');
-    crumb.type = 'button';
-    crumb.className = 'fh-door-crumb';
-    crumb.textContent = COPY.FS_BAR_TITLE;
-    crumb.setAttribute('aria-label', 'Back to your Freedom Accelerator');
-    crumb.onclick = function () { doorClose_(); };
-    var sep = document.createElement('span');
-    sep.className = 'fh-door-sep';
-    sep.textContent = '›';
-    var title = document.createElement('span');
-    title.className = 'fh-door-title';
-    var left = document.createElement('div');
-    left.className = 'fh-door-left';
-    left.appendChild(crumb); left.appendChild(sep); left.appendChild(title);
-    var over = document.createElement('button');
-    over.type = 'button';
-    over.className = 'fh-door-over';
-    over.textContent = '↺ Start over';
-    over.title = 'Start this tool over from the beginning';
-    over.onclick = function () { doorRestart_(); };
-    var min = document.createElement('button');
-    min.type = 'button';
-    min.className = 'fh-door-min';
-    min.innerHTML = '&#8211;';
-    min.title = 'Minimize';
-    min.setAttribute('aria-label', 'Back to your Freedom Accelerator');
-    min.onclick = function () { doorClose_(); };
-    var right = document.createElement('div');
-    right.className = 'fh-door-right';
-    right.appendChild(over); right.appendChild(min);
-    bar.appendChild(left); bar.appendChild(right);
+    // No bar of our own: the door's header is the header (round 24). The frame
+    // owns the whole screen and the door's 🏠 and ✕ come back here as a message.
     var frame = document.createElement('iframe');
     frame.className = 'fh-door-frame';
-    frame.setAttribute('allow', 'clipboard-write');
+    // local-network-access lets the owner's own door reach his Mac from inside
+    // this frame (the developer lane); a student's door never asks for it
+    frame.setAttribute('allow', 'clipboard-write; local-network-access');
     frame.title = 'Your tool';
-    wrap.appendChild(bar);
     wrap.appendChild(frame);
     document.body.appendChild(wrap);
-    DOOR.el = wrap; DOOR.frame = frame; DOOR.title = title;
+    DOOR.el = wrap; DOOR.frame = frame;
   }
   function doorOpen_(botId, opts) {
     opts = opts || {};
@@ -622,7 +598,7 @@
     var base = String(opts.sessionKey || (botId + '-default'));
     var sid = doorSid_(botId, base);
     DOOR.bot = botId; DOOR.base = base; DOOR.say = opts.say || '';
-    DOOR.title.textContent = doorName_(botId);
+    DOOR.frame.setAttribute('aria-label', doorName_(botId));
     DOOR.frame.src = doorUrl_(botId, sid, DOOR.say);
     DOOR.el.classList.add('fh-open');
     document.body.classList.add('fh-door-lock');
@@ -649,14 +625,19 @@
     try { localStorage.setItem('fh_door_gen_' + base, String(doorGen_(base) + 1)); } catch (e) {}
     doorOpen_(botId, { sessionKey: base, say: say });
   }
-  // The door tells this page when the student has actually said something in
-  // it (the tool id, the session name, a yes: never a word of what was said),
-  // so the rail can offer Resume instead of Open next time. Only the frame this
-  // page opened is listened to.
+  // The door tells this page three things, and only the frame this page opened
+  // is listened to: that the student has actually said something in it (the
+  // tool id, the session name, a yes: never a word of what was said), so the
+  // rail can offer Resume instead of Open next time; that the student pressed
+  // its 🏠 or ✕ (home: close the frame); and that they chose Start over in its
+  // ⋯ menu (restart: a fresh session under a new name, round 24).
   window.addEventListener('message', function (e) {
     var d = e && e.data;
-    if (!d || typeof d !== 'object' || d.agdoor !== 'session' || !d.session) return;
+    if (!d || typeof d !== 'object' || !d.agdoor) return;
     if (!DOOR.frame || e.source !== DOOR.frame.contentWindow) return;
+    if (d.agdoor === 'home') { doorClose_(); return; }
+    if (d.agdoor === 'restart') { doorRestart_(); return; }
+    if (d.agdoor !== 'session' || !d.session) return;
     if (d.spoke) { try { localStorage.setItem('fh_door_spoke_' + String(d.session).slice(0, 120), '1'); } catch (err) {} }
   });
 
@@ -4325,14 +4306,6 @@
       // so nothing here can reach inside a mounted tool or the coach.
       '.fh-door{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999998;display:none;flex-direction:column;background:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);}' +
       '.fh-door.fh-open{display:flex;}' +
-      '.fh-door-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 6px 9px 14px;background:#2f6df6;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
-      '.fh-door-left{display:flex;align-items:center;gap:6px;min-width:0;}' +
-      '.fh-door-crumb{background:none;border:0;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}' +
-      '.fh-door-sep{opacity:0.7;}' +
-      '.fh-door-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
-      '.fh-door-right{display:flex;align-items:center;gap:4px;flex:none;}' +
-      '.fh-door-over{background:rgba(255,255,255,0.16);border:0;color:#fff;font:inherit;font-size:12.5px;border-radius:8px;padding:5px 9px;cursor:pointer;white-space:nowrap;}' +
-      '.fh-door-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
       '.fh-door-frame{flex:1;min-height:0;width:100%;border:0;background:#fff;}' +
       'body.fh-door-lock{overflow:hidden;}';
     var style = document.createElement('style');
