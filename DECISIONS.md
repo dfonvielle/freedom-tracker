@@ -10,6 +10,29 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-09-17 · One header on a hosted door, the door's own (round 24)
+
+**Decided (Dave, 2026-09-17, his drunk grandpa walk of the Accelerator's doors: "we don't want
+these two competing ribbons... home icon, tool name, three dots, and then the X to close"):**
+
+- **The frame draws no bar of its own.** Round 23's "Freedom Accelerator › {tool} · ↺ Start
+  over · –" bar sat over the door's own header, so a student read two headers and neither ✕
+  did anything. The door's header is the header now: 🏠 · tool name · ⋯ · ✕. The 🏠 and the
+  ✕ both go back to the rail; the door tells this page so with one message (`agdoor: 'home'`)
+  and the page closes the frame exactly the way the old crumb did. Start over lives in the
+  door's ⋯ menu (the door offers it because this frame locked it) and arrives as
+  `agdoor: 'restart'`, which bumps the session generation exactly the way the old ↺ did.
+  Only the frame this page opened is listened to, as before.
+- **The frame allows local-network-access**, so the owner's own door can reach his Mac from
+  inside it (the developer lane's bridge). A student's door never asks for it.
+- **The names shortened with the doors**: the door's header wears the roster name
+  ("Rapid Behavioral Freedom Tool", never "SYBR Method: ..."). That is the door's change
+  (ai_tools bake), recorded here because it is what a student reads over this frame.
+
+**Not changed:** the session name grammar, the running start, the token at the door, the
+`?tools=widget` gate, the rail underneath. His live walk of the round is pending: the 🏠, the ✕
+and Start over inside the frame are his to confirm.
+
 ## 2026-09-16 · The tools are the hosted doors now, and a student's own token is their key (round 23)
 
 **Decided (Dave, 2026-09-16, his ask: "I want to be able to use these tools with my Freedom
