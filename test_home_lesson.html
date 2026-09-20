@@ -67,7 +67,7 @@
       lesson.innerHTML =
         '<h1>Lesson 1 — Your Freedom Page</h1>' +
         '<div class="hint">The rail should take over the whole screen on mobile widths.</div>' +
-        '<iframe src="test_home.html?s=' + scenario() + '"></iframe>';
+        '<iframe src="test_home.html?s=' + scenario() + (new URLSearchParams(location.search).get('base') ? '&base=' + encodeURIComponent(new URLSearchParams(location.search).get('base')) : '') + '"></iframe>';
     } else {
       lesson.innerHTML =
         '<h1>Lesson 2 — plain video lesson, no tool</h1>' +

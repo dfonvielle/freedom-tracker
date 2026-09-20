@@ -30,6 +30,16 @@
    coach.v3, so activation done anywhere works everywhere. Only the
    state snapshot cache is home-specific (ag_fh_cache_v1).
 
+   THE ⋯ MENU, AI ACCESS (round 25, 2026-09-20): the same three dots the
+   AI Freedom Program's lesson wears, from the same source. The menu's
+   words and look are ONE file on Dave's site (tool/embed/access-menu.v1.js,
+   window.AG_MENU), loaded here at boot; this file hands it who is signed in
+   and what a press does: vouch for the student at the site's lesson door
+   with their own program token ({email, fa}), then open the AI Access page
+   (/my-ai-freedom/?via=lesson) in the same fullscreen frame the tools use.
+   Phones get the ⋯ in the solid top bar beside the minus; desktop gets a
+   blue strip above the rail (the program lesson's inline bar) carrying it.
+
    MOBILE FULLSCREEN TAKEOVER (ChatNode parity — added 2026-07-19):
    on phones (parent width ≤ 768) the whole rail takes over the screen
    the moment the lesson loads, exactly like the ChatNode popups did.
@@ -350,6 +360,11 @@
     // Round 10: the fullscreen rail gets the SAME solid-bar chrome as the
     // tool popups and the coach sheet — one pattern to get used to.
     FS_BAR_TITLE: 'Freedom Accelerator',
+    // Round 25: the ⋯ menu's notes (the menu's own words live in access-menu.v1.js)
+    MENU_FOOT: 'Freedom Accelerator · round 25',
+    MENU_NO_TOKEN: 'AI Access opens once your Freedom Accelerator is activated on this device. Enter your activation code first.',
+    MENU_NO_IDENTITY: 'I could not read which account you are signed in with. Reload this page, or email dave@alwaysgreater.com.',
+    MENU_NO_REACH: 'The AI tools could not be reached just now. Check your connection and try again in a moment.',
     // Porch teardown: in a tool popup's bar the full name left no room for
     // the tool's own name at 375px. Phones show "FA ›" (the widget's
     // data-crumb-short lane). The coach sheet and the rail bar keep the
@@ -640,6 +655,103 @@
     if (d.agdoor !== 'session' || !d.session) return;
     if (d.spoke) { try { localStorage.setItem('fh_door_spoke_' + String(d.session).slice(0, 120), '1'); } catch (err) {} }
   });
+
+  /* ============================================================
+   * THE ⋯ MENU — AI ACCESS (round 25, 2026-09-20)
+   * Dave, walking the AI Freedom Program's lesson and then this one on the
+   * same phone: "we do not have those three dots ... I want those exact same
+   * three dots, exact same functionality across all these things that I
+   * have ... So we are not duplicating the functionality." The menu's words
+   * and look come from ONE file on the site (window.AG_MENU); this page adds
+   * the vouch (the student's own program token at the site's lesson door)
+   * and opens the AI Access page in the tools' own fullscreen frame.
+   * ============================================================ */
+  var MENU = { load: null, phone: null, inline: null, bar: null, busy: false, note: null, noteTimer: null };
+  function menuLib_() {
+    if (window.AG_MENU) return Promise.resolve(window.AG_MENU);
+    if (MENU.load) return MENU.load;
+    MENU.load = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = DOORS.base + '/tool/embed/access-menu.v1.js';
+      s.onload = function () { resolve(window.AG_MENU || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return MENU.load;
+  }
+  function menuState_() {
+    return { who: (state.identity && state.identity.email) || '', booted: !!state.identity, busy: MENU.busy };
+  }
+  function menuMount_(into, before, bar, which) {
+    menuLib_().then(function (lib) {
+      if (!lib || MENU[which] || !into || !into.parentNode) return;
+      MENU[which] = lib.mount({ into: into, before: before, bar: bar, state: menuState_, foot: COPY.MENU_FOOT, onOpen: openAccess_ });
+    });
+  }
+  function menuDraw_() { if (MENU.phone) MENU.phone.draw(); if (MENU.inline) MENU.inline.draw(); }
+  function menuClose_() { if (MENU.phone) MENU.phone.setOpen(false); if (MENU.inline) MENU.inline.setOpen(false); }
+  // desktop (and a phone that could not take over): the program lesson's blue
+  // strip above the rail, the name left and the ⋯ right, made once
+  function menuInlineBar_() {
+    if (MENU.bar || FS.mode || !rootEl || !rootEl.parentNode) return;
+    var bar = document.createElement('div');
+    bar.className = 'fh-bar';
+    var title = document.createElement('div');
+    title.className = 'fh-bar-title';
+    title.textContent = COPY.FS_BAR_TITLE;
+    var right = document.createElement('div');
+    right.className = 'fh-bar-right';
+    bar.appendChild(title);
+    bar.appendChild(right);
+    rootEl.parentNode.insertBefore(bar, rootEl);
+    MENU.bar = bar;
+    menuMount_(right, null, bar, 'inline');
+  }
+  function menuAfterRoute_() {
+    if (!FS.mode) menuInlineBar_();
+    menuDraw_();
+  }
+  // a word under whichever bar is showing (a refusal, the way through), gone after a while
+  function menuNote_(words) {
+    var bar = (FS.mode && FS.minBtn) ? FS.minBtn : MENU.bar;
+    if (!bar) return;
+    if (MENU.note && MENU.note.parentNode) MENU.note.parentNode.removeChild(MENU.note);
+    var n = document.createElement('div');
+    n.className = 'fh-menu-note' + (FS.mode ? ' fh-menu-note-fixed' : '');
+    n.textContent = words;
+    if (FS.mode) document.body.appendChild(n); else bar.parentNode.insertBefore(n, bar.nextSibling);
+    MENU.note = n;
+    if (MENU.noteTimer) clearTimeout(MENU.noteTimer);
+    MENU.noteTimer = setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); if (MENU.note === n) MENU.note = null; }, 9000);
+  }
+  function topUrl_() { try { return String(window.top.location.href || ''); } catch (e) { return String(location.href || ''); } }
+  // the press: vouch with the student's own token, then the AI Access page in the tools' frame
+  function openAccess_() {
+    if (MENU.busy) return;
+    var email = (state.identity && state.identity.email) || '';
+    if (!state.token) { menuNote_(COPY.MENU_NO_TOKEN); return; }
+    if (!email) { menuNote_(COPY.MENU_NO_IDENTITY); return; }
+    MENU.busy = true; menuDraw_();
+    fetch(DOORS.base + '/api/access/?door=lesson', { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, fa: state.token }) })
+      .then(function (r) { return r.json().then(function (j) { if (j && typeof j === 'object') j.status = r.status; return j; }); })
+      .catch(function () { return null; })
+      .then(function (j) {
+        MENU.busy = false; menuDraw_();
+        if (!j) { menuNote_(COPY.MENU_NO_REACH); return; }
+        if (!j.ok || !j.owns || !j.t) { menuNote_(j.error || COPY.MENU_NO_REACH); return; }
+        var next = window.AG_MENU ? window.AG_MENU.accessPath(topUrl_()) : '/my-ai-freedom/?via=lesson';
+        doorOpenUrl_(DOORS.base + '/api/access/?door=verify&t=' + encodeURIComponent(j.t) + '&next=' + encodeURIComponent(next), 'AI Access');
+      });
+  }
+  // a page (not a tool) in the same fullscreen frame: its 🏠 and ✕ come back as agdoor 'home'
+  function doorOpenUrl_(url, label) {
+    doorEnsure_();
+    DOOR.bot = 'access'; DOOR.base = ''; DOOR.say = '';
+    DOOR.frame.setAttribute('aria-label', label || 'AI Access');
+    DOOR.frame.src = url;
+    DOOR.el.classList.add('fh-open');
+    document.body.classList.add('fh-door-lock');
+  }
 
   // token + identity SHARED with loader.v7/coach.v3 (activate once, works
   // everywhere). Only the state snapshot cache is home-specific.
@@ -1371,6 +1483,7 @@
   function route() {
     clearSetupPoll_();
     unmountTool();
+    menuAfterRoute_();
     var step = nextStep();
     if (step.phase === 'wizard') {
       // Round 11 wizard guard: an account that has EVER finished setup on
@@ -3921,10 +4034,16 @@
     b.setAttribute('aria-label', 'Minimize');
     b.innerHTML = '&#8211;';
     b.onclick = function () { fsSetOpen_(false); };
+    // Round 25: the ⋯ sits beside the minus, in a right hand cluster like the
+    // program lesson's bar, drawn by the shared menu once its file arrives
+    var right = document.createElement('div');
+    right.className = 'fh-fs-bar-right';
+    right.appendChild(b);
     bar.appendChild(title);
-    bar.appendChild(b);
+    bar.appendChild(right);
     document.body.appendChild(bar);
     FS.minBtn = bar;
+    menuMount_(right, b, bar, 'phone');
   }
 
   // COACH SHEET — on phones the coach gets the whole screen too. A fixed
@@ -3993,7 +4112,7 @@
   function fsSetOpen_(open) {
     if (!FS.mode) { return; }
     FS.open = !!open;
-    if (!open) { fsCoachOpen_(false); }   // rail minimize also puts the coach away
+    if (!open) { fsCoachOpen_(false); menuClose_(); }   // rail minimize also puts the coach and the menu away
     // ONE bubble, one meaning. Minimizing the rail unmounts any tool popup
     // (its widget launcher included — otherwise it stacks on ours in the
     // same corner and the bubble reopens the TOOL while the hint promises
@@ -4161,8 +4280,16 @@
       'justify-content:space-between;gap:10px;box-sizing:border-box;' +
       'padding:calc(8px + env(safe-area-inset-top,0px)) 6px 8px 14px;background:#2f6df6;color:#fff;' +
       'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}' +
-      '.fh-fs-bar-title{font-weight:700;font-size:16px;}' +
+      '.fh-fs-bar-title{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}' +
+      '.fh-fs-bar-right{display:flex;align-items:center;gap:2px;flex:none;}' +
       '.fh-fs-bar-min{background:none;border:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:2px 10px;}' +
+      // Round 25: the inline strip above the rail (desktop, or a phone that stayed inline),
+      // the program lesson's shape, and the note a menu press can leave under either bar
+      '.fh-bar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:720px;margin:0 auto 10px;box-sizing:border-box;padding:9px 6px 9px 14px;background:#2f6df6;color:#fff;border-radius:12px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.3;}' +
+      '.fh-bar-title{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}' +
+      '.fh-bar-right{display:flex;align-items:center;gap:2px;flex:none;}' +
+      '.fh-menu-note{max-width:720px;margin:0 auto 10px;padding:10px 12px;background:#fff6e5;border:1px solid #f0dbae;border-radius:10px;font-size:14px;line-height:1.45;color:#5b4300;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}' +
+      '.fh-menu-note-fixed{position:fixed;left:12px;right:12px;top:calc(56px + env(safe-area-inset-top,0px));z-index:999993;margin:0;}' +
       FS_CHROME_CSS +
       '#freedom-home .fh-wrap{max-width:720px;margin:0 auto;}' +
       // flex-wrap + a real min width for the greeting column: on phones the

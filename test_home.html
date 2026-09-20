@@ -66,6 +66,9 @@
   // the door frame now. In this harness that page is test_door_stub.html, which
   // shows what the door would be handed and can post the one message a real
   // door sends back. `?tools=widget` on this url keeps the old widget lane.
+  // Round 25: ?base=http://localhost:4179 points the shared ⋯ menu (access-menu.v1.js) and the
+  // AI Access vouch at a site running on this Mac (the lesson harness), so the menu can be walked here.
+  try { var base = new URLSearchParams(location.search).get('base'); if (base && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base)) window.__FH_DOOR_BASE = base; } catch (e) {}
   window.__FH_DOOR_URL = function (bot, query, hash) {
     return 'test_door_stub.html?bot=' + encodeURIComponent(bot) + (query ? '&' + query : '') + '#' + hash;
   };
@@ -285,7 +288,8 @@
         }, delay);
       });
     }
-    if (u.indexOf('/api/') >= 0) { return Promise.reject(new Error('no identity in harness')); }
+    // the site's own doors (round 25: the AI Access vouch at ?base=) pass through; Systeme's /api/ is stubbed away
+    if (u.indexOf('/api/') >= 0 && !(window.__FH_DOOR_BASE && u.indexOf(window.__FH_DOOR_BASE) === 0)) { return Promise.reject(new Error('no identity in harness')); }
     return realFetch.apply(window, arguments);
   };
   function coachRoute(p) {

@@ -10,6 +10,45 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-09-20 · The same ⋯ as the AI Freedom Program's lesson, from the same file (round 25)
+
+**Decided (Dave, 2026-09-20, his drunk grandpa walk of the AI Freedom Program's lesson embed and
+then this one on the same phone: "we have the minus button ... But we do not have those three
+dots ... I want those exact same three dots, exact same functionality across all these things
+that I have, like the Freedom Accelerator and the AI Freedom Program ... So we are not
+duplicating the functionality. It is the same functionality"):**
+
+- **The menu is one file, and it is the site's.** `go.alwaysgreater.com/tool/embed/access-menu.v1.js`
+  (source `ai_tools/davenode/student/embed_menu.js`, the same text the builder puts at the top
+  of the program lesson's `program.v1.js`) draws the ⋯ button and its box: *AI Access* · one blue
+  **See details and options** · *Signed into platform as* · the address · a foot line. This stub
+  loads it at boot and hands it who is signed in and what a press does. A change to the words is
+  one edit on the site; both lessons pick it up on their next load, and this file never ships a
+  copy of them.
+- **Where it sits.** Phones: beside the minus in the solid top bar, in a right hand cluster (the
+  program lesson's shape). Desktop, or a phone that stayed inline: a blue strip above the rail,
+  *Freedom Accelerator* left and ⋯ right, made once outside the render. The foot says
+  *Freedom Accelerator · round 25*.
+- **The press vouches with the student's own program token.** `POST /api/access/?door=lesson`
+  with `{ email, fa }` (the email Systeme showed this page, the `ag_ft_token` this page already
+  holds): the site asks the Gateway whether the token is real, the same question every hosted
+  door asks before it covers a message, and answers a 15 minute sign-in token that the frame
+  walks through the verify door to `/my-ai-freedom/?via=lesson` (the AI Access page: the four
+  ways, the account vault, the add-time lane). No lesson key had to be pasted into this lesson.
+  The page opens in the same fullscreen frame the tools use and comes back on `agdoor: 'home'`.
+- **A refusal lands under the bar in the door's own words** (a token the Gateway does not know,
+  a device not yet activated, no identity, no connection), gone after a few seconds.
+
+**Not changed:** the rail, the tools' doors, the session grammar, the token at the door. **Honest
+limit:** the vouch names the email the platform showed; that is the lesson door's limit since it
+was built (mission_control DRUNK_GRANDPA_STRATEGY rule 38). **Proof:** the FA harness at
+`test_home_lesson.html?base=http://localhost:4179` (phone) and `test_home.html?s=day5&base=…`
+(desktop) with the lesson harness running: the menu drew with the same words in both, the press
+posted `{email, fa}` and the door's refusal for the mock token landed under the bar. A real
+student token opening the page is Dave's walk. Harness hooks: `?base=` on the two test pages
+points the menu and the vouch at a local site, and the harness's fetch stub passes that site's
+`/api/` through.
+
 ## 2026-09-17 · One header on a hosted door, the door's own (round 24)
 
 **Decided (Dave, 2026-09-17, his drunk grandpa walk of the Accelerator's doors: "we don't want
