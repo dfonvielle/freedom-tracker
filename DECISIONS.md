@@ -28,7 +28,11 @@ duplicating the functionality. It is the same functionality"):**
 - **Where it sits.** Phones: beside the minus in the solid top bar, in a right hand cluster (the
   program lesson's shape). Desktop, or a phone that stayed inline: a blue strip above the rail,
   *Freedom Accelerator* left and ⋯ right, made once outside the render. The foot says
-  *Freedom Accelerator · round 25*.
+  *Freedom Accelerator · V25* (amended the same day, his next walk: *"Round is a weird phrasing.
+  Let's just call it V25, V for version ... we don't need to create a whole new version for
+  this"*, so the round number stays 25 and only the foot's word moved: every menu he opens now
+  says its version the same way, *Version 6* on the program lesson, *V<shell> · D<document>*
+  inside every tool).
 - **The press vouches with the student's own program token.** `POST /api/access/?door=lesson`
   with `{ email, fa }` (the email Systeme showed this page, the `ag_ft_token` this page already
   holds): the site asks the Gateway whether the token is real, the same question every hosted

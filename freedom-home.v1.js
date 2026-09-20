@@ -360,8 +360,10 @@
     // Round 10: the fullscreen rail gets the SAME solid-bar chrome as the
     // tool popups and the coach sheet — one pattern to get used to.
     FS_BAR_TITLE: 'Freedom Accelerator',
-    // Round 25: the ⋯ menu's notes (the menu's own words live in access-menu.v1.js)
-    MENU_FOOT: 'Freedom Accelerator · round 25',
+    // Round 25: the ⋯ menu's notes (the menu's own words live in access-menu.v1.js). The foot says
+    // V25, not "round 25" (Dave, 2026-09-20: "Round is a weird phrasing. Let's just call it V25, V for
+    // version"), so every menu he opens says its version the same way.
+    MENU_FOOT: 'Freedom Accelerator · V25',
     MENU_NO_TOKEN: 'AI Access opens once your Freedom Accelerator is activated on this device. Enter your activation code first.',
     MENU_NO_IDENTITY: 'I could not read which account you are signed in with. Reload this page, or email dave@alwaysgreater.com.',
     MENU_NO_REACH: 'The AI tools could not be reached just now. Check your connection and try again in a moment.',
