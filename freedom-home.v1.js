@@ -362,8 +362,9 @@
     FS_BAR_TITLE: 'Freedom Accelerator',
     // Round 25: the ⋯ menu's notes (the menu's own words live in access-menu.v1.js). The foot says
     // V25, not "round 25" (Dave, 2026-09-20: "Round is a weird phrasing. Let's just call it V25, V for
-    // version"), so every menu he opens says its version the same way.
-    MENU_FOOT: 'Freedom Accelerator · V25',
+    // version"), so every menu he opens says its version the same way. V26 (the same night): the
+    // door frame follows the phone keyboard, see doorFit_.
+    MENU_FOOT: 'Freedom Accelerator · V26',
     MENU_NO_TOKEN: 'AI Access opens once your Freedom Accelerator is activated on this device. Enter your activation code first.',
     MENU_NO_IDENTITY: 'I could not read which account you are signed in with. Reload this page, or email dave@alwaysgreater.com.',
     MENU_NO_REACH: 'The AI tools could not be reached just now. Check your connection and try again in a moment.',
@@ -592,7 +593,52 @@
     if (botId === TOOLS.withdrawal.bot) return TOOLS.withdrawal.name;
     return toolDisplayName_(botId);
   }
-  var DOOR = { el: null, frame: null, bot: '', base: '', say: '' };
+  var DOOR = { el: null, frame: null, bot: '', base: '', say: '', watching: false };
+  // THE KEYBOARD ROOM (V26, 2026-09-20, Dave's drunk grandpa walk of a tool on his phone:
+  // "I have more to share" raised the keyboard over nothing, "where am I typing? ... even if
+  // I scroll, I can't see the input field"). A phone keeps the page the full height of the
+  // screen and lays the keys over its bottom, and a page inside a frame is never told: only
+  // the top page's visual viewport shrinks. The door frame is fixed to the whole screen, so
+  // when the keyboard is up it moves to the visible part (top and height off that viewport)
+  // and the message box inside the door sits just above the keys. Off the moment the keyboard
+  // goes, never on a page he pinched on purpose (scale 1 only), and only while the rail is a
+  // phone-screen layer (FS.mode 'frame' reads the parent's viewport, 'self' this page's; the
+  // inline desktop rail has no keyboard over it). The same move as the program lesson's
+  // embed (program.v1.js version 8) and the popup embed. `vv` may be handed in by a harness.
+  function doorKeyboardWin_() {
+    if (FS.mode === 'frame' && FS.pWin) return FS.pWin;
+    if (FS.mode === 'self') return window;
+    return null;
+  }
+  function doorFit_(vv) {
+    var el = DOOR.el;
+    if (!el) return;
+    var win = doorKeyboardWin_();
+    vv = vv || (win && win.visualViewport);
+    var open = el.classList.contains('fh-open');
+    var gap = (vv && win) ? (win.innerHeight - vv.height) : 0;
+    if (open && vv && gap > 120 && Math.abs((vv.scale || 1) - 1) < 0.02) {
+      el.style.top = Math.round(vv.offsetTop) + 'px';
+      el.style.height = Math.round(vv.height) + 'px';
+      el.style.bottom = 'auto';
+    } else {
+      el.style.top = ''; el.style.height = ''; el.style.bottom = '';
+    }
+  }
+  try { window.__fhDoorFit = doorFit_; } catch (e) {}
+  function doorWatchKeyboard_() {
+    if (DOOR.watching) return;
+    var win = doorKeyboardWin_();
+    if (!win) return;
+    DOOR.watching = true;
+    try {
+      var vv = win.visualViewport;
+      if (!vv) return;
+      var onMove = function () { doorFit_(); };
+      vv.addEventListener('resize', onMove);
+      vv.addEventListener('scroll', onMove);
+    } catch (e) {}
+  }
   function doorEnsure_() {
     if (DOOR.el) return;
     var wrap = document.createElement('div');
@@ -619,6 +665,8 @@
     DOOR.frame.src = doorUrl_(botId, sid, DOOR.say);
     DOOR.el.classList.add('fh-open');
     document.body.classList.add('fh-door-lock');
+    doorWatchKeyboard_();
+    doorFit_();
     try { localStorage.setItem('fh_door_seen_' + sid, '1'); } catch (e) {}
     state.toolMountedBot = botId;
   }
@@ -627,6 +675,7 @@
     if (!DOOR.el) return;
     DOOR.el.classList.remove('fh-open');
     document.body.classList.remove('fh-door-lock');
+    doorFit_();
     DOOR.frame.src = 'about:blank';
     DOOR.bot = ''; DOOR.base = '';
   }

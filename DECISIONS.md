@@ -10,6 +10,39 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-09-20 (night) · The door frame follows the phone keyboard (V26)
+
+**Decided (Dave, 2026-09-20 night, his drunk grandpa walk of a tool on his phone inside the AI
+Freedom Program's lesson, which frames the same hosted doors this rail frames: "if I click I have
+more to share, what happens is this keyboard comes up, and I'm like, 'But where am I typing? What am
+I doing with this keyboard? As Drunk Grandpa, I have no idea.' ... even if I scroll, I can't see the
+input field ... For every single AI tool that I have ... this problem must be solved"):**
+
+- **The cause was the frame, not the tool.** Every door already reveals its message box and puts
+  the cursor in it when a student presses *I have more to share* or *Help me with something else*.
+  A phone keeps the page the full height of the screen and lays the keys over its bottom; a page on
+  its own shrinks itself above the keys (the door's phone fit), but a page inside a frame is never
+  told, because only the top page's visual viewport shrinks. The `.fh-door` frame stayed the whole
+  screen, with the box at its foot, under the keyboard.
+- **So this rail sizes the door frame to what the keyboard leaves free.** `doorFit_` reads the
+  visual viewport of the window that owns the phone screen (the parent's when the lesson iframe is
+  the takeover layer, this page's when the rail is the page itself, nothing on the inline desktop
+  rail), and while the keyboard is up (a gap over 120px at scale 1) moves `.fh-door` to the visible
+  part: top and height off the viewport, `resize` and `scroll` watched, cleared the moment the
+  keyboard goes or the door closes. The same twelve lines the program lesson's embed
+  (`program.v1.js` version 8) and the program page's own frame carry, all after the popup embed's
+  `fitFrame` from 2026-09-05.
+- **No shell version moved, and no pin.** The box and its focus are the shared runtime page; the
+  frame is this host's. Every door still serves its pinned pairing and its ⋯ foot says so.
+- **The foot says V26.** His ruling from the same day stands (V for version, never "round").
+
+**Not changed:** the rail, the coach, the session grammar, the ⋯ menu. **Honest limit:** this Mac
+has no iOS simulator, so the move was proven on the lesson harness at phone width by handing the
+rail a pretend viewport (`window.__fhDoorFit({height: 476, offsetTop: 0, scale: 1})` on the lesson
+frame's window: the door shrank to 476px, the stub's frame with it, and grew back at 812). That a
+phone's top page really reports the keyboard through its visual viewport while a frame holds the
+focus is the assumption the popup embed has run on since 2026-09-05; Dave's phone walk is the proof.
+
 ## 2026-09-20 · The same ⋯ as the AI Freedom Program's lesson, from the same file (round 25)
 
 **Decided (Dave, 2026-09-20, his drunk grandpa walk of the AI Freedom Program's lesson embed and
