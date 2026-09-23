@@ -146,7 +146,7 @@
     D1G_INTRO: 'For about one hour, use these AI tools, in this exact order. Each one rewires from a different angle:',
     D1G_TOOLS: [
       { name: 'No-Brainer Willpower Eliminator' },
-      { name: 'Minimalist Plan', note: '(includes H&S Jumpstart setup and keys for rewiring)' },
+      { name: '2-Minute Daily Plan', note: '(includes H&S Jumpstart setup and keys for rewiring)' },
       { name: 'Feel Good Start' },
       { name: 'Create Joyous Chaos', note: '(pro tip: push CJC as far as you can for powerful rewiring)' }
     ],

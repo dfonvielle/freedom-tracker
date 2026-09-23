@@ -247,7 +247,7 @@
     PH_NEXT_TITLE: 'What happens next',
     PH_NEXT_MORNING: 'Day 2 starts tomorrow morning with your 30 second to 2 minute rewiring. Your moment: {MOMENT}.',
     PH_NEXT_MORNING_NOMOMENT: 'Day 2 starts tomorrow morning with your 30 second to 2 minute rewiring.',
-    PH_NEXT_REFRESH: 'The Minimalist Freedom Plan tool teaches your daily plan, and it stays right here anytime you want a refresher.',
+    PH_NEXT_REFRESH: 'The 2-Minute Daily Plan tool teaches your daily plan, and it stays right here anytime you want a refresher.',
     PH_NEXT_COACH: 'Day 2 also brings your Freedom AI Coach. Talk out whatever is challenging and rewire those exact moments. Most days take 7 to 22 minutes total.',
     // The early door (rule 35 crossing the day boundary): the schedule is a
     // recommendation, never a cage. Momentum is real — someone scared and
@@ -363,8 +363,9 @@
     // Round 25: the ⋯ menu's notes (the menu's own words live in access-menu.v1.js). The foot says
     // V25, not "round 25" (Dave, 2026-09-20: "Round is a weird phrasing. Let's just call it V25, V for
     // version"), so every menu he opens says its version the same way. V26 (the same night): the
-    // door frame follows the phone keyboard, see doorFit_.
-    MENU_FOOT: 'Freedom Accelerator · V26',
+    // door frame follows the phone keyboard, see doorFit_. V27 (2026-09-22): Dave renamed the
+    // Minimalist Freedom Plan the 2-Minute Daily Plan everywhere, the rail card and the refresher line.
+    MENU_FOOT: 'Freedom Accelerator · V27',
     MENU_NO_TOKEN: 'AI Access opens once your Freedom Accelerator is activated on this device. Enter your activation code first.',
     MENU_NO_IDENTITY: 'I could not read which account you are signed in with. Reload this page, or email dave@alwaysgreater.com.',
     MENU_NO_REACH: 'The AI tools could not be reached just now. Check your connection and try again in a moment.',
@@ -470,7 +471,7 @@
     HOW_ROAD_P: 'Day 1 is the Freedom Power Hour. About an hour, once. Every day after takes 7 to 22 minutes. Your first 7 days are a Freedom Proof Sprint: the goal isn’t to be finished, it’s proof that YOU can rewire your own brain. Any change counts, and once you’ve seen it, you can never unsee it. You are not powerless. Then the rhythm compounds until Easy and Enjoyable are high and being done feels like a no-brainer. You decide you’re done, from ease, never force. After that, staying free takes about two seconds a day. This page is designed to make itself unnecessary.',
     HOW_ASK_BTN: 'Ask your coach how this applies to your situation →',
     HOW_ASK_MSG: 'How does this rewiring method apply to my situation right now?',
-    HOW_MINPLAN_LINK: 'Or revisit your Minimalist Plan. It walks this method through with your own behavior →',
+    HOW_MINPLAN_LINK: 'Or revisit your 2-Minute Daily Plan. It walks this method through with your own behavior →',
     HOW_BACK: '← Back to my next step',
 
     // THE MILESTONE (round 14) — the system notices freedom; grandpa never
@@ -511,9 +512,10 @@
   var TOOLS = {
     powerHour: [
       { bot: 'bh_nbwe',    fieldKey: 'd1_t1', name: 'No-Brainer Willpower Eliminator' },
-      // Name matches the bot's own front-matter ("Minimalist Freedom Plan")
-      // so the rail card and the widget bar never disagree (finding 8).
-      { bot: 'bh_minplan', fieldKey: 'd1_t2', name: 'Minimalist Freedom Plan' },
+      // Name matches the tool's own door header (the terms file's name, which Dave renamed
+      // everywhere on 2026-09-22 from Minimalist Freedom Plan to 2-Minute Daily Plan) so the rail
+      // card and the bar above the tool never disagree (finding 8).
+      { bot: 'bh_minplan', fieldKey: 'd1_t2', name: '2-Minute Daily Plan' },
       { bot: 'bh_feelgs',  fieldKey: 'd1_t3', name: 'Feel Good Start' },
       { bot: 'bh_cjc',     fieldKey: 'd1_t4', name: 'Create Joyous Chaos' }
     ],

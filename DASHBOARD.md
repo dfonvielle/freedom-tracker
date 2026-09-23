@@ -1,6 +1,8 @@
 # 📊 Freedom Tracker (student rail) Dashboard
 
-*Snapshot 2026-09-20 night (V26: the door frame follows the phone keyboard) — refresh by invoking `/dave-core:dashboard` in this repo.*
+*Snapshot 2026-09-22 (V27: the Minimalist Freedom Plan is the 2-Minute Daily Plan) — refresh by invoking `/dave-core:dashboard` in this repo.*
+
+> ✏️ **2026-09-22 — V27: THE 2-MINUTE DAILY PLAN.** Dave renamed the Minimalist Freedom Plan everywhere (*"rename it everywhere ... along with all your other catches"*). On this rail: the Day 1 card, the what-happens-next refresher line, the revisit link, and loader.v7.js's Day 1 Guidance list; the ⋯ foot says V27. The card opens the hosted door, whose header now says the same name. Full entry: DECISIONS.md, 2026-09-22.
 
 > ⌨️ **2026-09-20 (night) — V26: THE DOOR FRAME FOLLOWS THE PHONE KEYBOARD.** Dave's drunk grandpa walk of a tool on his phone (inside the program lesson, which frames the same doors): *"I have more to share"* raised the keyboard over nothing, *"where am I typing? ... even if I scroll, I can't see the input field."* The door already reveals and focuses its box; the frame around it stayed the full screen under the keys, because a page inside a frame is never told the keyboard came (only the top page's visual viewport shrinks). `doorFit_` now sizes `.fh-door` to the visible part while the keyboard is up (the parent's viewport when the lesson iframe is the takeover layer), cleared when it goes. Same move on the program lesson's embed (V8) and the program page. No shell version moved, no pin. Foot: *Freedom Accelerator · V26*. Proven on the lesson harness with a pretend viewport (476px: the door shrank with the stub's frame, grew back at 812); **his phone walk is the real keyboard's proof.** Record: [DECISIONS.md](DECISIONS.md) 2026-09-20 (night).
 

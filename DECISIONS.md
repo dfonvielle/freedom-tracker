@@ -10,6 +10,18 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-09-22 · The Minimalist Freedom Plan is the 2-Minute Daily Plan (V27)
+
+**Decided (Dave, 2026-09-22, while renaming the tool's button in the AI Freedom Program's lesson: "rename it everywhere ... along with all your other catches"):** the second Power Hour tool is called the 2-Minute Daily Plan on every surface a student reads. On this rail: the Day 1 card (name 2-Minute Daily Plan, still tagged core daily plan), the what-happens-next refresher line, the revisit link under How it works, and the Day 1 Guidance list in loader.v7.js. The foot says V27.
+
+**Why here too:** since round 23 the card opens the hosted door, whose header reads the site's terms file, and that says 2-Minute Daily Plan now. A card that still said Minimalist Freedom Plan would disagree with the bar above the tool it opens (finding 8).
+
+**Not changed, on purpose:** the save keys (d1_t2) and the tool id (bh_minplan), which students never see, and the older loaders (v4 to v6), which keep their old words: the live lessons load loader.v7.js (CLAUDE.md rule 1).
+
+**Reopen if:** Dave names the tool something else. The name lives in two places on this rail (the TOOLS card name and the three copy lines), and on the site in one (the terms file).
+
+---
+
 ## 2026-09-20 (night) · The door frame follows the phone keyboard (V26)
 
 **Decided (Dave, 2026-09-20 night, his drunk grandpa walk of a tool on his phone inside the AI
