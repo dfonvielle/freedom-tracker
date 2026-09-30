@@ -7,6 +7,11 @@
 // 404 the widget and every tool state would silently vanish from the walk.
 // Browser pane refuses file:// URLs, so a walk always needs this server:
 //   http://localhost:4383/freedom-tracker/test_home.html?s=day1_fresh
+//
+// 2026-09-30: this Mac only, and never a dotfile or a config.json. Serving the
+// whole fleet folder on every interface (Mac firewall off) put
+// ai_tools/tools/config.json, freedom_tracker_gateway/tools/config.json and
+// every repo's .git within reach of anyone on the same Wi-Fi.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -26,6 +31,8 @@ http.createServer((req, res) => {
     const urlPath = decodeURIComponent(req.url.split('?')[0]);
     let fp = path.join(ROOT, path.normalize(urlPath).replace(/^(\.\.[/\\])+/, ''));
     if (!fp.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
+    const rel = path.relative(ROOT, fp).split(path.sep);
+    if (rel.some(p => p.startsWith('.')) || rel[rel.length - 1] === 'config.json') { res.writeHead(403); res.end(); return; }
     if (fs.statSync(fp).isDirectory()) fp = path.join(fp, 'index.html');
     const data = fs.readFileSync(fp);
     res.writeHead(200, { 'Content-Type': MIME[path.extname(fp).toLowerCase()] || 'application/octet-stream' });
@@ -33,4 +40,4 @@ http.createServer((req, res) => {
   } catch (e) {
     res.writeHead(404); res.end('not found');
   }
-}).listen(PORT, () => console.log('fh harness server on http://localhost:' + PORT + '/'));
+}).listen(PORT, '127.0.0.1', () => console.log('fh harness server on http://localhost:' + PORT + '/'));
