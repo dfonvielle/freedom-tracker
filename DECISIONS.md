@@ -10,6 +10,28 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-10-07 (pm) · The lane switch is per browser, no lesson edit (V29)
+
+**Decided (Dave, 2026-10-07 pm, after walking the desk lane as his test account: "I want to be able to see
+that this works ... when I go to my Freedom Accelerator embed that I already have ... I'm able to save stuff,
+and I can even see those changes reflected on the UGCP.com website"):** `?lane=desk` on the lesson's own
+address puts THAT browser on the student records lane (go.alwaysgreater.com `/api/fa/`, the records on his
+desk) and remembers it (`ag_fh_lane` in that browser); `?lane=sheets` brings it back. No lesson is edited,
+no other student is touched: without the switch and without `data-gateway`, this is V28 exactly (walked on
+the mock harness: wizard, Day 1, multi-project, Day 5 unchanged). The desk opens for a student whose records
+were MOVED there (the migration marks them) and refuses anyone else with a card that offers the original lane
+(never a loop). Two answers the Gateway never gave are now read honestly: `unsure`/`busy` (the desk could
+not answer right now) is a "Try again" card that KEEPS the token, never "Activate your Freedom Accelerator",
+and `notMoved` is the way back. The ⋯ menu's foot says "· desk lane" on that lane. Harness: `test_lane.html`.
+
+**Why the switch is per browser and not per lesson:** his existing embed is the one he wants to use, and
+the lesson is shared with real students; a per-browser switch is the only change that reaches him alone.
+
+**Reopen if:** a real student is moved (then the switch should come from the desk itself, not a link), or
+the AI coach is ported to the desk lane (today it shows "not on this lane yet" there).
+
+---
+
 ## 2026-10-07 · The rail may name its own backend: `data-gateway` (V28)
 
 **Decided (Dave, 2026-10-07, the talk on scaling projects: "create a different embed of the Freedom

@@ -2,6 +2,8 @@
 
 *Snapshot 2026-09-22 (V27: the Minimalist Freedom Plan is the 2-Minute Daily Plan) — refresh by invoking `/dave-core:dashboard` in this repo.*
 
+> 🎓 **2026-10-07 pm (Opus 5.5) — V29: the lane switch per browser.** `?lane=desk` on the lesson address puts that browser on the student records lane (remembered; `?lane=sheets` back), for a student whose records were moved (his test account's seven projects moved the same afternoon); a busy desk is a Try again card that keeps the token, never the activation screen; a not-moved student gets the way back. Default path unchanged (walked: wizard, Day 1, multi, Day 5). `test_lane.html`. DECISIONS.md entry.
+
 > 🎓 **2026-10-07 (Fable 5.1) — V28: the rail may name its own backend.** `data-gateway="<url>"` (and `data-gateway-key`, default `desk`) on the stub sends every call there instead of the Google Sheets Gateway, with the lane's own storage names (token, identity, cache, pin suffixed), and the coach follows through `window.FREEDOM_GATEWAY`. No attribute = V27 exactly; the live lessons carry none. First other backend: go.alwaysgreater.com `/api/fa/` (student records on Dave's desk). Mock harness boots the wizard with no console errors. DECISIONS.md entry. Not on the desk lane yet: the AI coach (honest words shown).
 
 > ✏️ **2026-09-22 — V27: THE 2-MINUTE DAILY PLAN.** Dave renamed the Minimalist Freedom Plan everywhere (*"rename it everywhere ... along with all your other catches"*). On this rail: the Day 1 card, the what-happens-next refresher line, the revisit link, and loader.v7.js's Day 1 Guidance list; the ⋯ foot says V27. The card opens the hosted door, whose header now says the same name. Full entry: DECISIONS.md, 2026-09-22.

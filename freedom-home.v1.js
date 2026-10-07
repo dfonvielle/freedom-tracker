@@ -365,7 +365,12 @@
     // version"), so every menu he opens says its version the same way. V26 (the same night): the
     // door frame follows the phone keyboard, see doorFit_. V27 (2026-09-22): Dave renamed the
     // Minimalist Freedom Plan the 2-Minute Daily Plan everywhere, the rail card and the refresher line.
-    MENU_FOOT: 'Freedom Accelerator · V28',
+    MENU_FOOT: 'Freedom Accelerator · V29',
+    MENU_FOOT_DESK: ' · desk lane',
+    LANE_REFUSED_TITLE: 'Your Freedom Accelerator is on its original lane',
+    LANE_REFUSED_TEXT: 'Your projects have not been moved to the new records yet, so this page opens them where they are.',
+    LANE_REFUSED_BUTTON: 'Open my Freedom Accelerator →',
+    DESK_BUSY: 'Your records could not be reached just now. Wait a moment, then tap Try again.',
     MENU_NO_TOKEN: 'AI Access opens once your Freedom Accelerator is activated on this device. Enter your activation code first.',
     MENU_NO_IDENTITY: 'I could not read which account you are signed in with. Reload this page, or email dave@alwaysgreater.com.',
     MENU_NO_REACH: 'The AI tools could not be reached just now. Check your connection and try again in a moment.',
@@ -738,7 +743,7 @@
   function menuMount_(into, before, bar, which) {
     menuLib_().then(function (lib) {
       if (!lib || MENU[which] || !into || !into.parentNode) return;
-      MENU[which] = lib.mount({ into: into, before: before, bar: bar, state: menuState_, foot: COPY.MENU_FOOT, onOpen: openAccess_ });
+      MENU[which] = lib.mount({ into: into, before: before, bar: bar, state: menuState_, foot: COPY.MENU_FOOT + (window.FREEDOM_GATEWAY ? COPY.MENU_FOOT_DESK : ''), onOpen: openAccess_ });
     });
   }
   function menuDraw_() { if (MENU.phone) MENU.phone.draw(); if (MENU.inline) MENU.inline.draw(); }
@@ -815,15 +820,44 @@
   // so two lanes on one origin never read each other's. No attribute = exactly V27. The coach
   // reads window.FREEDOM_GATEWAY, which this sets before it is injected.
   var LS_BASE = { identity: LS.identity, token: LS.token, cache: LS.cache, pin: LS.pin };
+  var SHEETS_LANE = { url: CONFIG.GATEWAY_URL, key: CONFIG.APP_KEY };
+  // V29 (2026-10-07 pm): THE LANE SWITCH, per browser, no lesson edit. ?lane=desk on the lesson's
+  // address (the rail reads the parent page's address too) puts THIS browser on the student records
+  // lane (Dave's desk, through go.alwaysgreater.com) and remembers it; ?lane=sheets brings it back.
+  // Nobody else is touched: without the switch, and without data-gateway, this is V27/V28 exactly.
+  // The desk only opens for a student whose records were moved there; anyone else is shown the way back.
+  var DESK_GATEWAY_URL = 'https://go.alwaysgreater.com/api/fa/';
+  var LANE_KEY = 'ag_fh_lane';
+  function laneChoice_() {
+    if (state._laneRefused) return { lane: '', fromParam: false };
+    var p = String(readParam('lane') || '').toLowerCase();
+    if (p === 'desk') { writeLS(LANE_KEY, 'desk'); return { lane: 'desk', fromParam: true }; }
+    if (p === 'sheets' || p === 'gateway' || p === 'off') { try { localStorage.removeItem(LANE_KEY); } catch (e) {} return { lane: '', fromParam: true }; }
+    return { lane: readLS(LANE_KEY) === 'desk' ? 'desk' : '', fromParam: false };
+  }
   function laneOf(url) { return String(url || '').replace(/^https?:\/\//, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48); }
   function applyGateway(root) {
     var gw = (root && root.getAttribute('data-gateway')) || '';
+    var auto = false, fromParam = false;
+    if (!gw) { var lc = laneChoice_(); if (lc.lane === 'desk') { gw = DESK_GATEWAY_URL; auto = true; fromParam = lc.fromParam; } }
     var sfx = gw ? ':' + laneOf(gw) : '';
     for (var k in LS_BASE) { if (LS_BASE.hasOwnProperty(k)) LS[k] = LS_BASE[k] + sfx; }
-    if (!gw) { window.FREEDOM_GATEWAY = null; return; }
+    if (!gw) { CONFIG.GATEWAY_URL = SHEETS_LANE.url; CONFIG.APP_KEY = SHEETS_LANE.key; window.FREEDOM_GATEWAY = null; return; }
     CONFIG.GATEWAY_URL = gw;
     CONFIG.APP_KEY = (root.getAttribute('data-gateway-key') || 'desk');
-    window.FREEDOM_GATEWAY = { url: gw, key: CONFIG.APP_KEY, suffix: sfx };
+    window.FREEDOM_GATEWAY = { url: gw, key: CONFIG.APP_KEY, suffix: sfx, auto: auto, fromParam: fromParam };
+  }
+  /* the desk said these records were never moved: say so, and offer the original lane (never a loop) */
+  function renderLaneRefused_(words) {
+    rootEl.innerHTML = '<div class="fh-card"><h3>' + esc(COPY.LANE_REFUSED_TITLE) + '</h3>' +
+      '<p class="fh-sub">' + esc(words || COPY.LANE_REFUSED_TEXT) + '</p>' +
+      '<button class="fh-btn" id="fh-lane-back">' + esc(COPY.LANE_REFUSED_BUTTON) + '</button></div>';
+    document.getElementById('fh-lane-back').addEventListener('click', function () {
+      try { localStorage.removeItem(LANE_KEY); } catch (e) {}
+      state._laneRefused = true;
+      state.token = null; state._recoverTried = false;
+      boot();
+    });
   }
 
   var state = {
@@ -1200,6 +1234,9 @@
       .then(function (data) {
         if (!data.ok) {
           if (background) return;
+          // V29: the desk lane says "not right now" (unsure/busy) or "not moved": neither is a dead token
+          if (data.unsure || data.busy) { return renderFatal(data.error || COPY.DESK_BUSY); }
+          if (data.notMoved) { return renderLaneRefused_(data.error); }
           resetTokenOnly();
           clearStateCache();
           if (state._recoverTried) { return renderPairing(COPY.STALE_TOKEN); }
@@ -1277,6 +1314,8 @@
         return;
       }
       if (data.ok && data.notFound) { return renderSettingUp(); }
+      if (data.unsure || data.busy) { return renderFatal(data.error || COPY.DESK_BUSY); }
+      if (data.notMoved) { return renderLaneRefused_(data.error); }
       return renderPairing(notice || data.error || '');
     }).catch(function () {
       renderPairing(notice || '');

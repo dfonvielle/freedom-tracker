@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>freedom-home — the lane switch harness</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f7f9fc; }
+  .bar { background: #14213d; color: #dfe7f5; padding: 10px 14px; font-size: 14px; }
+  .bar a { color: #fff; margin-right: 10px; }
+  .col { max-width: 760px; margin: 0 auto; padding: 16px; }
+</style>
+</head>
+<body>
+<!-- V29 (2026-10-07 pm): walks the desk lane's three new answers without a network. ?mode= picks what the
+     mock backend says to `state`: ok (a normal Day 5), unsure (the desk could not answer: a retry card, the
+     token KEPT), notmoved (the records were never moved: the way back, never a loop). ?lane=desk|sheets is
+     the real switch, read by the real rail. Nothing here is a student page. -->
+<div class="bar">Lane harness ·
+  <a href="?mode=ok&lane=desk">desk ok</a>
+  <a href="?mode=unsure&lane=desk">desk unsure</a>
+  <a href="?mode=notmoved&lane=desk">desk not moved</a>
+  <a href="?mode=ok&lane=sheets">back to sheets</a>
+</div>
+<div class="col">
+  <div id="freedom-home" data-engine="" data-key=""></div>
+</div>
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var mode = qs.get('mode') || 'ok';
+  window.__LANE_CALLS = [];
+  window.__FH_MOCK_NO_COACH = true;
+  window.__FH_MOCK_IDENTITY = { accountId: '777', email: 'max@example.test', firstName: 'Max' };
+  var state = {
+    ok: true, firstName: 'Max', token: 'tok', lane: 'desk',
+    projects: [{ projectId: 'P4-W1', name: 'Freedom Accelerator', label: 'Eating poorly on my cruise ship (migrated)', type: 'ACCELERATOR', day0Date: '2026-07-07', currentDay: 5, writable: true, status: 'active' }],
+    activeProjectId: 'P4-W1', projectType: 'ACCELERATOR', currentDay: 5, maxDay: 7, maxTrackedDay: 400, writable: true,
+    unlimited: true, canCreateProject: true, confidence: { optedOut: false, since: '' }, milestoneDecision: null, archived: [],
+    setup: { stage: 4, ub: 'eating poorly on my cruise ship', jumpstart: '7am' },
+    scoreQuestions: { easy: 'How easy?', enjoy: 'How enjoyable?', conf: 'How confident?' }, prompts: { day1: '', daily: '' }, uiCopy: { loader: {}, coach: {} },
+    day: { day: 5, title: 'Day 5: Daily Check-In', fields: [{ key: 'jumpstart', label: 'I did the Happiness & Success Jumpstart today', type: 'check', value: false, missing: false }, { key: 'rbf', label: 'Minutes', type: 'number', value: '', missing: false }], scores: { label: 'Day 5 Freedom Scores', questions: {}, values: { easy: null, enjoy: null, conf: null } }, writable: true },
+    completion: { 0: true, 1: true, 2: false, 3: false, 4: false, 5: false }
+  };
+  window.__FH_MOCK_CALL = function (p) {
+    window.__LANE_CALLS.push(p.action);
+    if (p.action === 'state' && mode === 'unsure') return { ok: false, unsure: true, busy: true, error: 'Your records could not be reached just now. Wait a moment and try again.' };
+    if (p.action === 'state' && mode === 'notmoved') return { ok: false, notMoved: true, error: 'This account’s Freedom Accelerator still lives on its original lane.' };
+    if (p.action === 'state') return state;
+    if (p.action === 'progressReview') return { ok: true, hasData: false, currentDay: 5, baseline: {}, wins: { items: [], total: 0 }, exps: { items: [], total: 0 }, milestone: { eligible: false } };
+    return { ok: true };
+  };
+  var s = document.createElement('script');
+  s.src = './freedom-home.v1.js?ts=' + Date.now();
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>
