@@ -164,6 +164,15 @@
 
     // Shared token key with the tracker loader (single activation).
     var LS = { token: 'ag_ft_token', identity: 'ag_ft_identity_v6' };
+    // V28 (2026-10-07): when the rail that injected this file was pointed at another backend
+    // (data-gateway on its stub), follow it: the same address, the same key, the same storage
+    // suffix, so the coach and the rail always talk to one lane. Nothing set = the Gateway.
+    if (window.FREEDOM_GATEWAY && window.FREEDOM_GATEWAY.url) {
+      CONFIG.GATEWAY_URL = window.FREEDOM_GATEWAY.url;
+      CONFIG.APP_KEY = window.FREEDOM_GATEWAY.key || 'desk';
+      LS.token += (window.FREEDOM_GATEWAY.suffix || '');
+      LS.identity += (window.FREEDOM_GATEWAY.suffix || '');
+    }
 
     var state = {
       identity: null,

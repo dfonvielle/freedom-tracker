@@ -365,7 +365,7 @@
     // version"), so every menu he opens says its version the same way. V26 (the same night): the
     // door frame follows the phone keyboard, see doorFit_. V27 (2026-09-22): Dave renamed the
     // Minimalist Freedom Plan the 2-Minute Daily Plan everywhere, the rail card and the refresher line.
-    MENU_FOOT: 'Freedom Accelerator · V27',
+    MENU_FOOT: 'Freedom Accelerator · V28',
     MENU_NO_TOKEN: 'AI Access opens once your Freedom Accelerator is activated on this device. Enter your activation code first.',
     MENU_NO_IDENTITY: 'I could not read which account you are signed in with. Reload this page, or email dave@alwaysgreater.com.',
     MENU_NO_REACH: 'The AI tools could not be reached just now. Check your connection and try again in a moment.',
@@ -809,6 +809,22 @@
   // token + identity SHARED with loader.v7/coach.v3 (activate once, works
   // everywhere). Only the state snapshot cache is home-specific.
   var LS = { identity: 'ag_ft_identity_v6', token: 'ag_ft_token', cache: 'ag_fh_cache_v1', pin: 'ag_fh_pin_v1' };
+  // V28 (2026-10-07): a lesson may name its own backend. data-gateway="<url>" on the stub sends every
+  // call there instead of the Google Sheets Gateway (data-gateway-key as the appKey, "desk" when
+  // absent), and this lane keeps its token, identity, cache and pin under their own storage names,
+  // so two lanes on one origin never read each other's. No attribute = exactly V27. The coach
+  // reads window.FREEDOM_GATEWAY, which this sets before it is injected.
+  var LS_BASE = { identity: LS.identity, token: LS.token, cache: LS.cache, pin: LS.pin };
+  function laneOf(url) { return String(url || '').replace(/^https?:\/\//, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48); }
+  function applyGateway(root) {
+    var gw = (root && root.getAttribute('data-gateway')) || '';
+    var sfx = gw ? ':' + laneOf(gw) : '';
+    for (var k in LS_BASE) { if (LS_BASE.hasOwnProperty(k)) LS[k] = LS_BASE[k] + sfx; }
+    if (!gw) { window.FREEDOM_GATEWAY = null; return; }
+    CONFIG.GATEWAY_URL = gw;
+    CONFIG.APP_KEY = (root.getAttribute('data-gateway-key') || 'desk');
+    window.FREEDOM_GATEWAY = { url: gw, key: CONFIG.APP_KEY, suffix: sfx };
+  }
 
   var state = {
     identity: null, token: null,
@@ -4501,6 +4517,7 @@
     rootEl = document.getElementById(CONFIG.CONTAINER_ID);
     if (!rootEl) return;
     injectStyles();
+    applyGateway(rootEl);   // V28: the stub may name its own backend (see LS_BASE)
     state.engine = rootEl.getAttribute('data-engine') || '';
     state.engineKey = rootEl.getAttribute('data-key') || '';
     state.draft = rootEl.getAttribute('data-draft') === '1';

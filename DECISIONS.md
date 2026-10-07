@@ -10,6 +10,33 @@ projects behave. Newest entries at the top.
 
 ---
 
+## 2026-10-07 · The rail may name its own backend: `data-gateway` (V28)
+
+**Decided (Dave, 2026-10-07, the talk on scaling projects: "create a different embed of the Freedom
+Accelerator, where now the database that it is connected to is our Systeme.io plus ugcup.com system ...
+so I can compare our current Freedom Accelerator setup with the current Google Sheets database versus a
+ugcup.com setup"):** the lesson stub may carry `data-gateway="<url>"` (and `data-gateway-key`, default
+`desk`). When it does, every call this rail and the coach it injects make goes to that address instead
+of the Google Sheets Gateway, and the lane keeps its token, identity, state cache and pin under storage
+names suffixed with the lane (`ag_ft_token:go-alwaysgreater-com-api-fa`), so two lanes on one origin
+never read each other's. The coach follows through `window.FREEDOM_GATEWAY`, set before it is injected.
+**No attribute = exactly V27**, byte for byte in behavior: the live lessons carry no attribute.
+
+**The first other backend:** the engine's own door on go.alwaysgreater.com, `/api/fa/`, which answers
+this rail's whole contract from student records on Dave's desk (ugcup.com), keyed by the student's
+Systeme contact id (`dave_funnel_engine/api/_lib/fa_desk.js`; the contract: `dave_funnel_engine/STUDENT_RECORDS.md`).
+The porch page `go.alwaysgreater.com/fa-test/desk/` mounts it. Identity there is the site's own sign-in;
+the door mints a lane token the rail keeps, the way a magic link does.
+
+**Not on that lane, on purpose:** the AI coach (its content tabs and model live in the Gateway) answers
+"not on this lane yet" and the rail's coach card shows those words; the full tracker's own views too.
+
+**Reopen if:** the live lesson is ever pointed at the desk lane (that day the coach must be ported
+first), or a lesson needs a cookie-less sign-in on learn.alwaysgreater.com (the lesson door's vouch,
+`?door=lesson`, is the shape).
+
+---
+
 ## 2026-09-22 · The Minimalist Freedom Plan is the 2-Minute Daily Plan (V27)
 
 **Decided (Dave, 2026-09-22, while renaming the tool's button in the AI Freedom Program's lesson: "rename it everywhere ... along with all your other catches"):** the second Power Hour tool is called the 2-Minute Daily Plan on every surface a student reads. On this rail: the Day 1 card (name 2-Minute Daily Plan, still tagged core daily plan), the what-happens-next refresher line, the revisit link under How it works, and the Day 1 Guidance list in loader.v7.js. The foot says V27.
