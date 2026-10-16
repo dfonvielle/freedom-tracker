@@ -365,7 +365,10 @@
     // version"), so every menu he opens says its version the same way. V26 (the same night): the
     // door frame follows the phone keyboard, see doorFit_. V27 (2026-09-22): Dave renamed the
     // Minimalist Freedom Plan the 2-Minute Daily Plan everywhere, the rail card and the refresher line.
-    MENU_FOOT: 'Freedom Accelerator · V29',
+    MENU_FOOT: 'Freedom Accelerator · V30',
+    SHEETS_HEAD: 'Google Sheets access (optional)',
+    SHEETS_LINK: 'See details and options',
+    SHEETS_NO_REACH: 'Google Sheets access could not be opened just now. Try again in a moment.',
     MENU_FOOT_DESK: ' · desk lane',
     LANE_REFUSED_TITLE: 'Your Freedom Accelerator is on its original lane',
     LANE_REFUSED_TEXT: 'Your projects have not been moved to the new records yet, so this page opens them where they are.',
@@ -743,7 +746,7 @@
   function menuMount_(into, before, bar, which) {
     menuLib_().then(function (lib) {
       if (!lib || MENU[which] || !into || !into.parentNode) return;
-      MENU[which] = lib.mount({ into: into, before: before, bar: bar, state: menuState_, foot: COPY.MENU_FOOT + (window.FREEDOM_GATEWAY ? COPY.MENU_FOOT_DESK : ''), onOpen: openAccess_ });
+      MENU[which] = lib.mount({ into: into, before: before, bar: bar, state: menuState_, foot: COPY.MENU_FOOT + (window.FREEDOM_GATEWAY ? COPY.MENU_FOOT_DESK : ''), onOpen: openAccess_, extra: menuExtra_ });
     });
   }
   function menuDraw_() { if (MENU.phone) MENU.phone.draw(); if (MENU.inline) MENU.inline.draw(); }
@@ -768,6 +771,8 @@
   function menuAfterRoute_() {
     if (!FS.mode) menuInlineBar_();
     menuDraw_();
+    /* V30: the way back from Google is looked for once the student is known (the token is the panel's identity) */
+    if (!SHEETS.checked && state.token) { SHEETS.checked = true; try { sheetsReturn_(); } catch (e) { /* no way back */ } }
   }
   // a word under whichever bar is showing (a refusal, the way through), gone after a while
   function menuNote_(words) {
@@ -800,6 +805,69 @@
         var next = window.AG_MENU ? window.AG_MENU.accessPath(topUrl_()) : '/my-ai-freedom/?via=lesson';
         doorOpenUrl_(DOORS.base + '/api/access/?door=verify&t=' + encodeURIComponent(j.t) + '&next=' + encodeURIComponent(next), 'AI Access');
       });
+  }
+  /* ============================================================
+   * THE ⋯ MENU — GOOGLE SHEETS ACCESS (V30, 2026-10-15 night)
+   * Dave: "my assumption was that the Google Sheets as a system for backing
+   * or writing to or saving up would be a central feature ... if I opened up
+   * the Freedom Accelerator, it would be there." The panel is the SAME file
+   * the AI toolkit lessons wear (tool/embed/sheets-panel.v1.js on the site,
+   * window.AG_SHEETS): the Google account once, then one row per program,
+   * this one first. This page hands it the site's door with the student's
+   * own token (the desk lane's identity), the lesson page as the way back
+   * from Google (never this frame's own address), and nothing else. The
+   * rows land on the site's side: a day saved on the desk lane also lands
+   * in the student's Freedom Accelerator spreadsheet when they made one.
+   * ============================================================ */
+  var SHEETS = { load: null, panel: null, checked: false };
+  function menuExtra_() {
+    if (!state.token) return [];
+    return [{ head: COPY.SHEETS_HEAD, link: COPY.SHEETS_LINK, open: sheetsOpen_ }];
+  }
+  function sheetsLib_() {
+    if (window.AG_SHEETS) return Promise.resolve(window.AG_SHEETS);
+    if (SHEETS.load) return SHEETS.load;
+    SHEETS.load = new Promise(function (resolve) {
+      var sc = document.createElement('script');
+      sc.src = DOORS.base + '/tool/embed/sheets-panel.v1.js';
+      sc.onload = function () { resolve(window.AG_SHEETS || null); };
+      sc.onerror = function () { SHEETS.load = null; resolve(null); };
+      document.head.appendChild(sc);
+    });
+    return SHEETS.load;
+  }
+  function sheetsDoor_(op, extra) {
+    var body = Object.assign({ op: op, app: 'fa', token: state.token || '' }, extra || {});
+    return fetch(DOORS.base + '/api/access/?door=gsheets', { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, retry: true }; });
+  }
+  function sheetsHostWin_() { try { if (window.top && window.top.location && window.top.location.href) return window.top; } catch (e) { /* another origin */ } return window; }
+  function sheetsPanel_(lib) {
+    if (SHEETS.panel) return SHEETS.panel;
+    SHEETS.panel = lib.mount({
+      door: sheetsDoor_, here: function () { return 'fa'; }, product: 'fa',
+      host: function () { return document; }, hostWin: sheetsHostWin_, lessonUrl: topUrl_,
+      foot: COPY.MENU_FOOT + (window.FREEDOM_GATEWAY ? COPY.MENU_FOOT_DESK : ''),
+    });
+    return SHEETS.panel;
+  }
+  function sheetsOpen_() {
+    menuClose_();
+    sheetsLib_().then(function (lib) {
+      if (!lib) { menuNote_(COPY.SHEETS_NO_REACH); return; }
+      sheetsPanel_(lib).open('fa');
+    });
+  }
+  /* the way back from Google lands on the lesson page with #hhgoogle=<what happened>, or a mark the press left in this
+   * browser: the panel is fetched then, and only then, and opens itself with the words for it */
+  function sheetsReturn_() {
+    var mark = null;
+    try { mark = JSON.parse(localStorage.getItem('ag_gsheets:fa') || 'null'); } catch (e) { mark = null; }
+    var hash = '';
+    try { hash = String(sheetsHostWin_().location.hash || ''); } catch (e2) { hash = ''; }
+    if (!/[#&]hhgoogle=/.test(hash) && !(mark && typeof mark.at === 'number' && Date.now() - mark.at < 20 * 60000)) return;
+    sheetsLib_().then(function (lib) { if (lib) sheetsPanel_(lib).checkReturn(); });
   }
   // a page (not a tool) in the same fullscreen frame: its 🏠 and ✕ come back as agdoor 'home'
   function doorOpenUrl_(url, label) {
